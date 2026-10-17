@@ -4,6 +4,8 @@ A powerful layout engine that utilises CSS Grid and @Container Queries.
 
 Describe a CSS grid that changes shape with its container. GridConfig compiles the description to static CSS container queries plus a small DOM contract that any framework can use.
 
+[See the Spec for more](spec/spec.md)
+
 ```yaml
 # card.grid
 name: card
@@ -26,8 +28,10 @@ areas: A
 A layout is YAML. Write it in a `.grid` file (the first choice), in a template string, or as an object:
 
 ```ts
-import card from './card.grid'; // a file
+// a standalone file
+import card from './card.grid';
 
+// inline as string ...
 import { grid } from '@gridconfig/core';
 const inline = grid`
   areas: A
@@ -35,8 +39,10 @@ const inline = grid`
     areas: |
       A A
       B B
-`; // a string in code
-const object = grid({ areas: 'A', 600: { areas: 'A A\nB B' } }); // an object
+`;
+
+// ... or as an object
+const object = grid({ areas: 'A', 600: { areas: 'A A\nB B' } });
 ```
 
 With the Vite plugin, static layouts compile at build time. Without it, they compile when the code runs.
