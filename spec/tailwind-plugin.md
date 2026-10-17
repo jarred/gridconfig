@@ -6,7 +6,9 @@
 
 Tailwind CSS v4 and GridConfig can work together. The first step needs no new code. A person imports the compiled CSS of GridConfig in the Tailwind stylesheet. First, we must solve one problem: cascade layers.
 
-Tailwind puts its CSS in cascade layers. The GridConfig CSS has no layer. Unlayered CSS wins over layered CSS. Thus a Tailwind utility such as `gap-4` on a grid element has no effect. We must give the GridConfig CSS a layer option before we publish. The `layer` option is already an open question in the [layout spec](./spec.md).
+Tailwind puts its CSS in cascade layers. The GridConfig CSS has no layer. Unlayered CSS wins over layered CSS. Thus a Tailwind utility such as `gap-4` on a grid element has no effect.
+
+We must solve this before we publish. Two ways exist: the `layer()` form of `@import` (Option A), or a `layer` compile option. The `layer` option is already an open question in the [layout spec](./spec.md).
 
 A Tailwind plugin is possible. It gives a small benefit over the plain import. We recommend the plain import first, then the plugin only if people ask for it.
 
@@ -32,14 +34,14 @@ The DOM uses three attributes: `data-grid-host`, `data-grid-layout`, and `data-g
 
 ## Where the two systems meet
 
-| Topic            | GridConfig                                    | Tailwind v4                                       | Result                                            |
-| ---------------- | --------------------------------------------- | ------------------------------------------------- | ------------------------------------------------- |
-| Selectors        | Attributes                                    | Class names                                       | No conflict. Tailwind does not scan attributes.   |
-| Cascade layers   | None                                          | `theme`, `base`, `components`, `utilities`        | Problem. See below.                               |
-| Container        | The host is a named container                 | Utilities query the nearest container             | Possible confusion. See below.                    |
-| Tokens           | `{space.2}` gives `var(--space-2)`            | Theme variables such as `--spacing` and `--color-*` | The `tokenVar` option can map the names.        |
-| Reset styles     | `:where()` rules with zero specificity        | The preflight reset is in the `base` layer        | No conflict.                                      |
-| Build step       | Vite plugin, CLI, or the runtime                | PostCSS or the Vite plugin                        | Both can run in the same build.                   |
+| Topic          | GridConfig                             | Tailwind v4                                         | Result                                          |
+| -------------- | -------------------------------------- | --------------------------------------------------- | ----------------------------------------------- |
+| Selectors      | Attributes                             | Class names                                         | No conflict. Tailwind does not scan attributes. |
+| Cascade layers | None                                   | `theme`, `base`, `components`, `utilities`          | Problem. See below.                             |
+| Container      | The host is a named container          | Utilities query the nearest container               | Possible confusion. See below.                  |
+| Tokens         | `{space.2}` gives `var(--space-2)`     | Theme variables such as `--spacing` and `--color-*` | The `tokenVar` option can map the names.        |
+| Reset styles   | `:where()` rules with zero specificity | The preflight reset is in the `base` layer          | No conflict.                                    |
+| Build step     | Vite plugin, CLI, or the runtime       | PostCSS or the Vite plugin                          | Both can run in the same build.                 |
 
 ### Problem 1: cascade layers
 
@@ -49,7 +51,7 @@ Example: a person writes `<div data-grid-layout="hero" class="gap-4">`. The util
 
 The fix is the `layer` compile option. When it is on, the compiler puts the base and the per-layout CSS in a named layer. The name is `components` for Tailwind users. Then utilities win, as people expect.
 
-The hide rule is different. Layers reverse the order for `!important` declarations. An unlayered `!important` rule has the lowest priority of all `!important` rules. A layered `!important` rule wins over it. 
+The hide rule is different. Layers reverse the order for `!important` declarations. An unlayered `!important` rule has the lowest priority of all `!important` rules. A layered `!important` rule wins over it.
 
 Thus the hide rule must stay unlayered in v1. Then only an `!important` utility such as `flex!` can show a hidden area. This is a small change from "absolute". We must write it in the spec.
 
@@ -61,13 +63,13 @@ Thus `@md:flex` on a grid child tests the size of the whole host. It does not te
 
 ### Problem 3: files that Tailwind does not watch
 
-Tailwind scans source files for class names. It does not know about layout files. If the plugin reads `*.yaml` files, the Tailwind watcher does not see a change in them. The result is a stale style until the person restarts the dev server. Tailwind v4 must give a way to register a file dependency. We must test this (refer to [Not verified](#not-verified)).
+Tailwind scans source files for class names. It does not know about layout files. If the plugin reads `*.grid` files, the Tailwind watcher does not see a change in them. The result is a stale style until the person restarts the dev server. The plugin needs a way to register a file dependency. We do not know if Tailwind v4 gives one (refer to [Not verified](#not-verified)).
 
 ## Options
 
 ### Option A: plain import (recommended first step)
 
-The person uses the existing GridConfig tools to make a CSS file. The Tailwind stylesheet imports it.
+The person makes a CSS file from the layouts with the planned CLI. Today the Vite plugin gives the CSS as a string in a module, not as a file. The Tailwind stylesheet imports the CSS file.
 
 ```css
 @import 'tailwindcss';
@@ -76,7 +78,7 @@ The person uses the existing GridConfig tools to make a CSS file. The Tailwind s
 
 The `layer()` function of `@import` puts the whole file in the `components` layer. This works with no new code in GridConfig. The `layer` compile option is not necessary for this form.
 
-- **Advantages.** No new package. No plugin API risk. It works in Tailwind v3 and v4.
+- **Advantages.** No new package. No dependency on the Tailwind plugin API.
 - **Problems.** The hide rule is also in the layer. Thus the hide rule loses to unlayered page CSS. This breaks the "absolute" rule. The CLI must write the hide rules to a second file or section that is not in the layer.
 - **Work.** The CLI (planned) must write two outputs: `layered` and `unlayered`. This is a small task.
 
@@ -87,7 +89,7 @@ The package `@gridconfig/tailwind` is a Tailwind plugin. A person loads it in CS
 ```css
 @import 'tailwindcss';
 @plugin '@gridconfig/tailwind' {
-	layouts: './src/layouts/*.yaml';
+	layouts: './src/layouts/*.grid';
 	tokens: tailwind;
 }
 ```
@@ -132,21 +134,21 @@ The plugin adds one variant for each step of a layout. A person writes `hero-lg:
 
 ## Recommended path
 
-| Phase | Work                                                                                      | Needed from core                                  |
-| ----- | ----------------------------------------------------------------------------------------- | ------------------------------------------------- |
-| 0     | Write a recipe (Option A) in the docs. Warn about layers.                                  | Nothing                                           |
-| 1     | Add the `layer` compile option. Add the layered and unlayered outputs to the CLI.          | `layer` option, split output                      |
-| 2     | Add `@gridconfig/tailwind` only if people ask. Start with the `tokens: tailwind` mapping. | A stable `tokenVar` option                        |
-| 3     | Do not build Option C unless a clear need appears.                                        | None                                              |
+| Phase | Work                                                                                      | Needed from core             |
+| ----- | ----------------------------------------------------------------------------------------- | ---------------------------- |
+| 0     | Write a recipe (Option A) in the docs. Warn about layers.                                 | Nothing                      |
+| 1     | Add the `layer` compile option. Add the layered and unlayered outputs to the CLI.         | `layer` option, split output |
+| 2     | Add `@gridconfig/tailwind` only if people ask. Start with the `tokens: tailwind` mapping. | A stable `tokenVar` option   |
+| 3     | Do not build Option C unless a clear need appears.                                        | None                         |
 
 ## Token mapping
 
 Tailwind v4 theme variables are not the same as the GridConfig token paths. The `tokenVar` option can bridge them.
 
-| Layout value       | Output with the default mapping | Output with the `tailwind` mapping |
-| ------------------ | ------------------------------- | ---------------------------------- |
-| `{spacing.4}`      | `var(--spacing-4)`              | `calc(var(--spacing) * 4)`         |
-| `{color.red-500}`  | `var(--color-red-500)`          | `var(--color-red-500)`             |
+| Layout value      | Output with the default mapping | Output with the `tailwind` mapping |
+| ----------------- | ------------------------------- | ---------------------------------- |
+| `{spacing.4}`     | `var(--spacing-4)`              | `calc(var(--spacing) * 4)`         |
+| `{color.red-500}` | `var(--color-red-500)`          | `var(--color-red-500)`             |
 
 Tailwind v4 uses one base variable `--spacing` for all spacing utilities. Thus `{spacing.4}` needs the `calc()` form. The mapping for spacing is the only special case that we know.
 

@@ -1,6 +1,8 @@
 # GridConfig layout spec
 
-**Status: draft 0.3.** The compiler in `packages/core` is the implementation of this document. The tests are in `packages/core/test`. Refer to [Implementation notes](#implementation-notes) for the parts that are not built yet.
+**Status: draft 0.3.** The compiler in `packages/core` is the implementation of this document. The tests are in `packages/core/test` and `packages/unplugin/test`. Refer to [Implementation notes](#implementation-notes) for the parts that are not built yet.
+
+Two other notes explore how GridConfig can work with other tools. They are not part of this spec: [Tailwind](./tailwind-plugin.md) and [StyleX](./stylex-support.md).
 
 A layout is a description of a CSS grid. The grid changes shape when the size of its container changes. The compiler makes static CSS (container queries) and a small DOM contract from the layout. The DOM contract does not depend on a framework. This document has two parts:
 
@@ -53,7 +55,7 @@ A `.yaml` or `.yml` file with the same content is also a layout. Tools handle `.
 
 **The object in code.** The function `grid` also takes an object. The object must be plain data: strings, numbers, booleans, arrays, and objects. It cannot have functions, symbols, `NaN`, dates, or class instances. A value of `undefined` counts as absent. Query keys can be numbers (`600: { … }`).
 
-The object form and the string form must be static, so that a build plugin can compile them at build time. Without the plugin, the layout compiles when the code runs.
+A template must always be static. An object can be static or dynamic. A build plugin compiles a template or an object at build time when each value in it is written as a literal in the code. If an object has a variable, a spread, or a call, the object compiles when the code runs.
 
 An area map is a multi-line string in all three forms. A list of rows is not permitted.
 
@@ -306,7 +308,7 @@ The output uses only standard CSS container queries and grid features. It has no
 The parser and the compiler throw an error for each of these:
 
 - An invalid `name`.
-- A YAML document with more than one document, or with a tag.
+- A file with more than one YAML document, or with a tag.
 - An object layout that has a value that is not plain data.
 - A `grid` template that has a `${}` expression.
 - A base step that has no `areas`.
@@ -348,10 +350,9 @@ baseCss: string   // the shared base rules, needed once per page
 ## Tooling (planned)
 
 - **JSON Schema** for the layout. It gives editor autocomplete for the settings, the query keys, and the `container` values.
-- **`.grid` extension.** The content is the YAML that [Ways to write a layout](#ways-to-write-a-layout) describes. The editor extension will give syntax colors, the schema, and diagnostics. Until it exists, a `.gitattributes` line (`*.grid linguist-language=YAML`) and a Prettier override (`parser: yaml`) give basic support.
+- **`.grid` extension.** The content is the YAML that [Ways to write a layout](#ways-to-write-a-layout) describes. The editor extension will give syntax colors, the schema, and diagnostics. Until it exists, a `.gitattributes` line (`*.grid linguist-language=YAML`) and a Prettier override (`parser: yaml`) can give basic support. We did not test them.
 - **Area colors.** Core will export `areaColor(name, index)`. It gives a perceptually even palette for light and dark themes. The editor, the debug overlay, the playground, and the CLI use it. Thus an area has the same color in each tool.
 - **CLI.** `gridconfig build` writes the CSS and a typed module for each layout.
-- **Build plugin.** The plugin loads `.grid` files. It also finds each static `grid` template and each static `grid` object in the code. It replaces them with the compiled result. A call with an argument that is not static compiles when the code runs.
 - **Runtime.** `compileLayout` stays available in the browser for the playground and the future design tool.
 
 ---
@@ -362,7 +363,7 @@ These parts are built:
 
 - The parser and the compiler: cascade semantics, value grammar, validation, hiding, warnings, and structured errors.
 - The three forms: YAML text, objects, and the `grid` function. The default `name`, the removal of shared indentation, and the checks for plain data, tags, and multiple documents.
-- The Vite plugin (`packages/unplugin`). It loads `.grid` files and `.yaml?layout` imports. It replaces each static `grid` template and object in the code with the compiled result. It reports an error when two files give the same layout name.
+- The Vite plugin (`packages/unplugin`). It loads `.grid` files and `.yaml?layout` imports. It replaces each static `grid` template and object with the compiled result. It only looks at files that import `grid` from `@gridconfig/core`. It reports an error when two files give the same layout name.
 - The Svelte `Grid` component (`packages/svelte`). It uses the `data-grid-*` attributes.
 
 These parts are not built yet:
@@ -380,7 +381,7 @@ These parts are not built yet:
 ## Open questions
 
 - **Hiding (decided for v1, to revisit).** Hiding stays `display: none !important`, not in a layer. Watch for page authors who need an absent area to stay visible. If this is necessary, the candidate is a `keep: [B]` setting. The setting skips the hide rule. It also sets `grid-area: auto` for that area in the step. A possible later alternative is a style-query output profile. It uses a custom property for each area, and it does not use exclusive `not (…)` ranges. It raises the minimum browser version.
-- **Layer.** Proposed, not decided: a `layer` compile option. It is off by default. When it is on, it puts everything except the hide rules in an `@layer`. The default is no layer, because a layered rule loses to a normal page reset, for example `* { padding: 0 }`.
+- **Layer.** Proposed, not decided: a `layer` compile option. It is off by default. When it is on, it puts everything except the hide rules in an `@layer`. The default is no layer, because a layered rule loses to a normal page reset, for example `* { padding: 0 }`. The [Tailwind note](./tailwind-plugin.md) shows the opposite problem: unlayered rules win over the layers of Tailwind. A layer also changes the hide rule, because `!important` reverses the order of layers.
 - **Identifiers.** The container names and the selectors are the `name` of the layout. A name that the compiler makes (a file name or a hash) has a low risk of conflict inside one project. Do production builds add a short hash to prevent a conflict between packages?
 - **Token breakpoints.** Named breakpoints (`{bp.md}`) need resolution at build time, because `var()` cannot be in a container condition. They are not in v1.
 - **`css` escape hatch.** Raw declarations do not work in the same way in the shadow-DOM output. Decide if the shadow-DOM output permits them.

@@ -33,19 +33,19 @@ The output has the shared base, one block of CSS for each layout, and the hide r
 
 ## Where the two systems meet
 
-| Topic               | GridConfig                                       | StyleX                                          | Result                                                       |
-| ------------------- | ------------------------------------------------ | ----------------------------------------------- | ------------------------------------------------------------ |
-| Selectors           | Child selectors with attributes                  | No descendant or global selectors               | Conflict. The output form must change for a StyleX target.   |
-| Where styles attach | The parent rule places the child                 | The element carries its own class               | Each child needs its own style object.                       |
-| Container queries   | `@container name (condition)`                    | At-rule keys are supported for some at-rules    | Not verified for `@container`.                               |
-| Tokens              | `var(--space-2)`                                 | Variable names have a hash                      | A plain `var(--space-2)` does not find a StyleX variable.    |
-| Hide rule           | `display: none !important` outside all layers    | Atomic classes with a merge order               | A StyleX target cannot make the rule absolute.               |
-| Source of truth     | A YAML file                                      | JavaScript in the same file                     | A generated module is necessary.                             |
-| Cascade             | The browser cascade, one property at a time      | Priority from the key order and `styleResolution` | The ordering of steps must map to the key order.           |
+| Topic               | GridConfig                                    | StyleX                                            | Result                                                     |
+| ------------------- | --------------------------------------------- | ------------------------------------------------- | ---------------------------------------------------------- |
+| Selectors           | Child selectors with attributes               | No descendant or global selectors                 | Conflict. The output form must change for a StyleX target. |
+| Where styles attach | The parent rule places the child              | The element carries its own class                 | Each child needs its own style object.                     |
+| Container queries   | `@container name (condition)`                 | At-rule keys are supported for some at-rules      | Not verified for `@container`.                             |
+| Tokens              | `var(--space-2)`                              | Variable names have a hash                        | A plain `var(--space-2)` does not find a StyleX variable.  |
+| Hide rule           | `display: none !important` outside all layers | Atomic classes with a merge order                 | A StyleX target cannot make the rule absolute.             |
+| Source of truth     | A `.grid` file                                | JavaScript in the same file                       | A generated module is necessary.                           |
+| Cascade             | The browser cascade, one property at a time   | Priority from the key order and `styleResolution` | The ordering of steps must map to the key order.           |
 
 ## Approach 1: side by side
 
-The person generates a CSS file from the layouts. This is the same output that other users get. The person puts the file in the page. StyleX handles all other styles.
+The person generates a CSS file from the layouts with the planned CLI. This is the same output that other users get. The person puts the file in the page. StyleX handles all other styles.
 
 ```tsx
 import './gridconfig.generated.css';
@@ -76,7 +76,7 @@ export function Hero() {
 The compiler gets an output target `stylex`. It writes a JavaScript module. The module has one `stylex.create()` call. Each part of the layout gets one style object.
 
 ```ts
-// hero.layout.stylex.ts (generated)
+// hero.grid.stylex.ts (generated)
 import * as stylex from '@stylexjs/stylex';
 
 export const hero = stylex.create({
@@ -108,7 +108,7 @@ The person uses the module in the component:
 
 ```tsx
 import * as stylex from '@stylexjs/stylex';
-import { hero } from './hero.layout.stylex';
+import { hero } from './hero.grid.stylex';
 
 export function Hero() {
 	return (
@@ -126,16 +126,16 @@ In this form the DOM contract changes. The elements get class names, not `data-g
 
 ### How each GridConfig feature maps
 
-| Feature            | Mapping                                                                                         | Status      |
-| ------------------ | ----------------------------------------------------------------------------------------------- | ----------- |
-| Steps              | One at-rule key for each step, in the cascade order                                             | Not verified |
-| Cascade            | The later key wins. This is the same as the browser cascade for one property.                    | Not verified |
-| Area placement     | One style object for each area, with `gridArea`                                                  | Possible    |
-| Tracks, gap, padding | Values with at-rule keys                                                                       | Possible    |
-| Tokens             | Import a StyleX variable. Use the `tokenImport` option to name the module.                      | Needs design |
-| `css` escape hatch | Not possible. StyleX does not accept raw CSS text.                                              | Not possible |
-| Hide rule          | A `display` value with an exclusive `not (...)` key                                              | Weak. See below. |
-| Validation         | Unchanged. The compiler validates before it writes the module.                                  | Possible    |
+| Feature              | Mapping                                                                       | Status           |
+| -------------------- | ----------------------------------------------------------------------------- | ---------------- |
+| Steps                | One at-rule key for each step, in the cascade order                           | Not verified     |
+| Cascade              | The later key wins. This is the same as the browser cascade for one property. | Not verified     |
+| Area placement       | One style object for each area, with `gridArea`                               | Possible         |
+| Tracks, gap, padding | Values with at-rule keys                                                      | Possible         |
+| Tokens               | Import a StyleX variable. Use the `tokenImport` option to name the module.    | Needs design     |
+| `css` escape hatch   | Not possible. StyleX does not accept raw CSS text.                            | Not possible     |
+| Hide rule            | A `display` value with an exclusive `not (...)` key                           | Weak. See below. |
+| Validation           | Unchanged. The compiler validates before it writes the module.                | Possible         |
 
 ### Problem 1: static values only
 
@@ -143,8 +143,8 @@ In this form the DOM contract changes. The elements get class names, not `data-g
 
 The generation step must run before the StyleX Babel plugin. Two ways exist:
 
-- **CLI.** The CLI writes `*.layout.stylex.ts` files. The person commits them or adds them to the build. This is the simplest way.
-- **Bundler plugin.** `@gridconfig/unplugin` turns `hero.layout.yaml?stylex` into a virtual module. It must run before the StyleX plugin, and the StyleX plugin must accept the virtual module name. We do not know if this is possible.
+- **CLI.** The CLI writes `*.grid.stylex.ts` files. The person commits them or adds them to the build. This is the simplest way.
+- **Bundler plugin.** `@gridconfig/unplugin` turns `hero.grid?stylex` into a virtual module. It must run before the StyleX plugin, and the StyleX plugin must accept the virtual module name. We do not know if this is possible.
 
 ### Problem 2: tokens have hashed names
 
@@ -176,12 +176,12 @@ We do not know if StyleX accepts `@container` as a key with a name and a compoun
 
 ## Recommended path
 
-| Phase | Work                                                                                                   |
-| ----- | ------------------------------------------------------------------------------------------------------ |
-| 0     | Write a recipe for Approach 1. Warn about the cascade between StyleX classes and GridConfig rules.      |
+| Phase | Work                                                                                                                                   |
+| ----- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| 0     | Write a recipe for Approach 1. Warn about the cascade between StyleX classes and GridConfig rules.                                     |
 | 1     | Do a test (one day of work). Write one layout by hand as a StyleX module. Run it through the Babel plugin. Check the CSS in a browser. |
-| 2     | If the test passes, add the `stylex` target to the CLI only. Do not add a bundler plugin.               |
-| 3     | Decide about a bundler plugin after StyleX publishes an official unplugin.                              |
+| 2     | If the test passes, add the `stylex` target to the CLI only. Do not add a bundler plugin.                                              |
+| 3     | Decide about a bundler plugin after StyleX publishes an official unplugin.                                                             |
 
 If the test in Phase 1 fails at `@container`, we stop. Approach 1 stays.
 
