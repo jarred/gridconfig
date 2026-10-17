@@ -1,0 +1,35 @@
+{
+	"name": "@gridconfig/svelte",
+	"version": "0.0.0",
+	"description": "GridConfig Grid component for Svelte 5.",
+	"license": "MIT",
+	"type": "module",
+	"svelte": "./src/index.ts",
+	"exports": {
+		".": {
+			"types": "./src/index.ts",
+			"svelte": "./src/index.ts",
+			"default": "./src/index.ts"
+		}
+	},
+	"files": [
+		"src"
+	],
+	"publishConfig": {
+		"access": "public"
+	},
+	"scripts": {
+		"check": "svelte-check --tsconfig ./tsconfig.json"
+	},
+	"dependencies": {
+		"@gridconfig/core": "workspace:*"
+	},
+	"peerDependencies": {
+		"svelte": "^5.0.0"
+	},
+	"devDependencies": {
+		"svelte": "^5.57.1",
+		"svelte-check": "^4.6.0",
+		"typescript": "^6.0.3"
+	}
+}

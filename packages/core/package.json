@@ -1,0 +1,39 @@
+{
+	"name": "@gridconfig/core",
+	"version": "0.0.0",
+	"description": "Parse GridConfig layout files and compile them to CSS container queries.",
+	"license": "MIT",
+	"type": "module",
+	"exports": {
+		".": "./src/index.ts",
+		"./runtime": "./src/runtime.ts"
+	},
+	"files": [
+		"dist"
+	],
+	"publishConfig": {
+		"access": "public",
+		"exports": {
+			".": {
+				"types": "./dist/index.d.ts",
+				"default": "./dist/index.js"
+			},
+			"./runtime": {
+				"types": "./dist/runtime.d.ts",
+				"default": "./dist/runtime.js"
+			}
+		}
+	},
+	"scripts": {
+		"build": "tsc -p tsconfig.build.json",
+		"prepublishOnly": "pnpm build",
+		"test": "node --test \"test/**/*.test.ts\"",
+		"check": "tsc -p tsconfig.json"
+	},
+	"dependencies": {
+		"yaml": "^2.9.1"
+	},
+	"devDependencies": {
+		"typescript": "^6.0.3"
+	}
+}

@@ -1,0 +1,15 @@
+areas: A
+name: sub-test
+
+100x100:
+  gap: 4
+  areas: |
+    A B
+
+# Keys are min-width x min-height; each step inherits from the previous one.
+200x200:
+  gap: 8
+  rows: 1fr 40px
+  areas: |
+    A
+    B

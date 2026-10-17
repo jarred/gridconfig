@@ -1,0 +1,43 @@
+name: homepage
+areas: A
+gap: 4
+padding: 4
+
+300x300:
+  areas: |
+    A
+    B
+
+400x600:
+  areas: |
+    A C
+    B B
+
+1200x600:
+  areas: |
+    A B
+    C B
+
+1300x900:
+  rows: 80 1fr*2 80
+  cols: 80 1fr*2 80
+  areas: |
+    . . . .
+    . A B .
+    . C B .
+    . . . .
+
+1600x1400:
+  cols: 120 1fr*2 120
+  areas: |
+    . . B B
+    . A B B
+    . C B B
+    . . B B
+
+2400x1400:
+  areas: |
+    . A B B
+    . C B B
+    . . B B
+    . . B B

@@ -1,0 +1,11 @@
+@import './reset.css';
+
+:root {
+	--font-sans:
+		-apple-system, BlinkMacSystemFont, avenir next, avenir, segoe ui, helvetica neue, Adwaita Sans,
+		Cantarell, Ubuntu, roboto, noto, helvetica, arial, sans-serif;
+}
+
+html {
+	font-family: var(--font-sans);
+}

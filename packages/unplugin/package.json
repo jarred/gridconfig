@@ -1,0 +1,44 @@
+{
+	"name": "@gridconfig/unplugin",
+	"version": "0.0.0",
+	"description": "Bundler plugins that compile GridConfig layout files.",
+	"license": "MIT",
+	"type": "module",
+	"exports": {
+		"./vite": "./src/vite.ts",
+		"./client": {
+			"types": "./client.d.ts"
+		}
+	},
+	"files": [
+		"dist",
+		"client.d.ts"
+	],
+	"publishConfig": {
+		"access": "public",
+		"exports": {
+			"./vite": {
+				"types": "./dist/vite.d.ts",
+				"default": "./dist/vite.js"
+			},
+			"./client": {
+				"types": "./client.d.ts"
+			}
+		}
+	},
+	"scripts": {
+		"build": "tsc -p tsconfig.build.json",
+		"prepublishOnly": "pnpm build",
+		"check": "tsc -p tsconfig.json"
+	},
+	"dependencies": {
+		"@gridconfig/core": "workspace:*"
+	},
+	"peerDependencies": {
+		"vite": ">=6.0.0"
+	},
+	"devDependencies": {
+		"typescript": "^6.0.3",
+		"vite": "^8.3.0"
+	}
+}

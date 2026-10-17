@@ -1,0 +1,41 @@
+areas: A
+name: hero
+
+100x100:
+  gap: 4
+  cols: 2
+  rows: 2
+  padding: 4
+  areas: |
+    A A
+    B B
+
+# Keys are min-width x min-height; each step inherits from the previous one.
+200x200:
+  gap: 8
+  rows: 2fr 1fr
+  padding: 8
+  areas: |
+    A A
+    . B
+
+600x600:
+  padding: 12
+  gap: 8
+  cols: 20cqh 1fr*3 20cqh
+  rows: 20cqh 1fr*3 20cqh
+  areas: |
+    . A A . .
+    . A A . .
+    . . . . .
+    . . . . .
+    . B B B B
+
+1024x900:
+  gap: 16
+  padding: 16
+  areas: |
+    . . . . . . . .
+    A A A A . . . .
+    A A A A . . . .
+    . . . . . B B B

@@ -1,0 +1,25 @@
+{
+	"name": "gridconfig-workspace",
+	"private": true,
+	"type": "module",
+	"scripts": {
+		"dev": "pnpm --filter @gridconfig/site dev",
+		"build": "pnpm -r --if-present build",
+		"test": "pnpm -r --if-present test",
+		"check": "pnpm -r --if-present check",
+		"lint": "prettier --check . && eslint .",
+		"format": "prettier --write ."
+	},
+	"devDependencies": {
+		"@eslint/js": "^10.0.1",
+		"@types/node": "^20",
+		"eslint": "^10.4.1",
+		"eslint-config-prettier": "^10.1.8",
+		"eslint-plugin-svelte": "^3.19.0",
+		"globals": "^17.6.0",
+		"prettier": "^3.8.3",
+		"prettier-plugin-svelte": "^4.1.0",
+		"typescript": "^6.0.3",
+		"typescript-eslint": "^8.60.1"
+	}
+}
