@@ -29,7 +29,8 @@
 	"scripts": {
 		"build": "tsc -p tsconfig.build.json",
 		"prepublishOnly": "pnpm build",
-		"check": "tsc -p tsconfig.json"
+		"check": "tsc -p tsconfig.json",
+		"test": "node --test \"test/**/*.test.ts\""
 	},
 	"dependencies": {
 		"@gridconfig/core": "workspace:*"

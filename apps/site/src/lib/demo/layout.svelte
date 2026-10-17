@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { Grid } from '@gridconfig/svelte';
-	import hero from './layout.yaml?layout';
+	import hero from './layout.grid';
 	import SubTest from './sub-test/sub-test.svelte';
 </script>
 

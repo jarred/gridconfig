@@ -189,7 +189,7 @@ areas: |
 });
 
 test('errors', () => {
-	fails('areas: A', /`name` is required/);
+	fails('name: 1bad\nareas: A', /valid identifier/);
 	fails('name: t', /base step must set `areas`/);
 	fails('name: t\nareas: A\nfoo: 1', /Unknown key "foo"/);
 	fails('name: t\nareas: A\n100:\n  gap: 1\n100x:\n  gap: 2', /duplicates/);

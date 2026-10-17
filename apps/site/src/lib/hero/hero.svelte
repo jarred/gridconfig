@@ -1,10 +1,10 @@
 <script lang="ts">
 	import { Grid } from '@gridconfig/svelte';
-	import heroLayout from './layout.yaml?layout';
+	import heroLayout from './hero.grid';
 </script>
 
 <main>
-	<Grid layout={heroLayout} debug>
+	<Grid layout={heroLayout}>
 		<div data-grid-area="A">Area A</div>
 		<div data-grid-area="B">Area B</div>
 		<div data-grid-area="C">Area C</div>

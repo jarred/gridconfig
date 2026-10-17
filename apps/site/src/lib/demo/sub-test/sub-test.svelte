@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { Grid } from '@gridconfig/svelte';
-	import subLayout from './layout.yaml?layout';
+	import subLayout from './layout.grid';
 </script>
 
 <Grid layout={subLayout} debug>
