@@ -306,3 +306,40 @@ test('debug does not change the other css', () => {
 	const withDebug = compileLayout(DEBUG_SRC, { layer: false, debug: true }).css;
 	assert.equal(withDebug.replace(/ --gc-debug: "(?:[^"\\]|\\.)*";/, ''), plain);
 });
+
+test('every step sets --gc-step to its key, and the base sets "base"', () => {
+	const { css } = compileLayout(
+		`
+name: s
+areas: A
+100x100:
+  gap: 4
+x400:
+  padding: 2
+600x:
+  gap: 8
+`,
+		{ layer: false }
+	);
+	assert.match(css, /\[data-grid-layout="s"\] \{[^}]*--gc-step: base;\n\}/);
+	for (const [query, key] of [
+		['(min-width: 100px) and (min-height: 100px)', '100x100'],
+		['(min-height: 400px)', 'x400'],
+		['(min-width: 600px)', '600x']
+	])
+		assert.ok(
+			css.includes(`@container s ${query} {\n  [data-grid-layout="s"] {`) &&
+				new RegExp(
+					`@container s ${query.replace(/[()]/g, '\\$&')} \\{[^}]*--gc-step: ${key};`
+				).test(css),
+			`${key} sets --gc-step`
+		);
+});
+
+test('a step that sets nothing else still gets a block for --gc-step', () => {
+	const { css } = compileLayout('name: e\nareas: A\n500:\n  css: ""\n', { layer: false });
+	assert.match(
+		css,
+		/@container e \(min-width: 500px\) \{\n {2}\[data-grid-layout="e"\] \{\n {4}--gc-step: 500;/
+	);
+});

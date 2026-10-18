@@ -274,6 +274,7 @@ This is example output for the example at the top. The format of the output is n
 		grid-template-columns: repeat(1, 1fr);
 		grid-template-rows: repeat(1, 1fr);
 		grid-template-areas: 'A';
+		--gc-step: base;
 	}
 	[data-grid-layout='hero'] > [data-grid-area='A'] {
 		grid-area: A;
@@ -288,6 +289,7 @@ This is example output for the example at the top. The format of the output is n
 			grid-template-columns: repeat(2, 1fr);
 			grid-template-rows: repeat(2, 1fr);
 			grid-template-areas: 'A A' 'B B';
+			--gc-step: 100x100;
 		}
 	}
 
@@ -297,6 +299,7 @@ This is example output for the example at the top. The format of the output is n
 			grid-template-columns: repeat(2, 1fr);
 			grid-template-rows: 1fr 40px;
 			grid-template-areas: 'A A' '. B';
+			--gc-step: 200x200;
 		}
 	}
 }
@@ -308,6 +311,24 @@ This is example output for the example at the top. The format of the output is n
 	}
 }
 ```
+
+### Active step
+
+Each step sets the custom property `--gc-step` on the grid element. The value is the query key of the step, or `base` for the base step. The cascade gives the active step: the last step that matches. Thus two steps that match at the same time give one value.
+
+Content can use a style query to target a step. The custom property inherits, so a descendant at any depth can use it:
+
+```css
+@container style(--gc-step: 200x200) {
+	h1 {
+		font-size: 12cqmin;
+	}
+}
+```
+
+A nested layout sets its own value for its subtree. JavaScript can read the value with `getComputedStyle(grid).getPropertyValue('--gc-step')`. Style queries for custom properties are in all current browsers (Baseline in 2026). An older browser ignores the rule.
+
+Use the style query, and do not copy the size conditions of a step to page CSS. A copy of the conditions tells you that a step matches, but not that it is active.
 
 The output uses only standard CSS container queries and grid features. It has no JavaScript and no selectors for a specific framework. Thus a plain stylesheet is sufficient to use it from each framework. The Web Components adapter describes the shadow-DOM variant (selectors that use `:host` and `::slotted()`).
 
@@ -388,9 +409,15 @@ The overlay is in the top layer of the browser (a `popover`). Thus an ancestor w
 
 The select sets the host to the minimum size of a step. The handle snaps to the size of a step when it is within 6 px. Hold Alt to turn this off. Close the overlay, or press the reset button, to give the natural size back.
 
+**Pop out.** The pop-out button moves the layout to the centre of the screen. A dim scrim covers the page. The real host element goes to the top layer of the browser (a `popover`). It does not move in the DOM. Thus the CSS that depends on its ancestors still applies.
+
+The host keeps the padding, border, color, and overflow that the page gives it. A host with no background gets the background behind it. A host that has no size gets 480 by 360. A resize stays inside the viewport, and it does not reflow the page. Esc, a click on the scrim, or the button puts the host back. If the page replaces the host, for example after a file change, the new host with the same name pops out again.
+
 **Debug data.** With `debug: true`, the compiler puts the steps in `CompiledLayout.debug`. It also writes them in the custom property `--gc-debug` on the host. The value is a CSS string that holds JSON. Thus the data goes with the CSS in each route, also in a plain stylesheet.
 
 Without the data, the overlay still draws from the computed styles. It then shows used sizes and no steps. The Vite plugin sets `debug: true` when the dev server runs.
+
+**Console warning.** A host with no height or no width shows nothing. Thus the package also writes a warning in the console, also when the overlay is closed. The warning gives the name of the layout and a fix. The check waits until the page does not change for 1 second, because some CSS loads late in development. It does not warn for a host that the page does not render.
 
 **Start.** Import `@gridconfig/devtools/auto` to install the overlay. The Svelte `Grid` component does this in development. The `debug` prop of `Grid` opens the overlay on that grid. The keys Alt+Shift+G show and hide it.
 
@@ -424,6 +451,8 @@ These parts are not built yet:
 - **Hiding (decided for v1, to revisit).** Hiding stays `display: none !important`, not in a layer. Watch for page authors who need an absent area to stay visible. If this is necessary, the candidate is a `keep: [B]` setting. The setting skips the hide rule. It also sets `grid-area: auto` for that area in the step. A possible later alternative is a style-query output profile. It uses a custom property for each area, and it does not use exclusive `not (…)` ranges. It raises the minimum browser version.
 - **Layer (decided for v1).** Layers are on by default, in the layer `gridconfig`. The reason: a utility class such as `gap-4` must be able to override a layout. The cost: an unlayered reset such as `* { padding: 0 }` removes the layout padding, in any source order. A page can put its reset in an earlier layer to prevent this. Browser tests record both cases. The hide rules stay outside the layer, because `!important` reverses the order of layers.
 - **Names (decided for v1).** The function is `grid`. It matches the `.grid` extension, the package name, and the `data-grid-*` attributes. The result of `grid` is a layout, and a component takes it as a `layout` prop. The query for a plain YAML file is `?grid`. It is not `?layout`, because SvelteKit uses "layout" for route layouts. An import of `grid` can use an alias, for example `import { grid as g }`, if a file already has a variable `grid`. The build plugin follows the alias.
+- **Named steps (deferred).** A step can get an optional name, for example `as: wide`. Then `--gc-step` has the name, and page CSS does not repeat a size.
+- **Reactive step (deferred).** The adapters can give the active step to JavaScript, for logic such as a change of component. The value comes from `--gc-step`, with a `ResizeObserver` on the host. Styles do not need it: use the style query.
 - **Identifiers.** The container names and the selectors are the `name` of the layout. A name that the compiler makes (a file name or a hash) has a low risk of conflict inside one project. Do production builds add a short hash to prevent a conflict between packages?
 - **Token breakpoints.** Named breakpoints (`{bp.md}`) need resolution at build time, because `var()` cannot be in a container condition. They are not in v1.
 - **`css` escape hatch.** Raw declarations do not work in the same way in the shadow-DOM output. Decide if the shadow-DOM output permits them.

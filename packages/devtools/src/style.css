@@ -1,0 +1,316 @@
+/*
+ * The styles of the inspector. They apply inside its shadow root only, so the CSS of the page
+ * cannot change them. To change the color, set --accent here, or on the element from the page:
+ *   gridconfig-devtools { --accent: hotpink; }
+ */
+
+:host {
+	--accent: #3b5bdb;
+	--ink: #343a40;
+	--error: #c92a2a;
+	--warning: #e67700;
+	--note: #868e96;
+	--paper: #fff;
+
+	display: contents;
+}
+
+* {
+	box-sizing: border-box;
+}
+
+[hidden] {
+	display: none !important;
+}
+
+/* The layer fills the viewport and lets pointer events through, except on the controls. */
+.layer {
+	position: fixed;
+	inset: 0;
+	width: auto;
+	height: auto;
+	margin: 0;
+	padding: 0;
+	border: 0;
+	background: none;
+	overflow: visible;
+	pointer-events: none;
+	z-index: 2147483647;
+	color: var(--accent);
+	font:
+		12px/1.3 ui-monospace,
+		SFMono-Regular,
+		Menlo,
+		Consolas,
+		monospace;
+}
+
+.interactive {
+	pointer-events: auto;
+}
+
+.decor,
+.chrome {
+	position: absolute;
+	inset: 0;
+	pointer-events: none;
+}
+
+.decor > *,
+.chrome > * {
+	position: absolute;
+}
+
+/* Frames and tags */
+
+.frame {
+	border: 1px solid var(--accent);
+}
+
+.frame.dim {
+	border-style: dashed;
+	opacity: 0.5;
+}
+
+.chip,
+.tag {
+	border: 0;
+	border-radius: 6px;
+	padding: 3px 8px;
+	background: var(--paper);
+	color: var(--accent);
+	font: inherit;
+	box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 25%, transparent);
+}
+
+.chip {
+	cursor: pointer;
+}
+
+.tag {
+	display: flex;
+	align-items: center;
+	padding: 3px 6px 3px 8px;
+}
+
+.tag select {
+	appearance: auto;
+	margin: 0;
+	border: 0;
+	padding: 0 2px 0 0;
+	background: transparent;
+	color: inherit;
+	font: inherit;
+	cursor: pointer;
+}
+
+.tag .reset,
+.tag .popout {
+	display: inline-flex;
+	align-items: center;
+	border: 0;
+	padding: 0 0 0 6px;
+	background: transparent;
+	color: inherit;
+	font: inherit;
+	cursor: pointer;
+}
+
+.size {
+	transform: translateX(-100%);
+	border-radius: 4px;
+	padding: 0 4px;
+	background: color-mix(in srgb, var(--paper) 85%, transparent);
+}
+
+/* The scrim behind a popped host */
+
+.scrim {
+	position: fixed;
+	inset: 0;
+	width: auto;
+	height: auto;
+	margin: 0;
+	padding: 0;
+	border: 0;
+	overflow: hidden;
+	color: transparent;
+	background:
+		radial-gradient(circle, rgb(255 255 255 / 22%) 1px, transparent 1.5px) 0 0 / 18px 18px,
+		rgb(18 20 28 / 64%);
+	cursor: default;
+}
+
+/* Areas, gaps and padding */
+
+.area {
+	border: 1px solid color-mix(in srgb, var(--accent) 55%, transparent);
+	background: color-mix(in srgb, var(--accent) 5%, transparent);
+}
+
+.area-label {
+	position: absolute;
+	top: 6px;
+	left: 8px;
+}
+
+.area-label.none {
+	opacity: 0.55;
+}
+
+.area-label.none::after {
+	content: ' (empty)';
+}
+
+.empty {
+	border: 1px dashed color-mix(in srgb, var(--accent) 30%, transparent);
+	background: repeating-linear-gradient(
+		135deg,
+		color-mix(in srgb, var(--accent) 10%, transparent) 0 1px,
+		transparent 1px 6px
+	);
+}
+
+.band.pad {
+	background: repeating-linear-gradient(
+		45deg,
+		color-mix(in srgb, var(--accent) 28%, transparent) 0 1px,
+		color-mix(in srgb, var(--accent) 8%, transparent) 1px 5px
+	);
+}
+
+.band.gap {
+	background: color-mix(in srgb, var(--accent) 16%, transparent);
+}
+
+/* Track labels. The halo keeps them readable on any page. */
+
+.label {
+	transform: translate(-50%, 0);
+	pointer-events: auto;
+	white-space: nowrap;
+	text-shadow:
+		0 0 3px var(--paper),
+		0 0 3px var(--paper),
+		0 0 3px var(--paper);
+}
+
+.label.row {
+	transform: translate(-100%, -50%);
+}
+
+.label.row.in {
+	transform: translate(0, -50%);
+}
+
+/* On the scrim, the labels are light. */
+
+.layer.popped .label {
+	color: var(--paper);
+	text-shadow: none;
+}
+
+/* Resize handles */
+
+/* touch-action: none stops a touch or a pen from scrolling the page and cancelling the drag. */
+.handle {
+	touch-action: none;
+}
+
+.handle.edge {
+	cursor: ew-resize;
+}
+
+.handle.edge.y {
+	cursor: ns-resize;
+}
+
+.handle.dot {
+	width: 12px;
+	height: 12px;
+	border: 1.5px solid var(--accent);
+	border-radius: 50%;
+	background: var(--paper);
+	cursor: nwse-resize;
+}
+
+/* The values under the frame, and the problems */
+
+.below {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+	max-width: min(560px, 90vw);
+}
+
+.info {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 4px 12px;
+}
+
+.info .item {
+	border-radius: 4px;
+	padding: 0 4px;
+	background: color-mix(in srgb, var(--paper) 85%, transparent);
+}
+
+.findings {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.finding {
+	border-radius: 6px;
+	padding: 4px 8px;
+	background: var(--paper);
+	color: var(--ink);
+	box-shadow: 0 0 0 1px rgb(0 0 0 / 12%);
+}
+
+.finding::before {
+	content: '●';
+	margin-right: 6px;
+}
+
+.finding.error::before {
+	color: var(--error);
+}
+
+.finding.warning::before {
+	color: var(--warning);
+}
+
+.finding.info::before {
+	color: var(--note);
+}
+
+/* The button that shows and hides the inspector */
+
+.toggle {
+	position: fixed;
+	right: 16px;
+	bottom: 16px;
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	border: 0;
+	border-radius: 999px;
+	padding: 6px 12px;
+	background: var(--paper);
+	color: var(--accent);
+	font: inherit;
+	box-shadow:
+		0 0 0 1px color-mix(in srgb, var(--accent) 35%, transparent),
+		0 2px 8px rgb(0 0 0 / 15%);
+	cursor: pointer;
+}
+
+.toggle[aria-pressed='true'] {
+	background: var(--accent);
+	color: var(--paper);
+}

@@ -1,4 +1,4 @@
-import { attributes } from './attributes.ts';
+import { STEP_PROPERTY, attributes } from './attributes.ts';
 import { DEBUG_PROPERTY } from './debug.ts';
 import { LayoutError } from './errors.ts';
 import { inLayer, resolveLayer } from './layer.ts';
@@ -60,6 +60,8 @@ function declarations(e: Emitted, step: Step): string[] {
 	if (e.areas)
 		d.push(`grid-template-areas: ${e.areas.map((row) => `'${row.join(' ')}'`).join(' ')};`);
 	if (step.css) d.push(step.css.endsWith(';') ? step.css : `${step.css};`);
+	// Every step sets it, so the cascade gives the active step: the last step that matches.
+	d.push(`${STEP_PROPERTY}: ${step.key ?? 'base'};`);
 	return d;
 }
 
