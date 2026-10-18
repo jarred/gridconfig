@@ -1,0 +1,15 @@
+# Steps on different axes match together. Each property comes from the last matching step that sets it.
+areas: |
+  A
+  B
+
+x400:
+  areas: |
+    A B
+
+600:
+  gap: 10
+
+600x400:
+  areas: |
+    A B C

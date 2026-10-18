@@ -1,5 +1,7 @@
 export { attributes } from './attributes.ts';
-export { baseCss, compileLayout } from './compile.ts';
+export { baseCss, baseCssFor } from './base.ts';
+export { compileLayout } from './compile.ts';
+export { DEFAULT_LAYER } from './layer.ts';
 export { LayoutError } from './errors.ts';
 export type { Range } from './errors.ts';
 export { grid } from './grid.ts';

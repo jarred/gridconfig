@@ -1,10 +1,11 @@
 import { attributes } from './attributes.ts';
 import { LayoutError } from './errors.ts';
+import { inLayer, resolveLayer } from './layer.ts';
 import { parseLayout } from './parse.ts';
 import type { CompileOptions, CompiledLayout, Layout, Step, Warning } from './types.ts';
 import { splitTerms } from './values.ts';
 
-export { baseCss } from './base.ts';
+export { baseCss, baseCssFor } from './base.ts';
 
 type Path = (string | number)[];
 type Axis = 'cols' | 'rows';
@@ -101,8 +102,9 @@ function validate(steps: Step[], emit: Emitted[], path: (i: number, key: string)
 	}
 }
 
-function build(layout: Layout): CompiledLayout {
+function build(layout: Layout, options: CompileOptions): CompiledLayout {
 	const { name, steps } = layout;
+	const layer = resolveLayer(options.layer);
 	const sel = `[${attributes.layout}="${name}"]`;
 	const path = (i: number, key: string): Path => (i === 0 ? [key] : [steps[i].key!, key]);
 
@@ -138,6 +140,9 @@ function build(layout: Layout): CompiledLayout {
 	// A step that sets `areas` hides every name its map lacks, for as long as it is the active
 	// map. A later `display: none` can't be undone, so the range is exclusive: this step matches
 	// and no later `areas` step does.
+	// These rules never go in a layer: `!important` reverses the order of layers, and an unlayered
+	// `!important` rule beats every normal rule, layered or not.
+	const hide: string[] = [];
 	steps.forEach((step, i) => {
 		if (!step.areas) return;
 		const present = new Set(step.areas.flat());
@@ -151,7 +156,7 @@ function build(layout: Layout): CompiledLayout {
 				? `[${attributes.area}="${absent[0]}"]`
 				: `:is(${absent.map((n) => `[${attributes.area}="${n}"]`).join(', ')})`;
 		const rule = `${sel} > ${target} { display: none !important; }`;
-		css.push(when.length ? `@container ${name} ${when.join(' and ')} {\n  ${rule}\n}` : rule);
+		hide.push(when.length ? `@container ${name} ${when.join(' and ')} {\n  ${rule}\n}` : rule);
 	});
 
 	const warnings: Warning[] = [];
@@ -167,7 +172,8 @@ function build(layout: Layout): CompiledLayout {
 			}
 		});
 
-	return { name, css: css.join('\n'), areas: [...names], warnings };
+	const rules = [inLayer(layer, css.join('\n')), ...hide];
+	return { name, css: rules.join('\n'), layer, areas: [...names], warnings };
 }
 
 export function compileLayout(
@@ -176,7 +182,7 @@ export function compileLayout(
 ): CompiledLayout {
 	const layout = typeof source === 'string' ? parseLayout(source, options) : source;
 	try {
-		return build(layout);
+		return build(layout, options);
 	} catch (e) {
 		if (e instanceof LayoutError && !e.range && layout.locate) e.range = layout.locate(e.path);
 		throw e;

@@ -1,0 +1,11 @@
+# Each step adds one more area. Absent areas must hide in exclusive ranges.
+areas: A
+
+100:
+  areas: A B
+
+200:
+  areas: A B C
+
+300:
+  areas: A B C D

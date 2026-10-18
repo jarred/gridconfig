@@ -1,0 +1,26 @@
+{
+	"description": "Steps on both axes. B is hidden until the first step. A token gap resolves from a page variable.",
+	"vars": { "--space-2": "8px" },
+	"cases": [
+		{ "size": [50, 50], "map": ["A"], "gap": "0px", "padding": "0px" },
+		{ "size": [99, 300], "map": ["A"] },
+		{ "size": [300, 99], "map": ["A"] },
+		{ "size": [100, 100], "map": ["A A", "B B"], "gap": "4px", "cols": [48, 48], "rows": [48, 48] },
+		{ "size": [199, 300], "map": ["A A", "B B"], "gap": "4px" },
+		{ "size": [300, 199], "map": ["A A", "B B"], "gap": "4px" },
+		{
+			"size": [200, 200],
+			"map": ["A A", ". B"],
+			"gap": "8px",
+			"cols": [96, 96],
+			"rows": [152, 40]
+		},
+		{
+			"size": [400, 500],
+			"map": ["A A", ". B"],
+			"gap": "8px",
+			"cols": [196, 196],
+			"rows": [452, 40]
+		}
+	]
+}

@@ -1,0 +1,12 @@
+{
+	"description": "x400 and 600 are independent. A step that only sets gap must not reset the area map.",
+	"cases": [
+		{ "size": [300, 300], "map": ["A", "B"], "gap": "0px", "rows": [150, 150] },
+		{ "size": [300, 400], "map": ["A B"], "gap": "0px", "cols": [150, 150] },
+		{ "size": [599, 400], "map": ["A B"], "gap": "0px" },
+		{ "size": [600, 300], "map": ["A", "B"], "gap": "10px", "rows": [145, 145] },
+		{ "size": [700, 300], "map": ["A", "B"], "gap": "10px" },
+		{ "size": [620, 400], "map": ["A B C"], "gap": "10px", "cols": [200, 200, 200] },
+		{ "size": [620, 399], "map": ["A", "B"], "gap": "10px" }
+	]
+}

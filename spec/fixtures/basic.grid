@@ -1,0 +1,15 @@
+# The example from the spec: steps on both axes, an empty cell, mixed track sizes, a token gap.
+areas: A
+
+100x100:
+  gap: 4
+  areas: |
+    A A
+    B B
+
+200x200:
+  gap: '{space.2}'
+  rows: 1fr 40px
+  areas: |
+    A A
+    . B

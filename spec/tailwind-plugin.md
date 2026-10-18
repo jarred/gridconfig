@@ -4,11 +4,11 @@
 
 ## Summary
 
-Tailwind CSS v4 and GridConfig can work together. The first step needs no new code. A person imports the compiled CSS of GridConfig in the Tailwind stylesheet. First, we must solve one problem: cascade layers.
+Tailwind CSS v4 and GridConfig can work together. The first step needs no new code. A person compiles with `layer: 'components'` and imports the CSS in the Tailwind stylesheet.
 
-Tailwind puts its CSS in cascade layers. The GridConfig CSS has no layer. Unlayered CSS wins over layered CSS. Thus a Tailwind utility such as `gap-4` on a grid element has no effect.
+Tailwind puts its CSS in cascade layers. Unlayered CSS wins over layered CSS. Thus an unlayered layout blocks a utility such as `gap-4`.
 
-We must solve this before we publish. Two ways exist: the `layer()` form of `@import` (Option A), or a `layer` compile option. The `layer` option is already an open question in the [layout spec](./spec.md).
+The compiler now puts its CSS in a layer by default, and the `layer` option sets the name. The browser tests in `packages/conformance` confirm that a utility wins when the layout is in `components`. Refer to the [layout spec](./spec.md).
 
 A Tailwind plugin is possible. It gives a small benefit over the plain import. We recommend the plain import first, then the plugin only if people ask for it.
 
@@ -37,7 +37,7 @@ The DOM uses three attributes: `data-grid-host`, `data-grid-layout`, and `data-g
 | Topic          | GridConfig                             | Tailwind v4                                         | Result                                          |
 | -------------- | -------------------------------------- | --------------------------------------------------- | ----------------------------------------------- |
 | Selectors      | Attributes                             | Class names                                         | No conflict. Tailwind does not scan attributes. |
-| Cascade layers | None                                   | `theme`, `base`, `components`, `utilities`          | Problem. See below.                             |
+| Cascade layers | `gridconfig` (an option)               | `theme`, `base`, `components`, `utilities`          | Set the option. See below.                      |
 | Container      | The host is a named container          | Utilities query the nearest container               | Possible confusion. See below.                  |
 | Tokens         | `{space.2}` gives `var(--space-2)`     | Theme variables such as `--spacing` and `--color-*` | The `tokenVar` option can map the names.        |
 | Reset styles   | `:where()` rules with zero specificity | The preflight reset is in the `base` layer          | No conflict.                                    |
@@ -47,13 +47,15 @@ The DOM uses three attributes: `data-grid-host`, `data-grid-layout`, and `data-g
 
 For normal declarations, unlayered CSS wins over layered CSS. This is true even when the layered rule has higher specificity.
 
-Example: a person writes `<div data-grid-layout="hero" class="gap-4">`. The utility `gap-4` is in the `utilities` layer. The GridConfig rule `gap: var(--gap)` has no layer. The GridConfig rule wins. The utility has no effect and gives no error.
+Example: a person writes `<div data-grid-layout="hero" class="gap-4">`. The utility `gap-4` is in the `utilities` layer. If the GridConfig rule `gap: var(--gap)` has no layer, it wins. The utility has no effect and gives no error.
 
-The fix is the `layer` compile option. When it is on, the compiler puts the base and the per-layout CSS in a named layer. The name is `components` for Tailwind users. Then utilities win, as people expect.
+The fix is the `layer` compile option. The compiler puts the base and the per-layout CSS in a named layer. The default name is `gridconfig`.
+
+A layer that Tailwind does not declare comes after the layers that Tailwind declares first. Thus with the default name, the layout wins over utilities. Tailwind users must set `layer: 'components'`. Then utilities win, as people expect.
 
 The hide rule is different. Layers reverse the order for `!important` declarations. An unlayered `!important` rule has the lowest priority of all `!important` rules. A layered `!important` rule wins over it.
 
-Thus the hide rule must stay unlayered in v1. Then only an `!important` utility such as `flex!` can show a hidden area. This is a small change from "absolute". We must write it in the spec.
+Thus the hide rule stays unlayered. Then only a layered `!important` rule, such as the utility `flex!`, or an `!important` rule with more specificity, can show a hidden area. The spec states this.
 
 ### Problem 2: the nearest container
 
@@ -69,18 +71,18 @@ Tailwind scans source files for class names. It does not know about layout files
 
 ### Option A: plain import (recommended first step)
 
-The person makes a CSS file from the layouts with the planned CLI. Today the Vite plugin gives the CSS as a string in a module, not as a file. The Tailwind stylesheet imports the CSS file.
+The person makes a CSS file from the layouts with the planned CLI. The CLI uses `layer: 'components'`. Today the Vite plugin gives the CSS as a string in a module, not as a file. The Tailwind stylesheet imports the CSS file.
 
 ```css
 @import 'tailwindcss';
-@import './gridconfig.generated.css' layer(components);
+@import './gridconfig.generated.css';
 ```
 
-The `layer()` function of `@import` puts the whole file in the `components` layer. This works with no new code in GridConfig. The `layer` compile option is not necessary for this form.
+The compiled file has `@layer components { … }` for all rules, and the hide rules outside. Thus no `layer()` function in the `@import` is necessary. The `@import … layer(components)` form is not suitable, because it puts the hide rules in the layer too.
 
 - **Advantages.** No new package. No dependency on the Tailwind plugin API.
-- **Problems.** The hide rule is also in the layer. Thus the hide rule loses to unlayered page CSS. This breaks the "absolute" rule. The CLI must write the hide rules to a second file or section that is not in the layer.
-- **Work.** The CLI (planned) must write two outputs: `layered` and `unlayered`. This is a small task.
+- **Problems.** The person must set the option. The base CSS must use the same layer: use `baseCssFor('components')`.
+- **Work.** Only the CLI option. The core already supports it.
 
 ### Option B: a Tailwind plugin
 
@@ -98,8 +100,8 @@ The plugin does these tasks at build time:
 
 1. Find the layout files.
 2. Call `compileLayout` for each file.
-3. Add `baseCss` and the layout CSS in the `components` layer.
-4. Add the hide rules without a layer.
+3. Compile with `layer: 'components'`. Add the base and the layout CSS.
+4. Keep the hide rules outside the layer.
 5. Map `{spacing.4}` to a Tailwind theme variable (the `tokens: tailwind` option).
 
 A sketch of the plugin:
@@ -107,13 +109,15 @@ A sketch of the plugin:
 ```js
 import plugin from 'tailwindcss/plugin';
 import { parse } from 'postcss-js';
-import { compileLayout, baseCss } from '@gridconfig/core';
+import { compileLayout, baseCssFor } from '@gridconfig/core';
 
 export default plugin.withOptions((options) => ({ addBase, addComponents }) => {
 	const layouts = loadLayouts(options.layouts);
-	addComponents(parse(baseCss));
+	addComponents(parse(baseCssFor('components')));
 	for (const layout of layouts) {
-		addComponents(parse(compileLayout(layout.source, layout.options).css));
+		addComponents(
+			parse(compileLayout(layout.source, { ...layout.options, layer: 'components' }).css)
+		);
 	}
 });
 ```
@@ -134,12 +138,12 @@ The plugin adds one variant for each step of a layout. A person writes `hero-lg:
 
 ## Recommended path
 
-| Phase | Work                                                                                      | Needed from core             |
-| ----- | ----------------------------------------------------------------------------------------- | ---------------------------- |
-| 0     | Write a recipe (Option A) in the docs. Warn about layers.                                 | Nothing                      |
-| 1     | Add the `layer` compile option. Add the layered and unlayered outputs to the CLI.         | `layer` option, split output |
-| 2     | Add `@gridconfig/tailwind` only if people ask. Start with the `tokens: tailwind` mapping. | A stable `tokenVar` option   |
-| 3     | Do not build Option C unless a clear need appears.                                        | None                         |
+| Phase | Work                                                                                      | Needed from core           |
+| ----- | ----------------------------------------------------------------------------------------- | -------------------------- |
+| 0     | Write a recipe (Option A) in the docs. Set `layer: 'components'`.                         | Nothing                    |
+| 1     | Add the `layer` option to the CLI. The core option exists.                                | `layer` option (done)      |
+| 2     | Add `@gridconfig/tailwind` only if people ask. Start with the `tokens: tailwind` mapping. | A stable `tokenVar` option |
+| 3     | Do not build Option C unless a clear need appears.                                        | None                       |
 
 ## Token mapping
 
@@ -159,13 +163,13 @@ We did not test these items. We must test each item before we publish any text a
 1. **Plugin options in CSS.** The block form of `@plugin` with options. We think that Tailwind v4 supports it.
 2. **`@container` in plugin objects.** We do not know if `addComponents` accepts an `@container` at-rule with a name and a `not (...)` condition.
 3. **File dependencies.** We do not know how a plugin tells Tailwind to watch a file that is not a source file.
-4. **The `layer()` import.** We do not know if `@import ... layer(components)` and the Tailwind layer order work together in each bundler.
+4. **Layer order.** We tested layer order in Chromium only, with a hand-written `@layer theme, base, components, utilities;`. We did not test the real Tailwind output or each bundler.
 5. **Named size containers.** We do not know if a Tailwind class can set `container-type: size`. Not needed for the plain import.
 6. **Tailwind v3.** This document is about v4 only. The `@plugin` directive and the layer behavior differ in v3.
 
 ## Risks
 
-- A person does not see why `gap-4` has no effect. This is the highest risk. The `layer` option fixes it.
+- A person forgets `layer: 'components'`. Then the layout wins over utilities, and `gap-4` has no effect and gives no error. This is the highest risk. A CLI default or a plugin can reduce it.
 - Tailwind changes the plugin API. A package for the plugin needs a maintenance plan.
 - The hide rule and `!important` utilities do not interact as people expect.
 

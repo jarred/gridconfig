@@ -1,0 +1,8 @@
+{
+	"description": "calc(), var() and tokens resolve to the expected lengths.",
+	"vars": { "--g": "4px", "--space-2": "8px" },
+	"cases": [
+		{ "size": [200, 100], "map": ["A B"], "gap": "8px", "padding": "8px", "cols": [88, 88] },
+		{ "size": [300, 100], "map": ["A B"], "gap": "8px", "padding": "16px", "cols": [130, 130] }
+	]
+}

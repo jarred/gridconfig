@@ -1,0 +1,9 @@
+{
+	"description": "A normal page rule that sets display (even with higher specificity) cannot show a hidden area.",
+	"pageCss": "div[data-grid-area].x.y { display: flex; } [data-grid-area] { display: flex; }",
+	"areaClasses": "x y",
+	"cases": [
+		{ "size": [200, 100], "map": ["A B"] },
+		{ "size": [300, 100], "map": ["A"] }
+	]
+}

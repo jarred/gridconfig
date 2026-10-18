@@ -6,6 +6,7 @@
 		"dev": "pnpm --filter @gridconfig/site dev",
 		"build": "pnpm -r --if-present build",
 		"test": "pnpm -r --if-present test",
+		"test:browser": "pnpm --filter @gridconfig/conformance test:browser",
 		"check": "pnpm -r --if-present check",
 		"lint": "prettier --check . && eslint .",
 		"format": "prettier --write ."

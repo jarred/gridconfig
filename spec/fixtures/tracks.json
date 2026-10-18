@@ -1,0 +1,7 @@
+{
+	"description": "A step with cols and no areas keeps the active map.",
+	"cases": [
+		{ "size": [400, 100], "map": ["A B"], "cols": [100, 300], "gap": "0px" },
+		{ "size": [500, 100], "map": ["A B"], "cols": [122.5, 367.5], "gap": "10px" }
+	]
+}

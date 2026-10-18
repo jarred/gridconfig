@@ -1,0 +1,6 @@
+# An inline-size container. Width queries work. The host has a definite height from its parent.
+container: inline-size
+areas: A
+
+300:
+  areas: A B

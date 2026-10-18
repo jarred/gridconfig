@@ -1,0 +1,17 @@
+{
+	"name": "@gridconfig/conformance",
+	"private": true,
+	"type": "module",
+	"description": "Loads compiled layouts in a real browser and checks the result against the fixtures in spec/fixtures.",
+	"scripts": {
+		"test:browser": "node --test --test-concurrency=1 \"test/**/*.test.ts\"",
+		"check": "tsc -p tsconfig.json"
+	},
+	"dependencies": {
+		"@gridconfig/core": "workspace:*"
+	},
+	"devDependencies": {
+		"playwright": "^1.55.0",
+		"typescript": "^6.0.3"
+	}
+}

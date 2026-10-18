@@ -46,7 +46,8 @@ test('value grammar errors', () => {
 });
 
 test('example layout compiles as the spec shows', () => {
-	const { css, areas, warnings } = compileLayout(`
+	const { css, areas, warnings } = compileLayout(
+		`
 name: hero
 areas: A
 100x100:
@@ -60,7 +61,9 @@ areas: A
   areas: |
     A A
     . B
-`);
+`,
+		{ layer: false }
+	);
 	assert.deepEqual(areas, ['A', 'B']);
 	assert.deepEqual(warnings, []);
 	assert.match(css, /\[data-grid-host="hero"\] \{ container: hero \/ size; \}/);
@@ -214,4 +217,40 @@ rows: 20cqh 1fr
 `);
 	assert.equal(warnings.length, 1);
 	assert.deepEqual(warnings[0].path, ['rows']);
+});
+
+const LAYER_SRC = `
+name: l
+areas: |
+  A B
+400:
+  areas: A
+`;
+
+test('css is in the gridconfig layer by default, and hide rules are not', () => {
+	const { css, layer } = compileLayout(LAYER_SRC);
+	assert.equal(layer, 'gridconfig');
+	assert.match(css, /^@layer gridconfig \{\n/);
+	const hideAt = css.indexOf('display: none !important');
+	assert.ok(hideAt > css.indexOf('\n}\n'), 'hide rule comes after the layer block');
+	assert.doesNotMatch(css.slice(0, css.indexOf('\n}\n')), /display: none/);
+});
+
+test('layer: false gives unlayered css and layer: null', () => {
+	const { css, layer } = compileLayout(LAYER_SRC, { layer: false });
+	assert.equal(layer, null);
+	assert.doesNotMatch(css, /@layer/);
+});
+
+test('layer accepts a custom name and rejects an invalid one', () => {
+	assert.equal(compileLayout(LAYER_SRC, { layer: 'components' }).layer, 'components');
+	assert.match(compileLayout(LAYER_SRC, { layer: 'components' }).css, /^@layer components \{/);
+	assert.throws(() => compileLayout(LAYER_SRC, { layer: '1 bad' }));
+});
+
+test('baseCssFor uses the same layer', async () => {
+	const { baseCssFor, baseCss } = await import('../src/index.ts');
+	assert.match(baseCssFor('components'), /^@layer components \{/);
+	assert.equal(baseCss, baseCssFor());
+	assert.doesNotMatch(baseCssFor(null as never), /@layer/);
 });

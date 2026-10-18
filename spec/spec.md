@@ -197,7 +197,7 @@ Take each step that sets `areas`. The layout uses some area names that are not i
 
 An omitted area is always hidden. This is absolute in v1. You cannot keep an absent area visible. The hide rule is `display: none !important`.
 
-The compiler never puts it in a cascade layer. Thus it wins against the normal CSS of the page, for example a `display: flex` on the item. Only another `!important` can override it. That `!important` must have equal or higher specificity, or be in a cascade layer. Refer to the Open questions for what can change this.
+The compiler never puts the hide rule in a cascade layer. Thus it wins against the normal CSS of the page, for example a `display: flex` on the item. The layers of the page cannot change this. Only an `!important` rule can override it. That rule must have a higher specificity, or be in a cascade layer. Refer to the Open questions for what can change this.
 
 ---
 
@@ -226,20 +226,28 @@ The compiler never puts it in a cascade layer. Thus it wins against the normal C
 
 The compiled output has two parts.
 
+**Cascade layer.** By default, the compiler puts all rules in the layer `gridconfig`, except the hide rules. Thus a utility class or a page rule in a later layer can override the layout. An unlayered rule of the page also wins over the layout. The `layer` option sets the name of the layer. The value `false` gives no layer.
+
+The shared base and the per-layout CSS must use the same layer. Use `baseCssFor(layer)` to get the correct base.
+
+The order of layers comes from the first time that the page uses each name. A page can declare the order, for example `@layer base, gridconfig, utilities;`. Tailwind users must set `layer: 'components'`. Refer to the [Tailwind note](./tailwind-plugin.md).
+
 **Shared base (one time for each page).** The rules use `:where()`. Thus they have zero specificity, and each per-layout rule wins over them in any source order.
 
 ```css
-:where([data-grid-host]) {
-	width: 100%;
-	height: 100%;
-}
-:where([data-grid-layout]) {
-	display: grid;
-	box-sizing: border-box;
-	width: 100%;
-	height: 100%;
-	gap: var(--gap);
-	padding: var(--padding);
+@layer gridconfig {
+	:where([data-grid-host]) {
+		width: 100%;
+		height: 100%;
+	}
+	:where([data-grid-layout]) {
+		display: grid;
+		box-sizing: border-box;
+		width: 100%;
+		height: 100%;
+		gap: var(--gap);
+		padding: var(--padding);
+	}
 }
 ```
 
@@ -248,46 +256,48 @@ The compiled output has two parts.
 - One block for the base step.
 - One `@container` block for each query step.
 - The area placement rules.
-- The hide rules.
+- The hide rules. These are outside the layer.
 
 The container name is the `name` of the layout. If the base step does not set `--gap` and `--padding`, they are `0`.
 
 This is example output for the example at the top. The format of the output is not a part of the contract:
 
 ```css
-[data-grid-host='hero'] {
-	container: hero / size;
-}
-
-[data-grid-layout='hero'] {
-	--gap: 0;
-	--padding: 0;
-	grid-template-columns: repeat(1, 1fr);
-	grid-template-rows: repeat(1, 1fr);
-	grid-template-areas: 'A';
-}
-[data-grid-layout='hero'] > [data-grid-area='A'] {
-	grid-area: A;
-}
-[data-grid-layout='hero'] > [data-grid-area='B'] {
-	grid-area: B;
-}
-
-@container hero (min-width: 100px) and (min-height: 100px) {
-	[data-grid-layout='hero'] {
-		--gap: 4px;
-		grid-template-columns: repeat(2, 1fr);
-		grid-template-rows: repeat(2, 1fr);
-		grid-template-areas: 'A A' 'B B';
+@layer gridconfig {
+	[data-grid-host='hero'] {
+		container: hero / size;
 	}
-}
 
-@container hero (min-width: 200px) and (min-height: 200px) {
 	[data-grid-layout='hero'] {
-		--gap: var(--space-2);
-		grid-template-columns: repeat(2, 1fr);
-		grid-template-rows: 1fr 40px;
-		grid-template-areas: 'A A' '. B';
+		--gap: 0;
+		--padding: 0;
+		grid-template-columns: repeat(1, 1fr);
+		grid-template-rows: repeat(1, 1fr);
+		grid-template-areas: 'A';
+	}
+	[data-grid-layout='hero'] > [data-grid-area='A'] {
+		grid-area: A;
+	}
+	[data-grid-layout='hero'] > [data-grid-area='B'] {
+		grid-area: B;
+	}
+
+	@container hero (min-width: 100px) and (min-height: 100px) {
+		[data-grid-layout='hero'] {
+			--gap: 4px;
+			grid-template-columns: repeat(2, 1fr);
+			grid-template-rows: repeat(2, 1fr);
+			grid-template-areas: 'A A' 'B B';
+		}
+	}
+
+	@container hero (min-width: 200px) and (min-height: 200px) {
+		[data-grid-layout='hero'] {
+			--gap: var(--space-2);
+			grid-template-columns: repeat(2, 1fr);
+			grid-template-rows: 1fr 40px;
+			grid-template-areas: 'A A' '. B';
+		}
 	}
 }
 
@@ -337,20 +347,23 @@ grid`…`                                         // a static template; returns 
 grid(input: LayoutInput, options?): CompiledLayout
 parseLayout(source: string, options?): Layout     // YAML text
 parseLayoutObject(input: LayoutInput, options?): Layout
-compileLayout(source: string | Layout, options?): { name: string; css: string; areas: string[]; warnings: Warning[] }
-baseCss: string   // the shared base rules, needed once per page
+compileLayout(source: string | Layout, options?): { name: string; css: string; layer: string | null; areas: string[]; warnings: Warning[] }
+baseCss: string                       // the shared base rules in the default layer
+baseCssFor(layer: string | null): string  // the shared base rules in a given layer
 ```
 
-`options`: `tokenPrefix`, `tokenVar`, `defaultName`. The tag form takes no options.
+`options`: `tokenPrefix`, `tokenVar`, `defaultName`, `layer`. The tag form takes no options.
 
-`css` is only the per-layout part. The page also needs `baseCss`. `areas` is a list of each area name. Thus generated code can give typed access.
+`layer` is a name, `true` (the default name `gridconfig`), or `false` (no layer). A name can have dots for a nested layer. An invalid name is an error.
+
+`css` is only the per-layout part. The page also needs the base rules from `baseCssFor(layer)`. `layer` is the layer that the compiler used, or `null`. `areas` is a list of each area name. Thus generated code can give typed access.
 
 ---
 
 ## Tooling (planned)
 
 - **JSON Schema** for the layout. It gives editor autocomplete for the settings, the query keys, and the `container` values.
-- **`.grid` extension.** The content is the YAML that [Ways to write a layout](#ways-to-write-a-layout) describes. The editor extension will give syntax colors, the schema, and diagnostics. Until it exists, a `.gitattributes` line (`*.grid linguist-language=YAML`) and a Prettier override (`parser: yaml`) can give basic support. We did not test them.
+- **`.grid` extension.** The content is the YAML that [Ways to write a layout](#ways-to-write-a-layout) describes. The editor extension will give syntax colors, the schema, and diagnostics. Until it exists, a `.gitattributes` line (`*.grid linguist-language=YAML`) and a Prettier override (`parser: yaml`) can give basic support. The Prettier override works in this repository (it needs `useTabs: false`). We did not test the `.gitattributes` line on GitHub.
 - **Area colors.** Core will export `areaColor(name, index)`. It gives a perceptually even palette for light and dark themes. The editor, the debug overlay, the playground, and the CLI use it. Thus an area has the same color in each tool.
 - **CLI.** `gridconfig build` writes the CSS and a typed module for each layout.
 - **Runtime.** `compileLayout` stays available in the browser for the playground and the future design tool.
@@ -365,6 +378,7 @@ These parts are built:
 - The three forms: YAML text, objects, and the `grid` function. The default `name`, the removal of shared indentation, and the checks for plain data, tags, and multiple documents.
 - The Vite plugin (`packages/unplugin`). It loads `.grid` files and `.yaml?layout` imports. It replaces each static `grid` template and object with the compiled result. It only looks at files that import `grid` from `@gridconfig/core`. It reports an error when two files give the same layout name.
 - The Svelte `Grid` component (`packages/svelte`). It uses the `data-grid-*` attributes.
+- Browser tests (`packages/conformance`). Each fixture in `spec/fixtures` is a `.grid` file and a list of expected results at many container sizes. The tests load the compiled CSS in Chromium and compare the used tracks, the gaps, and the position of each area. Other tests record how the CSS interacts with page CSS, cascade layers, and resets.
 
 These parts are not built yet:
 
@@ -374,14 +388,14 @@ These parts are not built yet:
 4. The editor extension.
 5. A core entry point without the YAML parser, for code that uses only objects.
 6. The shadow-DOM selector strategy for Web Components.
-7. Tests in a real browser. Only tests without a browser exist. No person looked at the compiled CSS in a browser.
+7. More browser fixtures: nested layouts, and browsers other than Chromium.
 
 ---
 
 ## Open questions
 
 - **Hiding (decided for v1, to revisit).** Hiding stays `display: none !important`, not in a layer. Watch for page authors who need an absent area to stay visible. If this is necessary, the candidate is a `keep: [B]` setting. The setting skips the hide rule. It also sets `grid-area: auto` for that area in the step. A possible later alternative is a style-query output profile. It uses a custom property for each area, and it does not use exclusive `not (…)` ranges. It raises the minimum browser version.
-- **Layer.** Proposed, not decided: a `layer` compile option. It is off by default. When it is on, it puts everything except the hide rules in an `@layer`. The default is no layer, because a layered rule loses to a normal page reset, for example `* { padding: 0 }`. The [Tailwind note](./tailwind-plugin.md) shows the opposite problem: unlayered rules win over the layers of Tailwind. A layer also changes the hide rule, because `!important` reverses the order of layers.
+- **Layer (decided for v1).** Layers are on by default, in the layer `gridconfig`. The reason: a utility class such as `gap-4` must be able to override a layout. The cost: an unlayered reset such as `* { padding: 0 }` removes the layout padding, in any source order. A page can put its reset in an earlier layer to prevent this. Browser tests record both cases. The hide rules stay outside the layer, because `!important` reverses the order of layers.
 - **Identifiers.** The container names and the selectors are the `name` of the layout. A name that the compiler makes (a file name or a hash) has a low risk of conflict inside one project. Do production builds add a short hash to prevent a conflict between packages?
 - **Token breakpoints.** Named breakpoints (`{bp.md}`) need resolution at build time, because `var()` cannot be in a container condition. They are not in v1.
 - **`css` escape hatch.** Raw declarations do not work in the same way in the shadow-DOM output. Decide if the shadow-DOM output permits them.

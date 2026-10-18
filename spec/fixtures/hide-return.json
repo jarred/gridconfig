@@ -1,0 +1,9 @@
+{
+	"description": "B is visible, hidden, then visible again.",
+	"cases": [
+		{ "size": [100, 100], "map": ["A B"] },
+		{ "size": [300, 100], "map": ["A"] },
+		{ "size": [599, 100], "map": ["A"] },
+		{ "size": [600, 100], "map": ["A B"] }
+	]
+}

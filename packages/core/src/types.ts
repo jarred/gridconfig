@@ -30,8 +30,10 @@ export type Warning = { message: string; path: (string | number)[] };
 
 export type CompiledLayout = {
 	name: string;
-	/** Per-layout CSS. Needs `baseCss` on the page as well. */
+	/** Per-layout CSS. Needs `baseCssFor(layer)` on the page as well. */
 	css: string;
+	/** The cascade layer of the CSS, or null when the layout was compiled with `layer: false`. */
+	layer: string | null;
 	/** Every area name used by the layout. */
 	areas: string[];
 	warnings: Warning[];
@@ -47,6 +49,11 @@ export type CompileOptions = {
 	 * into a valid identifier. Without it, the name is a hash of the content.
 	 */
 	defaultName?: string;
+	/**
+	 * The cascade layer for the compiled CSS. A layer name, `true` (the default, "gridconfig") or
+	 * `false` for no layer. The rules that hide areas are never in a layer.
+	 */
+	layer?: boolean | string;
 };
 
 /** A query key: minimum container width and/or height in px, such as `600x400`, `600x`, `x400` or `600`. */

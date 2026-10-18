@@ -1,0 +1,12 @@
+{
+	"description": "Nested ranges. At each width, the areas after the active map are hidden.",
+	"cases": [
+		{ "size": [99, 100], "map": ["A"] },
+		{ "size": [100, 100], "map": ["A B"] },
+		{ "size": [199, 100], "map": ["A B"] },
+		{ "size": [200, 100], "map": ["A B C"] },
+		{ "size": [299, 100], "map": ["A B C"] },
+		{ "size": [300, 100], "map": ["A B C D"] },
+		{ "size": [900, 100], "map": ["A B C D"] }
+	]
+}

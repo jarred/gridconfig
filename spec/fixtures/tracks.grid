@@ -1,0 +1,7 @@
+# Steps can set tracks without areas. The map stays as it was.
+areas: A B
+cols: 100 1fr
+
+500:
+  cols: 1fr 3fr
+  gap: 10

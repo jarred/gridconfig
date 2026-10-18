@@ -1,0 +1,8 @@
+# An area can disappear and come back.
+areas: A B
+
+300:
+  areas: A
+
+600:
+  areas: A B

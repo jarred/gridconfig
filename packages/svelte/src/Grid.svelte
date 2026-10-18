@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
 	import type { HTMLAttributes } from 'svelte/elements';
-	import { baseCss } from '@gridconfig/core/runtime';
+	import { baseCssFor } from '@gridconfig/core/runtime';
 	import type { CompiledLayout } from '@gridconfig/core';
 
 	let {
@@ -43,7 +43,7 @@
 
 <svelte:head>
 	<!-- eslint-disable-next-line svelte/no-at-html-tags -- CSS comes from our own compiler -->
-	{@html `<style>${baseCss}\n${layout.css}</style>`}
+	{@html `<style>${baseCssFor(layout.layer)}\n${layout.css}</style>`}
 </svelte:head>
 
 <!-- The grid can't be its own query container, so the host element is the container. -->
@@ -52,6 +52,7 @@
 		{@render children?.()}
 		{#if debug}
 			<div class="overlay" bind:this={overlay} aria-hidden="true">
+				<!-- eslint-disable-next-line @typescript-eslint/no-unused-vars -->
 				{#each { length: tracks.cols * tracks.rows } as _, i (i)}
 					<div>{i}</div>
 				{/each}

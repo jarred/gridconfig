@@ -1,0 +1,5 @@
+# The page sets display on every area. Hiding must still win.
+areas: A B
+
+300:
+  areas: A

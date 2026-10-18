@@ -51,15 +51,16 @@ With the Vite plugin, static layouts compile at build time. Without it, they com
 
 ## Repository structure
 
-| Path                | Package                | What it is                                                                                          |
-| ------------------- | ---------------------- | --------------------------------------------------------------------------------------------------- |
-| `spec/`             |                        | The spec. Also two notes on Tailwind and StyleX (explorations, not plans). Later: test fixtures.    |
-| `packages/core`     | `@gridconfig/core`     | Parser, compiler, value grammar, `grid`, types. `./runtime` has the parts that need no YAML parser. |
-| `packages/unplugin` | `@gridconfig/unplugin` | Bundler plugins. Vite for now: loads `.grid` files and compiles static `grid` calls.                |
-| `packages/svelte`   | `@gridconfig/svelte`   | `Grid` component for Svelte 5                                                                       |
-| `apps/site`         | `@gridconfig/site`     | The gridconfig.dev site: docs and playground (currently a demo page)                                |
+| Path                   | Package                             | What it is                                                                                                     |
+| ---------------------- | ----------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| `spec/`                |                                     | The spec, the test fixtures (`spec/fixtures`), and two notes on Tailwind and StyleX (explorations, not plans). |
+| `packages/core`        | `@gridconfig/core`                  | Parser, compiler, value grammar, `grid`, types. `./runtime` has the parts that need no YAML parser.            |
+| `packages/unplugin`    | `@gridconfig/unplugin`              | Bundler plugins. Vite for now: loads `.grid` files and compiles static `grid` calls.                           |
+| `packages/svelte`      | `@gridconfig/svelte`                | `Grid` component for Svelte 5                                                                                  |
+| `packages/conformance` | `@gridconfig/conformance` (private) | Loads the fixtures in Chromium and checks the layout the browser makes.                                        |
+| `apps/site`            | `@gridconfig/site`                  | The gridconfig.dev site: docs and playground (currently a demo page)                                           |
 
-Planned: `cli`, `react`, `vue`, `astro`, `element` (Web Components), an editor extension for `.grid` files, `examples/`, and browser conformance tests.
+Planned: `cli`, `react`, `vue`, `astro`, `element` (Web Components), an editor extension for `.grid` files, and `examples/`.
 
 ## Development
 
@@ -67,6 +68,7 @@ Planned: `cli`, `react`, `vue`, `astro`, `element` (Web Components), an editor e
 pnpm install
 pnpm dev     # the site
 pnpm test    # tests in core and unplugin (Node's built-in test runner)
+pnpm test:browser  # fixtures in Chromium (once: pnpm exec playwright install chromium)
 pnpm check   # type-check
 pnpm lint
 ```
@@ -74,3 +76,7 @@ pnpm lint
 ## License
 
 [MIT](LICENSE)
+
+## Cascade layers
+
+The compiled CSS goes in the cascade layer `gridconfig`, except the hide rules. A utility class in a later layer can override a layout. Use the `layer` option to set the name, or `layer: false` for no layer. Tailwind users: set `layer: 'components'`. Use `baseCssFor(layer)` for the shared base. Refer to the [spec](./spec/spec.md).

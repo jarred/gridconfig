@@ -1,0 +1,7 @@
+# Value grammar in the browser: calc, custom properties, tokens.
+areas: A B
+gap: --g * 2
+padding: '{space.2}'
+
+300:
+  padding: 16

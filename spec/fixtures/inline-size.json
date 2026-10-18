@@ -1,0 +1,7 @@
+{
+	"description": "container: inline-size answers width queries.",
+	"cases": [
+		{ "size": [299, 100], "map": ["A"] },
+		{ "size": [300, 100], "map": ["A B"] }
+	]
+}
