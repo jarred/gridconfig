@@ -4,13 +4,13 @@ declare module '*.grid' {
 	export default layout;
 }
 
-declare module '*.yaml?layout' {
+declare module '*.yaml?grid' {
 	import type { CompiledLayout } from '@gridconfig/core';
 	const layout: CompiledLayout;
 	export default layout;
 }
 
-declare module '*.yml?layout' {
+declare module '*.yml?grid' {
 	import type { CompiledLayout } from '@gridconfig/core';
 	const layout: CompiledLayout;
 	export default layout;

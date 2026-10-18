@@ -22,7 +22,7 @@ type Context = {
  * Compiles layouts at build time:
  *
  * - `import hero from './hero.grid'` (a layout file)
- * - `import hero from './hero.yaml?layout'` (the same for .yaml and .yml)
+ * - `import hero from './hero.yaml?grid'` (the same for .yaml and .yml)
  * - `grid\`…\`` and `grid({ … })` from `@gridconfig/core`, when the argument is static.
  *   The plugin replaces the call with the compiled result. A call that is not static compiles
  *   when the code runs.
@@ -81,7 +81,7 @@ export function layoutPlugin(options: CompileOptions = {}): Plugin {
 		transform(code, id) {
 			const [file, query = ''] = id.split('?');
 
-			if (/\.ya?ml$/.test(file) && query === 'layout') {
+			if (/\.ya?ml$/.test(file) && query === 'grid') {
 				const compiled = compileFile(this, code, file);
 				return { code: `export default ${JSON.stringify(compiled)};`, map: null };
 			}

@@ -82,12 +82,13 @@ test('reports a layout error with a location', async () => {
 	);
 });
 
-test('keeps supporting .yaml?layout', () => {
+test('supports .yaml?grid', () => {
 	const p = setup();
-	const out = run(p.transform('name: legacy\nareas: A\n', '/x/layout.yaml?layout'));
+	const out = run(p.transform('name: legacy\nareas: A\n', '/x/layout.yaml?grid'));
 	assert.equal(out.name, 'legacy');
-	assert.ok(run(p.transform('areas: A\n', '/x/other.yml?layout')).name.startsWith('other'));
+	assert.ok(run(p.transform('areas: A\n', '/x/other.yml?grid')).name.startsWith('other'));
 	assert.equal(p.transform('areas: A', '/x/plain.yaml'), undefined);
+	assert.equal(p.transform('areas: A', '/x/old.yaml?layout'), undefined);
 });
 
 const src = (body: string) => `import { grid } from '@gridconfig/core';\n${body}`;
