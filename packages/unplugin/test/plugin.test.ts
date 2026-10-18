@@ -153,3 +153,21 @@ test('calls with their own options are left for runtime', () => {
 	const code = src("const a = grid({ areas: 'A' }, { tokenPrefix: 'x' });");
 	assert.equal(setup().transform(code, '/x/a.ts'), undefined);
 });
+
+test('adds debug data when the dev server runs, and not in a build', () => {
+	const plugin = layoutPlugin() as unknown as {
+		configResolved(config: { command: string }): void;
+		transform: Transform;
+	};
+	const run = (command: string) => {
+		plugin.configResolved({ command });
+		const out = plugin.transform.call({}, 'name: d\nareas: A\n', '/x/d.yaml?grid');
+		return JSON.parse(
+			must(out)
+				.code.replace(/^export default /, '')
+				.replace(/;$/, '')
+		);
+	};
+	assert.equal(run('build').debug, undefined);
+	assert.equal(run('serve').debug.name, 'd');
+});

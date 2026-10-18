@@ -352,7 +352,9 @@ baseCss: string                       // the shared base rules in the default la
 baseCssFor(layer: string | null): string  // the shared base rules in a given layer
 ```
 
-`options`: `tokenPrefix`, `tokenVar`, `defaultName`, `layer`. The tag form takes no options.
+`options`: `tokenPrefix`, `tokenVar`, `defaultName`, `layer`, `debug`. The tag form takes no options.
+
+`debug: true` adds data for development tools. Refer to [Inspector](#inspector). Use it in development only, because it makes the CSS larger.
 
 `layer` is a name, `true` (the default name `gridconfig`), or `false` (no layer). A name can have dots for a nested layer. An invalid name is an error.
 
@@ -364,9 +366,33 @@ baseCssFor(layer: string | null): string  // the shared base rules in a given la
 
 - **JSON Schema** for the layout. It gives editor autocomplete for the settings, the query keys, and the `container` values.
 - **`.grid` extension.** The content is the YAML that [Ways to write a layout](#ways-to-write-a-layout) describes. The editor extension will give syntax colors, the schema, and diagnostics. Until it exists, a `.gitattributes` line (`*.grid linguist-language=YAML`) and a Prettier override (`parser: yaml`) can give basic support. The Prettier override works in this repository (it needs `useTabs: false`). We did not test the `.gitattributes` line on GitHub.
-- **Area colors.** Core will export `areaColor(name, index)`. It gives a perceptually even palette for light and dark themes. The editor, the debug overlay, the playground, and the CLI use it. Thus an area has the same color in each tool.
+- **Area colors.** Core will export `areaColor(name, index)`. It gives a perceptually even palette for light and dark themes. The editor, the inspector, the playground, and the CLI use it. Thus an area has the same color in each tool.
 - **CLI.** `gridconfig build` writes the CSS and a typed module for each layout.
 - **Runtime.** `compileLayout` stays available in the browser for the playground and the future design tool.
+
+---
+
+## Inspector
+
+The package `@gridconfig/devtools` is an overlay for the browser. It works in each framework, because it uses only the DOM contract, the computed styles, and the debug data. It shows these items for a layout:
+
+- The area names, drawn from the tracks. An area with no element shows as empty.
+- The track values as the author wrote them (`1fr`, `50cqw`). The tooltip of a label gives the used size.
+- The gap and the padding.
+- The active step, and the areas that the step hides.
+- Problems in the markup: a child with no `data-grid-area`, an area name that the layout does not have, and a host with no height.
+
+The overlay is in the top layer of the browser (a `popover`). Thus an ancestor with `overflow: hidden` cannot clip it. It has a shadow root. Thus the CSS of the page cannot change it.
+
+**Resize.** The select and the handle set an inline `width` and `height` on the real host element. The compiler does not move the element. The page around it will reflow.
+
+The select sets the host to the minimum size of a step. The handle snaps to the size of a step when it is within 6 px. Hold Alt to turn this off. Close the overlay, or press the reset button, to give the natural size back.
+
+**Debug data.** With `debug: true`, the compiler puts the steps in `CompiledLayout.debug`. It also writes them in the custom property `--gc-debug` on the host. The value is a CSS string that holds JSON. Thus the data goes with the CSS in each route, also in a plain stylesheet.
+
+Without the data, the overlay still draws from the computed styles. It then shows used sizes and no steps. The Vite plugin sets `debug: true` when the dev server runs.
+
+**Start.** Import `@gridconfig/devtools/auto` to install the overlay. The Svelte `Grid` component does this in development. The `debug` prop of `Grid` opens the overlay on that grid. The keys Alt+Shift+G show and hide it.
 
 ---
 
@@ -378,6 +404,7 @@ These parts are built:
 - The three forms: YAML text, objects, and the `grid` function. The default `name`, the removal of shared indentation, and the checks for plain data, tags, and multiple documents.
 - The Vite plugin (`packages/unplugin`). It loads `.grid` files and `.yaml?grid` imports. It replaces each static `grid` template and object with the compiled result. It only looks at files that import `grid` from `@gridconfig/core`. It reports an error when two files give the same layout name.
 - The Svelte `Grid` component (`packages/svelte`). It uses the `data-grid-*` attributes.
+- The inspector (`packages/devtools`). Refer to [Inspector](#inspector). Browser tests cover the drawing, the select, the handles, and the checks of the markup.
 - Browser tests (`packages/conformance`). Each fixture in `spec/fixtures` is a `.grid` file and a list of expected results at many container sizes. The tests load the compiled CSS in Chromium and compare the used tracks, the gaps, and the position of each area. Other tests record how the CSS interacts with page CSS, cascade layers, and resets.
 
 These parts are not built yet:

@@ -28,6 +28,34 @@ export type Layout = {
 
 export type Warning = { message: string; path: (string | number)[] };
 
+/** One step in the debug data. Values are CSS, after the value grammar and the track inference. */
+export type DebugStep = {
+	/** The query key, or null for the base step. */
+	key: string | null;
+	minWidth?: number;
+	minHeight?: number;
+	cols?: string;
+	rows?: string;
+	gap?: string;
+	padding?: string;
+	areas?: string[][];
+};
+
+/**
+ * What a tool needs to explain a layout in the browser: the steps in cascade order (the base step
+ * first, the last matching step wins for each property). Only present when compiled with `debug`.
+ */
+export type DebugInfo = {
+	/** The version of this format. */
+	v: 1;
+	name: string;
+	container: 'size' | 'inline-size';
+	/** Every area name used by the layout. */
+	areas: string[];
+	steps: DebugStep[];
+	warnings: string[];
+};
+
 export type CompiledLayout = {
 	name: string;
 	/** Per-layout CSS. Needs `baseCssFor(layer)` on the page as well. */
@@ -37,6 +65,8 @@ export type CompiledLayout = {
 	/** Every area name used by the layout. */
 	areas: string[];
 	warnings: Warning[];
+	/** Present only when compiled with `debug: true`. */
+	debug?: DebugInfo;
 };
 
 export type CompileOptions = {
@@ -54,6 +84,11 @@ export type CompileOptions = {
 	 * `false` for no layer. The rules that hide areas are never in a layer.
 	 */
 	layer?: boolean | string;
+	/**
+	 * Adds data for development tools. The data is in `debug`, and the CSS also carries it in the
+	 * custom property `--gc-debug` on the host. Use it in development only: it makes the CSS larger.
+	 */
+	debug?: boolean;
 };
 
 /** A query key: minimum container width and/or height in px, such as `600x400`, `600x`, `x400` or `600`. */

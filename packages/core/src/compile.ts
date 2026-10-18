@@ -1,11 +1,14 @@
 import { attributes } from './attributes.ts';
+import { DEBUG_PROPERTY } from './debug.ts';
 import { LayoutError } from './errors.ts';
 import { inLayer, resolveLayer } from './layer.ts';
 import { parseLayout } from './parse.ts';
-import type { CompileOptions, CompiledLayout, Layout, Step, Warning } from './types.ts';
+import type { CompileOptions, CompiledLayout, DebugInfo, Layout, Step, Warning } from './types.ts';
 import { splitTerms } from './values.ts';
 
 export { baseCss, baseCssFor } from './base.ts';
+
+export { DEBUG_PROPERTY } from './debug.ts';
 
 type Path = (string | number)[];
 type Axis = 'cols' | 'rows';
@@ -122,8 +125,13 @@ function build(layout: Layout, options: CompileOptions): CompiledLayout {
 	const names = new Set(emit.flatMap((e) => e.areas?.flat() ?? []));
 	names.delete('.');
 
+	const hostRule = (debug?: DebugInfo) => {
+		// JSON.stringify twice: the result is a JSON string, which is also a valid CSS string.
+		const data = debug ? ` ${DEBUG_PROPERTY}: ${JSON.stringify(JSON.stringify(debug))};` : '';
+		return `[${attributes.host}="${name}"] { container: ${name} / ${layout.container};${data} }`;
+	};
 	const css: string[] = [
-		`[${attributes.host}="${name}"] { container: ${name} / ${layout.container}; }`,
+		hostRule(),
 		block(sel, declarations(emit[0], steps[0])),
 		...[...names].map((n) => `${sel} > [${attributes.area}="${n}"] { grid-area: ${n}; }`)
 	];
@@ -172,8 +180,36 @@ function build(layout: Layout, options: CompileOptions): CompiledLayout {
 			}
 		});
 
+	const debug: DebugInfo | undefined = options.debug
+		? {
+				v: 1,
+				name,
+				container: layout.container,
+				areas: [...names],
+				steps: steps.map((s, i) => ({
+					key: s.key ?? null,
+					...(s.minWidth !== undefined && { minWidth: s.minWidth }),
+					...(s.minHeight !== undefined && { minHeight: s.minHeight }),
+					...(emit[i].cols && { cols: emit[i].cols }),
+					...(emit[i].rows && { rows: emit[i].rows }),
+					...(emit[i].gap !== undefined && { gap: emit[i].gap }),
+					...(emit[i].padding !== undefined && { padding: emit[i].padding }),
+					...(emit[i].areas && { areas: emit[i].areas })
+				})),
+				warnings: warnings.map((w) => w.message)
+			}
+		: undefined;
+	css[0] = hostRule(debug);
+
 	const rules = [inLayer(layer, css.join('\n')), ...hide];
-	return { name, css: rules.join('\n'), layer, areas: [...names], warnings };
+	return {
+		name,
+		css: rules.join('\n'),
+		layer,
+		areas: [...names],
+		warnings,
+		...(debug && { debug })
+	};
 }
 
 export function compileLayout(

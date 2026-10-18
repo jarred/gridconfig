@@ -30,6 +30,9 @@ type Context = {
 export function layoutPlugin(options: CompileOptions = {}): Plugin {
 	/** Layout name for each file, to find two files that give the same name. */
 	const names = new Map<string, string>();
+	/** Debug data for development tools: on when the dev server runs, unless the options say else. */
+	let serving = false;
+	const compileOptions = (): CompileOptions => ({ debug: serving, ...options });
 
 	function report(ctx: Context, e: unknown, file: string, lineOffset = 0, column = 0): never {
 		if (!(e instanceof LayoutError)) throw e;
@@ -49,7 +52,7 @@ export function layoutPlugin(options: CompileOptions = {}): Plugin {
 		try {
 			const compiled = compileLayout(source, {
 				defaultName: basename(file, extname(file)),
-				...options
+				...compileOptions()
 			});
 			for (const w of compiled.warnings) ctx.warn(`${file}: ${w.message}`);
 
@@ -68,6 +71,10 @@ export function layoutPlugin(options: CompileOptions = {}): Plugin {
 	return {
 		name: 'gridconfig:layout',
 		enforce: 'pre',
+
+		configResolved(config) {
+			serving = config.command === 'serve';
+		},
 
 		async load(id) {
 			const [file, query = ''] = id.split('?');
@@ -108,8 +115,11 @@ export function layoutPlugin(options: CompileOptions = {}): Plugin {
 						);
 					compiled =
 						call.kind === 'template'
-							? compileLayout(call.source, options)
-							: compileLayout(parseLayoutObject(call.value as LayoutInput, options), options);
+							? compileLayout(call.source, compileOptions())
+							: compileLayout(
+									parseLayoutObject(call.value as LayoutInput, options),
+									compileOptions()
+								);
 				} catch (e) {
 					// Lines inside a template start at the line of its opening backtick.
 					return report(this, e, file, startLine - 1);

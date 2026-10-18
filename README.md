@@ -57,6 +57,7 @@ With the Vite plugin, static layouts compile at build time. Without it, they com
 | `packages/core`        | `@gridconfig/core`                  | Parser, compiler, value grammar, `grid`, types. `./runtime` has the parts that need no YAML parser.            |
 | `packages/unplugin`    | `@gridconfig/unplugin`              | Bundler plugins. Vite for now: loads `.grid` files and compiles static `grid` calls.                           |
 | `packages/svelte`      | `@gridconfig/svelte`                | `Grid` component for Svelte 5                                                                                  |
+| `packages/devtools`    | `@gridconfig/devtools`              | Inspector overlay for the browser: areas, authored tracks, steps, resize and checks of the markup.             |
 | `packages/conformance` | `@gridconfig/conformance` (private) | Loads the fixtures in Chromium and checks the layout the browser makes.                                        |
 | `apps/site`            | `@gridconfig/site`                  | The gridconfig.dev site: docs and playground (currently a demo page)                                           |
 
@@ -67,8 +68,8 @@ Planned: `cli`, `react`, `vue`, `astro`, `element` (Web Components), an editor e
 ```sh
 pnpm install
 pnpm dev     # the site
-pnpm test    # tests in core and unplugin (Node's built-in test runner)
-pnpm test:browser  # fixtures in Chromium (once: pnpm exec playwright install chromium)
+pnpm test    # tests in core, unplugin and devtools (Node's built-in test runner)
+pnpm test:browser  # fixtures, page CSS and the inspector in Chromium (once: pnpm exec playwright install chromium)
 pnpm check   # type-check
 pnpm lint
 ```

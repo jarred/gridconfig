@@ -254,3 +254,55 @@ test('baseCssFor uses the same layer', async () => {
 	assert.equal(baseCss, baseCssFor());
 	assert.doesNotMatch(baseCssFor(null as never), /@layer/);
 });
+
+const DEBUG_SRC = `
+name: d
+areas: |
+  A
+100x100:
+  gap: 4
+  areas: |
+    A B
+200:
+  gap: 8
+`;
+
+test('debug is off by default', () => {
+	const out = compileLayout(DEBUG_SRC);
+	assert.equal(out.debug, undefined);
+	assert.doesNotMatch(out.css, /--gc-debug/);
+});
+
+test('debug gives the steps in cascade order, with inferred values', () => {
+	const { debug } = compileLayout(DEBUG_SRC, { debug: true });
+	assert.ok(debug);
+	assert.equal(debug.v, 1);
+	assert.deepEqual(debug.areas, ['A', 'B']);
+	assert.deepEqual(
+		debug.steps.map((s) => s.key),
+		[null, '100x100', '200']
+	);
+	assert.equal(debug.steps[0].cols, 'repeat(1, 1fr)');
+	assert.equal(debug.steps[0].gap, '0');
+	assert.equal(debug.steps[1].gap, '4px');
+	assert.equal(debug.steps[1].cols, 'repeat(2, 1fr)');
+	assert.deepEqual(debug.steps[1].areas, [['A', 'B']]);
+	assert.equal(debug.steps[2].minWidth, 200);
+	assert.equal(debug.steps[2].minHeight, undefined);
+	assert.equal(debug.steps[2].gap, '8px');
+	assert.equal(debug.steps[2].cols, undefined);
+});
+
+test('the css carries the debug data as a CSS string that decodes to the same JSON', () => {
+	const { css, debug } = compileLayout(DEBUG_SRC, { debug: true });
+	const m = /--gc-debug: ("(?:[^"\\]|\\.)*");/.exec(css);
+	assert.ok(m);
+	// A CSS string and a JSON string use the same escapes for \ and ".
+	assert.deepEqual(JSON.parse(JSON.parse(m[1])), debug);
+});
+
+test('debug does not change the other css', () => {
+	const plain = compileLayout(DEBUG_SRC, { layer: false }).css;
+	const withDebug = compileLayout(DEBUG_SRC, { layer: false, debug: true }).css;
+	assert.equal(withDebug.replace(/ --gc-debug: "(?:[^"\\]|\\.)*";/, ''), plain);
+});

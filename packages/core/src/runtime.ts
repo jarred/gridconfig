@@ -2,3 +2,4 @@
 export { attributes } from './attributes.ts';
 export { baseCss, baseCssFor } from './base.ts';
 export { DEFAULT_LAYER } from './layer.ts';
+export { DEBUG_PROPERTY } from './debug.ts';

@@ -22,7 +22,9 @@
 		"check": "svelte-check --tsconfig ./tsconfig.json"
 	},
 	"dependencies": {
-		"@gridconfig/core": "workspace:*"
+		"@gridconfig/core": "workspace:*",
+		"@gridconfig/devtools": "workspace:*",
+		"esm-env": "^1.2.2"
 	},
 	"peerDependencies": {
 		"svelte": "^5.0.0"

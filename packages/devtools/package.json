@@ -1,0 +1,43 @@
+{
+	"name": "@gridconfig/devtools",
+	"version": "0.0.0",
+	"description": "An in-browser inspector for GridConfig layouts: areas, tracks, steps and resizing.",
+	"license": "MIT",
+	"type": "module",
+	"exports": {
+		".": "./src/index.ts",
+		"./auto": "./src/auto.ts"
+	},
+	"files": [
+		"dist"
+	],
+	"publishConfig": {
+		"access": "public",
+		"exports": {
+			".": {
+				"types": "./dist/index.d.ts",
+				"default": "./dist/index.js"
+			},
+			"./auto": {
+				"types": "./dist/auto.d.ts",
+				"default": "./dist/auto.js"
+			}
+		}
+	},
+	"sideEffects": [
+		"./src/auto.ts",
+		"./dist/auto.js"
+	],
+	"scripts": {
+		"build": "tsc -p tsconfig.build.json",
+		"prepublishOnly": "pnpm build",
+		"test": "node --test \"test/**/*.test.ts\"",
+		"check": "tsc -p tsconfig.json"
+	},
+	"dependencies": {
+		"@gridconfig/core": "workspace:*"
+	},
+	"devDependencies": {
+		"typescript": "^6.0.3"
+	}
+}
