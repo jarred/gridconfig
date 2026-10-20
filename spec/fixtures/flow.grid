@@ -1,0 +1,24 @@
+# B has flow at each step. x400 sorts before 600x, so at 600 x 400 the entry of 600x wins in full.
+# C has flow but is hidden from 800px.
+areas: A B C
+flow:
+  B: column center start
+  C: column
+
+x400:
+  flow:
+    B: row end
+
+600x:
+  flow:
+    B: column center
+
+800x:
+  areas: A B
+  flow:
+    B: none
+    C: row
+
+1000x:
+  flow:
+    B: row between center gap {space.2} wrap

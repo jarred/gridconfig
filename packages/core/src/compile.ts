@@ -1,6 +1,7 @@
 import { STEP_PROPERTY, attributes } from './attributes.ts';
 import { DEBUG_PROPERTY } from './debug.ts';
 import { LayoutError } from './errors.ts';
+import { flowDeclarations } from './flow.ts';
 import { inLayer, resolveLayer } from './layer.ts';
 import { parseLayout } from './parse.ts';
 import type { CompileOptions, CompiledLayout, DebugInfo, Layout, Step, Warning } from './types.ts';
@@ -127,6 +128,22 @@ function build(layout: Layout, options: CompileOptions): CompiledLayout {
 	const names = new Set(emit.flatMap((e) => e.areas?.flat() ?? []));
 	names.delete('.');
 
+	steps.forEach((step, i) => {
+		for (const area of Object.keys(step.flow ?? {}))
+			if (!names.has(area))
+				throw new LayoutError(`flow names "${area}", but no area map has an area with that name`, [
+					...path(i, 'flow'),
+					area
+				]);
+	});
+
+	// A step that sets an entry writes all of its properties: more than one step can match at the
+	// same time, so an entry must win in full or not at all.
+	const flowRules = (step: Step, indent = '') =>
+		Object.entries(step.flow ?? {}).map(([area, entry]) =>
+			block(`${sel} > [${attributes.area}="${area}"]`, flowDeclarations(entry), indent)
+		);
+
 	const hostRule = (debug?: DebugInfo) => {
 		// JSON.stringify twice: the result is a JSON string, which is also a valid CSS string.
 		const data = debug ? ` ${DEBUG_PROPERTY}: ${JSON.stringify(JSON.stringify(debug))};` : '';
@@ -135,16 +152,15 @@ function build(layout: Layout, options: CompileOptions): CompiledLayout {
 	const css: string[] = [
 		hostRule(),
 		block(sel, declarations(emit[0], steps[0])),
-		...[...names].map((n) => `${sel} > [${attributes.area}="${n}"] { grid-area: ${n}; }`)
+		...[...names].map((n) => `${sel} > [${attributes.area}="${n}"] { grid-area: ${n}; }`),
+		...flowRules(steps[0])
 	];
 
 	steps.forEach((step, i) => {
 		if (i === 0) return;
 		const body = declarations(emit[i], step);
-		if (body.length)
-			css.push(
-				`@container ${name} ${conditions(step).join(' and ')} {\n${block(sel, body, '  ')}\n}`
-			);
+		const rules = [block(sel, body, '  '), ...flowRules(step, '  ')];
+		css.push(`@container ${name} ${conditions(step).join(' and ')} {\n${rules.join('\n')}\n}`);
 	});
 
 	// A step that sets `areas` hides every name its map lacks, for as long as it is the active
@@ -196,7 +212,8 @@ function build(layout: Layout, options: CompileOptions): CompiledLayout {
 					...(emit[i].rows && { rows: emit[i].rows }),
 					...(emit[i].gap !== undefined && { gap: emit[i].gap }),
 					...(emit[i].padding !== undefined && { padding: emit[i].padding }),
-					...(emit[i].areas && { areas: emit[i].areas })
+					...(emit[i].areas && { areas: emit[i].areas }),
+					...(s.flow && { flow: s.flow })
 				})),
 				warnings: warnings.map((w) => w.message)
 			}

@@ -1,0 +1,88 @@
+{
+	"description": "Flow in an area. Each step that sets an entry wins in full. none removes flow. A hidden area stays hidden.",
+	"vars": { "--space-2": "8px" },
+	"cases": [
+		{
+			"size": [300, 100],
+			"map": ["A B C"],
+			"styles": {
+				"B": {
+					"display": "flex",
+					"flexDirection": "column",
+					"justifyContent": "center",
+					"alignItems": "flex-start",
+					"columnGap": "normal",
+					"flexWrap": "nowrap"
+				},
+				"C": { "display": "flex", "flexDirection": "column", "alignItems": "stretch" }
+			}
+		},
+		{
+			"size": [300, 400],
+			"map": ["A B C"],
+			"styles": {
+				"B": {
+					"display": "flex",
+					"flexDirection": "row",
+					"justifyContent": "flex-end",
+					"alignItems": "stretch"
+				}
+			}
+		},
+		{
+			"size": [600, 100],
+			"map": ["A B C"],
+			"styles": {
+				"B": {
+					"display": "flex",
+					"flexDirection": "column",
+					"justifyContent": "center",
+					"alignItems": "stretch"
+				}
+			}
+		},
+		{
+			"size": [600, 400],
+			"map": ["A B C"],
+			"styles": {
+				"B": {
+					"display": "flex",
+					"flexDirection": "column",
+					"justifyContent": "center",
+					"alignItems": "stretch"
+				}
+			}
+		},
+		{
+			"size": [800, 100],
+			"map": ["A B"],
+			"styles": {
+				"B": {
+					"display": "block",
+					"flexDirection": "row",
+					"justifyContent": "normal",
+					"alignItems": "normal",
+					"columnGap": "normal",
+					"flexWrap": "nowrap"
+				},
+				"C": { "display": "none" }
+			}
+		},
+		{
+			"size": [1000, 400],
+			"map": ["A B"],
+			"styles": {
+				"B": {
+					"display": "flex",
+					"flexDirection": "row",
+					"justifyContent": "space-between",
+					"alignItems": "center",
+					"columnGap": "8px",
+					"rowGap": "8px",
+					"flexWrap": "wrap"
+				},
+				"C": { "display": "none" }
+			}
+		}
+	]
+}

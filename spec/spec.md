@@ -1,6 +1,6 @@
 # GridConfig layout spec
 
-**Status: draft 0.3.** The compiler in `packages/core` is the implementation of this document. The tests are in `packages/core/test` and `packages/unplugin/test`. Refer to [Implementation notes](#implementation-notes) for the parts that are not built yet.
+**Status: draft 0.4.** The compiler in `packages/core` is the implementation of this document. The tests are in `packages/core/test` and `packages/unplugin/test`. Refer to [Implementation notes](#implementation-notes) for the parts that are not built yet.
 
 Two other notes explore how GridConfig can work with other tools. They are not part of this spec: [Tailwind](./tailwind-plugin.md) and [StyleX](./stylex-support.md).
 
@@ -104,6 +104,7 @@ All settings are optional in a query step.
 | `gap`     | A [value](#values). It sets `--gap` on the grid element. The grid applies `--gap` as `gap`.                  |
 | `padding` | A [value](#values). It sets `--padding` on the grid element. The grid applies `--padding` as `padding`.      |
 | `css`     | Raw declarations. The compiler adds them to the grid element in this step. It does not parse or change them. |
+| `flow`    | The layout inside each area. A map from an area name to a flow. Refer to [Flow](#flow).                      |
 
 `--gap` and `--padding` are custom properties on the grid element. Thus children can use them (`padding: var(--gap)`). Each layout sets both to `0` on its grid element. Thus a nested layout does not get the values of its parent.
 
@@ -199,6 +200,125 @@ An omitted area is always hidden. This is absolute in v1. You cannot keep an abs
 
 The compiler never puts the hide rule in a cascade layer. Thus it wins against the normal CSS of the page, for example a `display: flex` on the item. The layers of the page cannot change this. Only an `!important` rule can override it. That rule must have a higher specificity, or be in a cascade layer. Refer to the Open questions for what can change this.
 
+### Flow
+
+`flow` sets how the direct children of an area are arranged. The area becomes a flex container. The value is a map. Each key is an area name. Each value is a flow string, a flow object, or `none`.
+
+```yaml
+name: card
+areas: |
+  A
+  B
+flow:
+  B: column center start
+
+600x:
+  areas: A B
+  flow:
+    B: row between center gap {space.2}
+```
+
+A style query on `--gc-step` can also change the CSS of an area at a step. But a style query matches the active step only. Thus the author must write a value again for each later step. `flow` obeys the cascade of the steps, the same as the other settings.
+
+#### The flow string
+
+```
+[direction] [main] [cross] [gap <term>] [wrap]
+```
+
+- All parts are optional.
+- `direction`, `main`, and `cross` must be in this order.
+- `gap` and `wrap` come after them, in any order.
+- Spaces separate the words. Spaces in `()` or `{}` do not separate words.
+
+The compiler finds the role of each word as follows:
+
+1. If the first word is a direction, it is the direction. If not, the direction is the default.
+2. The next alignment word is `main`.
+3. The alignment word after `main` is `cross`.
+
+Thus `center` in the `main` position sets `justify-content`, and `center` in the `cross` position sets `align-items`. To set only `cross`, write `main` also. For example, write `row start center`.
+
+The main axis follows the direction. With `row`, the main axis is the inline axis. With `column`, the main axis is the block axis. All directions and alignments are logical. Thus they are correct in a right-to-left page.
+
+| Role      | Words                                                   | CSS property      | Default   |
+| --------- | ------------------------------------------------------- | ----------------- | --------- |
+| direction | `row`, `column`                                         | `flex-direction`  | `row`     |
+| main      | `start`, `center`, `end`, `between`, `around`, `evenly` | `justify-content` | `start`   |
+| cross     | `start`, `center`, `end`, `stretch`, `baseline`         | `align-items`     | `stretch` |
+| gap       | `gap` and one term                                      | `gap`             | `normal`  |
+| wrap      | `wrap`                                                  | `flex-wrap`       | `nowrap`  |
+
+`start` becomes `flex-start`, `end` becomes `flex-end`, `between` becomes `space-between`, `around` becomes `space-around`, and `evenly` becomes `space-evenly`. Each other word has the same name as its CSS value.
+
+**Gap.** The word `gap` takes exactly one term. The term obeys the [value rules](#values). A term in `()` can have spaces, for example `calc(var(--a) * 2)`. An operator term or a second term is an error. For an expression or a list, use the flow object.
+
+Each area inherits `--gap` from its grid element. Thus `gap --gap` gives the area the same gap as the grid.
+
+A flow string starts with a word, not with `{`. Thus YAML does not need quotes, also when the string has a token (`column gap {space.2}`).
+
+| Flow string            | Result                                                                                                        |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------- |
+| `column`               | The children are in a column, from the start. The children fill the width.                                    |
+| `column center start`  | The children are in a column. The group is in the vertical center. The children are at the start of the line. |
+| `row between center`   | The children are in a row, with the space between them. The children are in the vertical center.              |
+| `column gap {space.2}` | The children are in a column. The gap is the token `space.2`.                                                 |
+| `row wrap gap 8`       | The children are in a row that wraps. The gap is 8 px.                                                        |
+| `none`                 | No flow. Refer to [Flow output](#flow-output).                                                                |
+
+#### The flow object
+
+A flow object has named keys. It is easier to make in code. The object and the string give the same data.
+
+```yaml
+flow:
+  B:
+    direction: column
+    main: center
+    cross: start
+    gap: '{space.2} + 4'
+    wrap: false
+```
+
+| Key         | Value                                                     |
+| ----------- | --------------------------------------------------------- |
+| `direction` | `row` or `column`                                         |
+| `main`      | a main word                                               |
+| `cross`     | a cross word                                              |
+| `gap`       | a [value](#values). An expression or a list is permitted. |
+| `wrap`      | `true` or `false`                                         |
+
+All keys are optional. A key that is absent gets its default. The parser changes each string into an object before other work.
+
+#### Flow in steps
+
+A flow entry is complete. It does not merge with an entry from an earlier step. Example: the base step has `B: column center start`, and a step has `B: row`. At that step, the result is `row start stretch`, not `row center start`.
+
+A step that sets an entry writes all the properties of that entry. The compiler does not compare the entry with other steps, because more than one step can match at the same time. Example:
+
+```yaml
+flow:
+  B: column center start
+x400:
+  flow:
+    B: row end
+600x:
+  flow:
+    B: column center
+```
+
+`600x` comes after `x400` in the step order. At 600 × 400, both steps match, and `600x` wins in full. The result is `column center stretch`. If `600x` wrote only the values that are different from the base, the result would be `row end stretch`.
+
+The hide rule wins over flow. Thus flow on a hidden area has no effect, and the compiler gives no warning. When the area shows again, the flow that is active at that size applies.
+
+A flow key must be an area name that is in an area map of the layout.
+
+#### Scope of flow
+
+Flow sets properties of the area only. It does not set properties of the children: `flex-grow`, `flex-basis`, `order`, `align-self`, and margins are not in the format. Use normal CSS for the children. If flow includes them, the format becomes a second layout language.
+
+Flow applies to the direct children of an area. A child can be a `data-grid-host` with its own layout. If the area element is itself a host, flow has almost no effect, because the host has one child.
+
 ---
 
 ## 2. The compiled output
@@ -257,6 +377,7 @@ The order of layers comes from the first time that the page uses each name. A pa
 - One `@container` block for each query step.
 - The area placement rules.
 - The hide rules. These are outside the layer.
+- The flow rules, if the layout has flow. Refer to [Flow output](#flow-output).
 
 The container name is the `name` of the layout. If the base step does not set `--gap` and `--padding`, they are `0`.
 
@@ -312,6 +433,34 @@ This is example output for the example at the top. The format of the output is n
 }
 ```
 
+### Flow output
+
+For each step that sets flow, the compiler writes one rule for each area in the entry. The rule has the same selector as the `grid-area` rule, and it is in the same block as the other output of the step. The rule sets six properties: `display`, `flex-direction`, `justify-content`, `align-items`, `gap`, and `flex-wrap`.
+
+This is the output of the step `600x` in the [Flow](#flow) example:
+
+```css
+@container card (min-width: 600px) {
+	[data-grid-layout='card'] > [data-grid-area='B'] {
+		display: flex;
+		flex-direction: row;
+		justify-content: space-between;
+		align-items: center;
+		gap: var(--space-2);
+		flex-wrap: nowrap;
+	}
+}
+```
+
+**`none`.** The entry `none` writes `revert-layer` for the six properties. `revert-layer` ignores all the rules in the layer of the layout, also the flow of earlier steps. The area gets the values from the earlier layers of the page, or the browser defaults. The compiler does not write `display: block`, because an element that the page makes a grid or a flex container must keep its value.
+
+- With a layer, unlayered page CSS wins over the layout in all cases. Thus `none` changes only the layout values.
+- Without a layer (`layer: false`), the browser counts all unlayered CSS as the last layer. Thus `revert-layer` also ignores the unlayered page rules that have a lower specificity than the flow rule. For example, with `[data-grid-area] { display: grid }` on the page, `none` gives `display: block`. Use a page rule with a higher specificity, or use a layer.
+
+**Page CSS.** With a layer, unlayered page CSS wins over flow. Thus a page rule such as `.card h3 { display: grid }` stops the flow of that area, and there is no error.
+
+The browser changes the `display` of a grid item to a block-level value. Thus an `inline-flex` value on an area computes to `flex`.
+
 ### Active step
 
 Each step sets the custom property `--gc-step` on the grid element. The value is the query key of the step, or `base` for the base step. The cascade gives the active step: the last step that matches. Thus two steps that match at the same time give one value.
@@ -350,6 +499,10 @@ The parser and the compiler throw an error for each of these:
 - A track count that is not the same as the area map that the compiler checks it against.
 - A malformed value: unbalanced `()` or `{}`, an empty token `{}`, or an operator at the start, at the end, or twice in a row.
 - A `css` value that has `</style`. It can break out of an injected `<style>` element.
+- A `flow` value that is not a map, or a flow key that is not an area name in an area map.
+- A flow string with an unknown word, a word in the wrong role, more than one main or cross word, or a direction that is not the first word. The error lists the words that are valid in that position.
+- A flow string with `gap` or `wrap` two times, `gap` with no term, or `gap` with more than one term or an operator.
+- A flow object with an unknown key, an invalid word, or a `wrap` that is not `true` or `false`.
 
 The compiler gives a warning, and does not fail, for this:
 
@@ -385,7 +538,7 @@ baseCssFor(layer: string | null): string  // the shared base rules in a given la
 
 ## Tooling (planned)
 
-- **JSON Schema** for the layout. It gives editor autocomplete for the settings, the query keys, and the `container` values.
+- **JSON Schema** for the layout. It gives editor autocomplete for the settings, the query keys, the `container` values, and the flow words.
 - **`.grid` extension.** The content is the YAML that [Ways to write a layout](#ways-to-write-a-layout) describes. The editor extension will give syntax colors, the schema, and diagnostics. Until it exists, a `.gitattributes` line (`*.grid linguist-language=YAML`) and a Prettier override (`parser: yaml`) can give basic support. The Prettier override works in this repository (it needs `useTabs: false`). We did not test the `.gitattributes` line on GitHub.
 - **Area colors.** Core will export `areaColor(name, index)`. It gives a perceptually even palette for light and dark themes. The editor, the inspector, the playground, and the CLI use it. Thus an area has the same color in each tool.
 - **CLI.** `gridconfig build` writes the CSS and a typed module for each layout.
@@ -413,7 +566,7 @@ The select sets the host to the minimum size of a step. The handle snaps to the 
 
 The host keeps the padding, border, color, and overflow that the page gives it. A host with no background gets the background behind it. A host that has no size gets 480 by 360. A resize stays inside the viewport, and it does not reflow the page. Esc, a click on the scrim, or the button puts the host back. If the page replaces the host, for example after a file change, the new host with the same name pops out again.
 
-**Debug data.** With `debug: true`, the compiler puts the steps in `CompiledLayout.debug`. It also writes them in the custom property `--gc-debug` on the host. The value is a CSS string that holds JSON. Thus the data goes with the CSS in each route, also in a plain stylesheet.
+**Debug data.** With `debug: true`, the compiler puts the steps in `CompiledLayout.debug`. A step that sets flow has a `flow` map, with each entry as a flow object or `"none"`. The compiler also writes the steps in the custom property `--gc-debug` on the host. The value is a CSS string that holds JSON. Thus the data goes with the CSS in each route, also in a plain stylesheet.
 
 Without the data, the overlay still draws from the computed styles. It then shows used sizes and no steps. The Vite plugin sets `debug: true` when the dev server runs.
 
@@ -427,12 +580,12 @@ Without the data, the overlay still draws from the computed styles. It then show
 
 These parts are built:
 
-- The parser and the compiler: cascade semantics, value grammar, validation, hiding, warnings, and structured errors.
+- The parser and the compiler: cascade semantics, value grammar, validation, hiding, flow, warnings, and structured errors.
 - The three forms: YAML text, objects, and the `grid` function. The default `name`, the removal of shared indentation, and the checks for plain data, tags, and multiple documents.
 - The Vite plugin (`packages/unplugin`). It loads `.grid` files and `.yaml?grid` imports. It replaces each static `grid` template and object with the compiled result. It only looks at files that import `grid` from `@gridconfig/core`. It reports an error when two files give the same layout name.
 - The Svelte `Grid` component (`packages/svelte`). It uses the `data-grid-*` attributes.
 - The inspector (`packages/devtools`). Refer to [Inspector](#inspector). Browser tests cover the drawing, the select, the handles, and the checks of the markup.
-- Browser tests (`packages/conformance`). Each fixture in `spec/fixtures` is a `.grid` file and a list of expected results at many container sizes. The tests load the compiled CSS in Chromium and compare the used tracks, the gaps, and the position of each area. Other tests record how the CSS interacts with page CSS, cascade layers, and resets.
+- Browser tests (`packages/conformance`). Each fixture in `spec/fixtures` is a `.grid` file and a list of expected results at many container sizes. The tests load the compiled CSS in Chromium and compare the used tracks, the gaps, the position of each area, and the computed flow properties of each area. Other tests record how the CSS interacts with page CSS, cascade layers, and resets.
 
 These parts are not built yet:
 
@@ -451,6 +604,7 @@ These parts are not built yet:
 - **Hiding (decided for v1, to revisit).** Hiding stays `display: none !important`, not in a layer. Watch for page authors who need an absent area to stay visible. If this is necessary, the candidate is a `keep: [B]` setting. The setting skips the hide rule. It also sets `grid-area: auto` for that area in the step. A possible later alternative is a style-query output profile. It uses a custom property for each area, and it does not use exclusive `not (…)` ranges. It raises the minimum browser version.
 - **Layer (decided for v1).** Layers are on by default, in the layer `gridconfig`. The reason: a utility class such as `gap-4` must be able to override a layout. The cost: an unlayered reset such as `* { padding: 0 }` removes the layout padding, in any source order. A page can put its reset in an earlier layer to prevent this. Browser tests record both cases. The hide rules stay outside the layer, because `!important` reverses the order of layers.
 - **Names (decided for v1).** The function is `grid`. It matches the `.grid` extension, the package name, and the `data-grid-*` attributes. The result of `grid` is a layout, and a component takes it as a `layout` prop. The query for a plain YAML file is `?grid`. It is not `?layout`, because SvelteKit uses "layout" for route layouts. An import of `grid` can use an alias, for example `import { grid as g }`, if a file already has a variable `grid`. The build plugin follows the alias.
+- **Flow (later).** Reverse directions (`row-reverse`, `column-reverse`) and shared entries (`B C: column`) are not in v1. The inspector can show the flow of an area next to its label. A future per-area setting (`keep`, or a per-area `css`) must use the same shape as `flow`: a map from the area name to a value.
 - **Named steps (deferred).** A step can get an optional name, for example `as: wide`. Then `--gc-step` has the name, and page CSS does not repeat a size.
 - **Reactive step (deferred).** The adapters can give the active step to JavaScript, for logic such as a change of component. The value comes from `--gc-step`, with a `ResizeObserver` on the host. Styles do not need it: use the style query.
 - **Identifiers.** The container names and the selectors are the `name` of the layout. A name that the compiler makes (a file name or a hash) has a low risk of conflict inside one project. Do production builds add a short hash to prevent a conflict between packages?

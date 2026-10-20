@@ -18,7 +18,21 @@ export type Case = {
 	/** Used track sizes in px. */
 	cols?: number[];
 	rows?: number[];
+	/** Computed styles of areas: area name → property (as in `FLOW_STYLES`) → value. */
+	styles?: Record<string, Partial<Record<FlowStyle, string>>>;
 };
+
+/** The computed styles that a case can check on an area. */
+export const FLOW_STYLES = [
+	'display',
+	'flexDirection',
+	'justifyContent',
+	'alignItems',
+	'columnGap',
+	'rowGap',
+	'flexWrap'
+] as const;
+export type FlowStyle = (typeof FLOW_STYLES)[number];
 
 export type Fixture = {
 	name: string;
@@ -97,7 +111,15 @@ export type Measured = {
 	columnGap: string;
 	rowGap: string;
 	padding: string;
-	areas: { name: string; display: string; x: number; y: number; width: number; height: number }[];
+	areas: {
+		name: string;
+		display: string;
+		x: number;
+		y: number;
+		width: number;
+		height: number;
+		styles: Record<FlowStyle, string>;
+	}[];
 };
 
 export async function resize(page: Page, [w, h]: [number, number]): Promise<Measured> {
@@ -110,7 +132,7 @@ export async function resize(page: Page, [w, h]: [number, number]): Promise<Meas
 		[w, h]
 	);
 	// Read layout synchronously after the style change.
-	return page.evaluate(() => {
+	return page.evaluate((styles) => {
 		const grid = document.querySelector('[data-grid-layout]') as HTMLElement;
 		const gs = getComputedStyle(grid);
 		const px = (v: string) =>
@@ -127,17 +149,22 @@ export async function resize(page: Page, [w, h]: [number, number]): Promise<Meas
 			padding: gs.paddingTop,
 			areas: [...grid.children].map((el) => {
 				const r = el.getBoundingClientRect();
+				const cs = getComputedStyle(el);
 				return {
 					name: (el as HTMLElement).dataset.gridArea!,
 					display: getComputedStyle(el).display,
 					x: r.left - origin.left,
 					y: r.top - origin.top,
 					width: r.width,
-					height: r.height
+					height: r.height,
+					styles: Object.fromEntries(styles.map((p) => [p, cs[p]])) as Record<
+						(typeof styles)[number],
+						string
+					>
 				};
 			})
 		};
-	});
+	}, FLOW_STYLES);
 }
 
 const EPSILON = 0.51;
@@ -166,6 +193,14 @@ export function verify(all: string[], expected: Case, m: Measured): string[] {
 	const rowGap = parseFloat(m.rowGap);
 	const start = (tracks: number[], index: number, g: number) =>
 		tracks.slice(0, index).reduce((sum, t) => sum + t + g, 0);
+
+	for (const [name, want] of Object.entries(expected.styles ?? {})) {
+		const found = m.areas.find((a) => a.name === name);
+		if (!found) continue;
+		for (const [p, v] of Object.entries(want))
+			if (found.styles[p as FlowStyle] !== v)
+				problems.push(`${name} has ${p} ${found.styles[p as FlowStyle]}, expected ${v}`);
+	}
 
 	for (const name of all) {
 		const found = m.areas.find((a) => a.name === name);

@@ -1,12 +1,23 @@
 import { LayoutError } from './errors.ts';
+import { parseFlow } from './flow.ts';
 import type { Range } from './errors.ts';
 import type { CompileOptions, Layout, LayoutInput, Step } from './types.ts';
 import { NUMBER, OPERATORS, compileValue, convertTerm, splitTerms } from './values.ts';
 
 type Path = (string | number)[];
 
-const TOP_LEVEL = new Set(['name', 'container', 'gap', 'padding', 'cols', 'rows', 'areas', 'css']);
-const SETTINGS = new Set(['gap', 'padding', 'cols', 'rows', 'areas', 'css']);
+const TOP_LEVEL = new Set([
+	'name',
+	'container',
+	'gap',
+	'padding',
+	'cols',
+	'rows',
+	'areas',
+	'css',
+	'flow'
+]);
+const SETTINGS = new Set(['gap', 'padding', 'cols', 'rows', 'areas', 'css', 'flow']);
 const QUERY_KEY = /^(\d+(?:\.\d+)?)?x(\d+(?:\.\d+)?)?$/;
 const IDENT = /^[A-Za-z_][\w-]*$/;
 const RESERVED_AREAS = new Set([
@@ -122,6 +133,7 @@ function parseStep(
 		if (/<\/style/i.test(step.css))
 			throw new LayoutError('`css` must not contain "</style"', at('css'));
 	}
+	if (raw.flow != null) step.flow = parseFlow(raw.flow, options, at('flow'));
 	return step;
 }
 

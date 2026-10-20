@@ -195,3 +195,79 @@ describe('resets', () => {
 		assert.equal(m.padding, '0px');
 	});
 });
+
+/** B has flow below 300px, and `none` from 300px. */
+const FLOW_SOURCE = [
+	'name: probe',
+	'areas: A B',
+	'flow:',
+	'  B: column center',
+	'300:',
+	'  flow:',
+	'    B: none'
+].join('\n');
+
+async function flowStyles(
+	extra: Parameters<typeof mount>[2],
+	options: CompileOptions,
+	size: [number, number]
+) {
+	const page = await mount(browser, compileLayout(FLOW_SOURCE, options), extra);
+	const measured = await resize(page, size);
+	await page.close();
+	return measured.areas.find((a) => a.name === 'B')!.styles;
+}
+
+/** A page rule in an earlier layer. The browser blockifies a grid item, so inline-flex computes to flex. */
+const EARLIER_LAYER = {
+	head: '@layer base, gridconfig;',
+	pageCss:
+		'@layer base { [data-grid-area="B"] { display: inline-flex; flex-direction: row-reverse; } }'
+};
+
+describe('flow against page CSS, layered (default)', () => {
+	test('an unlayered page rule overrides flow, with any specificity', async () => {
+		const s = await flowStyles({ pageCss: '[data-grid-area] { display: grid; }' }, {}, [100, 100]);
+		assert.equal(s.display, 'grid');
+	});
+
+	test('flow overrides a rule in an earlier layer', async () => {
+		const s = await flowStyles(EARLIER_LAYER, {}, [100, 100]);
+		assert.deepEqual([s.display, s.flexDirection], ['flex', 'column']);
+	});
+
+	test('none gives back the value from an earlier layer', async () => {
+		const s = await flowStyles(EARLIER_LAYER, {}, [400, 100]);
+		assert.deepEqual(
+			[s.display, s.flexDirection, s.justifyContent],
+			['flex', 'row-reverse', 'normal']
+		);
+	});
+});
+
+describe('flow against page CSS, unlayered', () => {
+	const options = { layer: false };
+
+	test('flow overrides an unlayered page rule with a lower specificity', async () => {
+		const s = await flowStyles(
+			{ pageCss: '[data-grid-area] { display: grid; }' },
+			options,
+			[100, 100]
+		);
+		assert.equal(s.display, 'flex');
+	});
+
+	test('none gives back the value from a page layer: unlayered CSS is the last layer', async () => {
+		const s = await flowStyles(EARLIER_LAYER, options, [400, 100]);
+		assert.deepEqual([s.display, s.flexDirection], ['flex', 'row-reverse']);
+	});
+
+	test('none also skips an unlayered page rule with a lower specificity', async () => {
+		const s = await flowStyles(
+			{ pageCss: '[data-grid-area] { display: grid; }' },
+			options,
+			[400, 100]
+		);
+		assert.equal(s.display, 'block');
+	});
+});

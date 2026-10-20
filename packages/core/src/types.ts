@@ -1,5 +1,28 @@
 import type { Range } from './errors.ts';
 
+/** How the direct children of an area are arranged. All values are resolved; `gap` is CSS. */
+export type Flow = {
+	direction: 'row' | 'column';
+	main: 'start' | 'center' | 'end' | 'between' | 'around' | 'evenly';
+	cross: 'start' | 'center' | 'end' | 'stretch' | 'baseline';
+	/** A CSS value, after the value grammar. Absent means `gap: normal`. */
+	gap?: string;
+	wrap: boolean;
+};
+
+/** One entry of a `flow` map. `none` removes flow from the area at this step. */
+export type FlowEntry = Flow | 'none';
+
+/** A flow written as an object. Absent keys get their defaults. */
+export type FlowInput = {
+	direction?: Flow['direction'];
+	main?: Flow['main'];
+	cross?: Flow['cross'];
+	/** A value: see the value grammar in the spec. An expression or a list is permitted. */
+	gap?: number | string;
+	wrap?: boolean;
+};
+
 export type Step = {
 	/** The query key this step was written under; undefined for the base step. */
 	key?: string;
@@ -15,6 +38,8 @@ export type Step = {
 	areas?: string[][];
 	/** Raw declarations applied to the grid element. */
 	css?: string;
+	/** Flow for each named area. A step that sets an entry writes all of its properties. */
+	flow?: Record<string, FlowEntry>;
 };
 
 export type Layout = {
@@ -39,6 +64,7 @@ export type DebugStep = {
 	gap?: string;
 	padding?: string;
 	areas?: string[][];
+	flow?: Record<string, FlowEntry>;
 };
 
 /**
@@ -106,6 +132,8 @@ export type StepInput = {
 	areas?: string;
 	/** Raw declarations for the grid element. */
 	css?: string;
+	/** Flow for each area: a flow string such as `column center start`, a flow object, or `none`. */
+	flow?: Record<string, string | FlowInput>;
 };
 
 /** A layout written as a plain object. It has the same shape as the YAML form. */
