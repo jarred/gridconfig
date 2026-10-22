@@ -1,0 +1,10 @@
+# Orientation and aspect ratio. 16/9 is inside landscape, so it wins where both match.
+areas: |
+  A
+  B
+
+landscape:
+  areas: A B
+
+16/9:
+  areas: A B C

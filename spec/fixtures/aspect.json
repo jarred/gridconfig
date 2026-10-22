@@ -1,0 +1,11 @@
+{
+	"description": "Portrait includes a square. A ratio is a minimum, and a minimum is inclusive.",
+	"cases": [
+		{ "size": [200, 300], "map": ["A", "B"] },
+		{ "size": [300, 300], "map": ["A", "B"] },
+		{ "size": [301, 300], "map": ["A B"] },
+		{ "size": [319, 180], "map": ["A B"] },
+		{ "size": [320, 180], "map": ["A B C"] },
+		{ "size": [600, 100], "map": ["A B C"] }
+	]
+}

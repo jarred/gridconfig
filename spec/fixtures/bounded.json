@@ -1,0 +1,11 @@
+{
+	"description": "Each width matches one range. At the edge, the range that starts there matches.",
+	"cases": [
+		{ "size": [100, 100], "map": ["A B"], "gap": "4px" },
+		{ "size": [299, 100], "map": ["A B"], "gap": "4px" },
+		{ "size": [300, 100], "map": ["A B C"], "gap": "8px" },
+		{ "size": [599, 100], "map": ["A B C"], "gap": "8px" },
+		{ "size": [600, 100], "map": ["A B C D"], "gap": "0px" },
+		{ "size": [1000, 100], "map": ["A B C D"], "gap": "0px" }
+	]
+}

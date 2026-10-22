@@ -1,0 +1,13 @@
+# Ranges with a max. A max is exclusive, so ranges that meet do not overlap and leave no gap.
+areas: A
+
+..300:
+  gap: 4
+  areas: A B
+
+300..600:
+  gap: 8
+  areas: A B C
+
+600..:
+  areas: A B C D

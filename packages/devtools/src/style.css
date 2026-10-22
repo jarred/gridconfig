@@ -61,6 +61,35 @@
 	position: absolute;
 }
 
+/* Hover. The guides show only while the pointer is over the layout (the class "hot"). */
+
+.group {
+	position: absolute;
+	top: 0;
+	left: 0;
+}
+
+.group > * {
+	position: absolute;
+}
+
+.guide,
+.other {
+	transition: opacity 120ms ease;
+}
+
+.layer:not(.hot) .guide,
+.other:not(.on) {
+	opacity: 0;
+}
+
+.layer:not(.hot) .guide,
+.layer:not(.hot) .guide *,
+.other:not(.on),
+.other:not(.on) * {
+	pointer-events: none !important;
+}
+
 /* Frames and tags */
 
 .frame {
@@ -114,6 +143,22 @@
 	color: inherit;
 	font: inherit;
 	cursor: pointer;
+}
+
+.tag .count {
+	margin-left: 8px;
+	border-radius: 999px;
+	padding: 0 6px;
+	color: var(--paper);
+	background: var(--note);
+}
+
+.tag .count.warning {
+	background: var(--warning);
+}
+
+.tag .count.error {
+	background: var(--error);
 }
 
 .size {

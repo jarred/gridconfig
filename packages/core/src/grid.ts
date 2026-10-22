@@ -27,11 +27,11 @@ function isTemplate(value: unknown): value is TemplateStringsArray {
  * Without the plugin, the layout compiles when this function runs.
  */
 export function grid(strings: TemplateStringsArray, ...values: unknown[]): CompiledLayout;
-export function grid(input: LayoutInput, options?: CompileOptions): CompiledLayout;
-export function grid(
-	first: TemplateStringsArray | LayoutInput,
-	...rest: unknown[]
-): CompiledLayout {
+export function grid<const B extends string = never>(
+	input: LayoutInput<B>,
+	options?: CompileOptions
+): CompiledLayout;
+export function grid(first: TemplateStringsArray | object, ...rest: unknown[]): CompiledLayout {
 	if (isTemplate(first)) {
 		if (rest.length)
 			throw new LayoutError(

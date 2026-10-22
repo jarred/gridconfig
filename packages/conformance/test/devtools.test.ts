@@ -67,6 +67,10 @@ type Options = {
 	open?: boolean;
 	/** Collects console warnings from the start. */
 	warnings?: string[];
+	/** More CSS for the page, for example a nested layout. */
+	css?: string;
+	/** What the inspector finds in sessionStorage when it starts. */
+	storage?: unknown;
 };
 
 /** A page with the layout in a 150 x 150 box at (140, 100), and the inspector installed. */
@@ -82,6 +86,7 @@ async function setup(options: Options = {}): Promise<Page> {
 body { margin: 0; }
 ${baseCssFor(compiled.layer)}
 ${compiled.css}
+${options.css ?? ''}
 #box { position: absolute; left: 140px; top: 100px; width: 150px; height: 150px; ${options.boxStyle ?? ''} }
 </style></head><body>
 ${options.wrap ?? '<div id="wrap">__BOX__</div>'}
@@ -93,6 +98,11 @@ ${options.wrap ?? '<div id="wrap">__BOX__</div>'}
 		route.fulfill({ contentType: 'text/html', body: html })
 	);
 	await page.goto('https://gridconfig.test/');
+	if (options.storage !== undefined)
+		await page.evaluate(
+			(v) => sessionStorage.setItem('gridconfig-devtools', JSON.stringify(v)),
+			options.storage
+		);
 	await page.addScriptTag({ content: script });
 	if (options.open !== false)
 		await page.evaluate(() => {
@@ -101,6 +111,8 @@ ${options.wrap ?? '<div id="wrap">__BOX__</div>'}
 			).__gridconfigDevtools.open();
 		});
 	await settle(page);
+	// The guides show while the pointer is over the layout: start there.
+	if (options.open !== false) await page.mouse.move(215, 175);
 	return page;
 }
 
@@ -162,7 +174,8 @@ describe('the inspector', () => {
 		await page.locator('gridconfig-devtools select').selectOption('0');
 		await settle(page);
 		const [w, h] = await hostSize(page);
-		assert.ok(w < 100 && h < 100, `base size is below the first step, got ${w}x${h}`);
+		// The nearest size where the base step is active: one axis goes below 100.
+		assert.ok(w < 100 || h < 100, `base size is outside the first step, got ${w}x${h}`);
 		assert.equal(await page.locator('gridconfig-devtools select').inputValue(), '0');
 		// B and C are hidden at the base step: they show as no longer in the map.
 		assert.match((await texts(page, '.info')).join(' '), /hidden B, C/);
@@ -354,13 +367,23 @@ describe('pop out', () => {
 		await page.close();
 	});
 
-	test('a click on the scrim puts the host back', async () => {
+	test('a click on the scrim does not put the host back, and does not reach the page', async () => {
 		const page = await setup();
+		await page.evaluate(() =>
+			document.addEventListener('click', (e) => {
+				if (!(e.target as Element).closest('gridconfig-devtools'))
+					(globalThis as unknown as { pageClicks: number }).pageClicks = 1;
+			})
+		);
 		await popButton(page).click();
 		await settle(page);
 		await page.mouse.click(5, 5);
 		await settle(page);
-		assert.equal((await state(page)).open, false);
+		assert.equal((await state(page)).open, true);
+		assert.equal(
+			await page.evaluate(() => (globalThis as unknown as { pageClicks?: number }).pageClicks),
+			undefined
+		);
 		await page.close();
 	});
 
@@ -654,6 +677,185 @@ describe('the console warning for a host with no size', () => {
 		await page.addStyleTag({ content: '#box { height: 150px !important; }' });
 		await wait(page);
 		assert.deepEqual(warnings, []);
+		await page.close();
+	});
+});
+
+describe('the guides show only while the pointer is over the layout', () => {
+	const opacity = (page: Page, selector: string) =>
+		page.evaluate(
+			(sel) =>
+				getComputedStyle(
+					document.querySelector('gridconfig-devtools')!.shadowRoot!.querySelector(sel)!
+				).opacity,
+			selector
+		);
+	const guides = (page: Page) => opacity(page, '.decor .group.guide');
+	// The opacity has a short transition.
+	const shortly = (page: Page) => page.waitForTimeout(250);
+
+	test('they hide when the pointer goes away, and the tag stays', async () => {
+		const page = await setup();
+		await shortly(page);
+		assert.equal(await guides(page), '1');
+		await page.mouse.move(700, 550);
+		await shortly(page);
+		assert.equal(await guides(page), '0');
+		assert.equal(await opacity(page, '.handle.dot'), '0');
+		assert.equal(await opacity(page, '.tag'), '1');
+		await page.mouse.move(215, 175);
+		await shortly(page);
+		assert.equal(await guides(page), '1');
+		await page.close();
+	});
+
+	test('the labels outside the host are in the zone, so they stay while you read them', async () => {
+		const page = await setup();
+		const label = (await page.locator('gridconfig-devtools .label.row').first().boundingBox())!;
+		await page.mouse.move(label.x + 2, label.y + label.height / 2);
+		await shortly(page);
+		assert.equal(await guides(page), '1');
+		await page.close();
+	});
+
+	test('hidden guides do not take clicks, so the page under them works', async () => {
+		const page = await setup();
+		await page.mouse.move(700, 550);
+		await page.mouse.move(700, 560);
+		const dot = (await page.locator('gridconfig-devtools .handle.dot').boundingBox())!;
+		const hit = await page.evaluate(
+			([x, y]) => document.elementFromPoint(x, y)?.localName,
+			[dot.x + dot.width / 2, dot.y + dot.height / 2]
+		);
+		// The pointer is not there, so the zone is not active: the dot does not catch the point.
+		assert.notEqual(hit, 'gridconfig-devtools');
+		await page.close();
+	});
+
+	test('when popped out, a move to the scrim shows the design alone', async () => {
+		const page = await setup();
+		await page.locator('gridconfig-devtools .popout').click();
+		await settle(page);
+		await page.mouse.move(400, 300);
+		await shortly(page);
+		assert.equal(await guides(page), '1');
+		await page.mouse.move(20, 20);
+		await shortly(page);
+		assert.equal(await guides(page), '0');
+		// The host is still popped out.
+		assert.equal(
+			await page.evaluate(() =>
+				document.querySelector('[data-grid-host]')!.matches(':popover-open')
+			),
+			true
+		);
+		await page.close();
+	});
+
+	test('a drag keeps them visible when the pointer leaves the zone', async () => {
+		const page = await setup();
+		const dot = (await page.locator('gridconfig-devtools .handle.dot').boundingBox())!;
+		await page.mouse.move(dot.x + 6, dot.y + 6);
+		await page.mouse.down();
+		// Fast enough that the pointer is far ahead of the host, outside its zone.
+		await page.mouse.move(dot.x + 400, dot.y + 300);
+		await shortly(page);
+		assert.equal(await guides(page), '1');
+		await page.mouse.up();
+		await page.close();
+	});
+
+	test('the tag shows the number of problems, also when the guides are hidden', async () => {
+		const page = await setup({ children: '<div data-grid-area="A">A</div><p>no area</p>' });
+		await page.mouse.move(700, 550);
+		const badge = page.locator('gridconfig-devtools .tag .count');
+		assert.equal(await badge.isVisible(), true);
+		// A <p> with no area, and no element for B and C.
+		assert.equal(await badge.textContent(), '3');
+		assert.match((await badge.getAttribute('class'))!, /warning/);
+		await page.close();
+	});
+});
+
+describe('a nested layout follows its cell', () => {
+	const INNER = compileLayout('name: inner\nareas: X\n', { debug: true });
+	const nested = {
+		css: INNER.css,
+		children:
+			'<div data-grid-area="A"><div data-grid-host="inner"><div data-grid-layout="inner"><div data-grid-area="X">x</div></div></div></div>' +
+			'<div data-grid-area="B">B</div><div data-grid-area="C">C</div>'
+	};
+	const sizes = (page: Page) =>
+		page.evaluate(() => {
+			const r = (s: string) => {
+				const b = document.querySelector(s)!.getBoundingClientRect();
+				return [Math.round(b.width), Math.round(b.height)];
+			};
+			const inner = document.querySelector<HTMLElement>('[data-grid-host="inner"]')!;
+			return {
+				cell: r('[data-grid-area="A"]'),
+				inner: r('[data-grid-host="inner"]'),
+				style: inner.style.cssText
+			};
+		});
+	const selectHost = (page: Page, name: string) =>
+		page.evaluate((n) => {
+			(
+				globalThis as unknown as { __gridconfigDevtools: { select(e: Element): void } }
+			).__gridconfigDevtools.select(document.querySelector(`[data-grid-host="${n}"]`)!);
+		}, name);
+
+	test('when the outer layout gets a new size', async () => {
+		const page = await setup(nested);
+		await page.locator('gridconfig-devtools select').selectOption('2');
+		await settle(page);
+		const s = await sizes(page);
+		assert.deepEqual(s.inner, s.cell);
+		assert.equal(s.style, '');
+		await page.close();
+	});
+
+	test('a size stored for the nested layout does not pin it', async () => {
+		// For example from an earlier visit, when the nested layout was selected.
+		const page = await setup({ ...nested, storage: { sizes: { '/|inner': { w: 30, h: 30 } } } });
+		await page.locator('gridconfig-devtools select').selectOption('2');
+		await settle(page);
+		const s = await sizes(page);
+		assert.deepEqual(s.inner, s.cell);
+		await page.close();
+	});
+
+	test('a new size for the outer layout removes a size that the nested layout had', async () => {
+		const page = await setup(nested);
+		await selectHost(page, 'inner');
+		await settle(page);
+		const dot = (await page.locator('gridconfig-devtools .handle.dot').boundingBox())!;
+		await page.mouse.move(dot.x + 6, dot.y + 6);
+		await page.mouse.down();
+		await page.mouse.move(dot.x - 20, dot.y - 20, { steps: 3 });
+		await page.mouse.up();
+		await settle(page);
+		assert.notEqual((await sizes(page)).style, '');
+
+		await selectHost(page, 'card');
+		await settle(page);
+		await page.locator('gridconfig-devtools select').selectOption('2');
+		await settle(page);
+		const s = await sizes(page);
+		assert.equal(s.style, '');
+		assert.deepEqual(s.inner, s.cell);
+		await page.close();
+	});
+
+	test('a size for a layout on another page does not apply here', async () => {
+		const page = await setup({ storage: { sizes: { '/other|card': { w: 300, h: 300 } } } });
+		assert.deepEqual(await hostSize(page), [150, 150]);
+		await page.close();
+	});
+
+	test('a size for this page comes back', async () => {
+		const page = await setup({ storage: { sizes: { '/|card': { w: 210, h: 220 } } } });
+		assert.deepEqual(await hostSize(page), [210, 220]);
 		await page.close();
 	});
 });

@@ -1,0 +1,11 @@
+{
+	"description": "Each size has one clear winner for gap.",
+	"cases": [
+		{ "size": [300, 300], "map": ["A"], "gap": "0px" },
+		{ "size": [300, 400], "map": ["A"], "gap": "4px" },
+		{ "size": [599, 400], "map": ["A"], "gap": "4px" },
+		{ "size": [600, 300], "map": ["A"], "gap": "8px" },
+		{ "size": [600, 400], "map": ["A"], "gap": "12px" },
+		{ "size": [900, 900], "map": ["A"], "gap": "12px" }
+	]
+}

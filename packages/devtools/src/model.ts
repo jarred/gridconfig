@@ -1,4 +1,5 @@
 // The logic of the inspector that needs no DOM. The DOM code in inspector.ts calls it.
+import { matches, samplePoints } from '@gridconfig/core/runtime';
 import type { DebugInfo, DebugStep } from '@gridconfig/core';
 
 export type Resolved = {
@@ -11,14 +12,11 @@ export type Resolved = {
 	areas?: string[][];
 };
 
-const matches = (s: DebugStep, w: number, h: number) =>
-	(s.minWidth ?? 0) <= w && (s.minHeight ?? 0) <= h;
-
 /** The values that apply at a container size. This is what the browser cascade does: the last matching step that sets a property wins. */
 export function resolve(info: DebugInfo, w: number, h: number): Resolved {
 	const out: Resolved = { step: 0 };
 	info.steps.forEach((s, i) => {
-		if (i > 0 && !matches(s, w, h)) return;
+		if (!matches(s.when, w, h)) return;
 		out.step = i;
 		for (const k of ['cols', 'rows', 'gap', 'padding', 'areas'] as const)
 			if (s[k] !== undefined) (out as Record<string, unknown>)[k] = s[k];
@@ -30,32 +28,49 @@ export function resolve(info: DebugInfo, w: number, h: number): Resolved {
 export const stepLabel = (s: DebugStep) => s.key ?? 'base';
 
 /**
- * The size to give a container so that a step is the active one, as far as that is possible. An
- * axis the step does not set stays as it is. For the base step, each axis goes below the smallest
- * minimum of any step.
+ * The size to give a container so that a step is the active one: the nearest such size to the
+ * current size, in whole px when possible. A step that is never the active one keeps the size.
  */
 export function sizeForStep(
 	info: DebugInfo,
 	index: number,
 	current: { w: number; h: number }
 ): { w: number; h: number } {
-	const step = info.steps[index];
-	if (index > 0) return { w: step.minWidth ?? current.w, h: step.minHeight ?? current.h };
-	const below = (axis: 'minWidth' | 'minHeight', now: number) => {
-		const mins = info.steps.map((s) => s[axis]).filter((n): n is number => n !== undefined);
-		return mins.length ? Math.max(1, Math.min(...mins) - 1) : now;
+	const t = thresholds(info);
+	// Each edge, and 1 px each side of it, so a size just inside a max is a candidate.
+	const near = (list: number[], now: number) => [now, ...list.flatMap((v) => [v - 1, v, v + 1])];
+	const points = samplePoints(
+		info.steps.map((s) => s.when),
+		{ w: near(t.w, current.w), h: near(t.h, current.h) }
+	);
+	let best: { w: number; h: number } | null = null;
+	let bestDistance = Infinity;
+	const consider = (w: number, h: number, whole: boolean) => {
+		if (w <= 0 || h <= 0 || resolve(info, w, h).step !== index) return;
+		// A whole px size is better than a nearer fraction.
+		const distance = Math.hypot(w - current.w, h - current.h) + (whole ? 0 : 1e6);
+		if (distance < bestDistance) {
+			best = { w, h };
+			bestDistance = distance;
+		}
 	};
-	return { w: below('minWidth', current.w), h: below('minHeight', current.h) };
+	for (const [pw, ph] of points) {
+		for (const w of [Math.floor(pw), Math.ceil(pw)])
+			for (const h of [Math.floor(ph), Math.ceil(ph)]) consider(w, h, true);
+		consider(pw, ph, Number.isInteger(pw) && Number.isInteger(ph));
+	}
+	return best ?? current;
 }
 
-/** The sizes where a step starts, for snapping a drag. */
+/** The sizes where a step starts or ends, for snapping a drag. */
 export function thresholds(info: DebugInfo): { w: number[]; h: number[] } {
 	const w = new Set<number>();
 	const h = new Set<number>();
-	for (const s of info.steps) {
-		if (s.minWidth !== undefined) w.add(s.minWidth);
-		if (s.minHeight !== undefined) h.add(s.minHeight);
-	}
+	for (const s of info.steps)
+		for (const c of s.when ?? []) {
+			for (const v of [c.w?.min, c.w?.max]) if (v !== undefined) w.add(v);
+			for (const v of [c.h?.min, c.h?.max]) if (v !== undefined) h.add(v);
+		}
 	return { w: [...w].sort((a, b) => a - b), h: [...h].sort((a, b) => a - b) };
 }
 
@@ -166,7 +181,7 @@ export function parseDebug(raw: string, hostName: string): DebugInfo | null {
 	try {
 		const info = JSON.parse(JSON.parse(text)) as DebugInfo;
 		// A nested host inherits the custom property of its parent when it has none of its own.
-		return info.v === 1 && info.name === hostName ? info : null;
+		return info.v === 2 && info.name === hostName ? info : null;
 	} catch {
 		return null;
 	}

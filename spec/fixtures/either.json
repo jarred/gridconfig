@@ -1,0 +1,10 @@
+{
+	"description": "A comma is OR.",
+	"cases": [
+		{ "size": [299, 500], "map": ["A", "B"] },
+		{ "size": [300, 500], "map": ["A B"] },
+		{ "size": [500, 199], "map": ["A", "B"] },
+		{ "size": [500, 200], "map": ["A B"] },
+		{ "size": [100, 100], "map": ["A", "B"] }
+	]
+}

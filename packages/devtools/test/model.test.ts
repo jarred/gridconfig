@@ -163,3 +163,29 @@ test('diagnose finds the common mistakes', () => {
 		0
 	);
 });
+
+test('sizeForStep goes to the nearest size where a step with a max or a ratio is active', () => {
+	const ranged = compileLayout(
+		`
+name: r
+areas: A
+..600:
+  gap: 1
+600..900:
+  gap: 2
+16/9:
+  padding: 1
+`,
+		{ debug: true }
+	).debug!;
+	const index = (key: string) => ranged.steps.findIndex((s) => s.key === key);
+	// Just inside the max, and the height stays.
+	assert.deepEqual(sizeForStep(ranged, index('..600'), { w: 800, h: 500 }), { w: 599, h: 500 });
+	assert.deepEqual(sizeForStep(ranged, index('600..900'), { w: 300, h: 500 }), { w: 600, h: 500 });
+	// At 599 × 300 the ratio is above 16/9, so that step is active: the nearest size is taller.
+	assert.deepEqual(sizeForStep(ranged, index('..600'), { w: 800, h: 300 }), { w: 599, h: 337 });
+	const wide = sizeForStep(ranged, index('16/9'), { w: 700, h: 700 });
+	assert.equal(resolve(ranged, wide.w, wide.h).step, index('16/9'));
+	assert.ok(wide.w / wide.h >= 16 / 9);
+	assert.deepEqual(thresholds(ranged), { w: [600, 900], h: [] });
+});

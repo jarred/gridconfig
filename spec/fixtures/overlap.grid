@@ -1,0 +1,12 @@
+# Two steps on different axes set the same property. The step for the sizes where both match
+# is inside both, so it wins there. Without it, the compiler reports an error.
+areas: A
+
+x400:
+  gap: 4
+
+600:
+  gap: 8
+
+600x400:
+  gap: 12

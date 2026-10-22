@@ -2,7 +2,10 @@ import { LayoutError } from './errors.ts';
 import { parseFlow } from './flow.ts';
 import type { Range } from './errors.ts';
 import type { CompileOptions, Layout, LayoutInput, Step } from './types.ts';
-import { NUMBER, OPERATORS, compileValue, convertTerm, splitTerms } from './values.ts';
+import { orderSteps } from './cascade.ts';
+import { isQueryTerm, parseQuery, usesHeight } from './query.ts';
+import type { Condition } from './query.ts';
+import { OPERATORS, compileValue, convertTerm, splitTerms } from './values.ts';
 
 type Path = (string | number)[];
 
@@ -15,10 +18,10 @@ const TOP_LEVEL = new Set([
 	'rows',
 	'areas',
 	'css',
-	'flow'
+	'flow',
+	'breakpoints'
 ]);
 const SETTINGS = new Set(['gap', 'padding', 'cols', 'rows', 'areas', 'css', 'flow']);
-const QUERY_KEY = /^(\d+(?:\.\d+)?)?x(\d+(?:\.\d+)?)?$/;
 const IDENT = /^[A-Za-z_][\w-]*$/;
 const RESERVED_AREAS = new Set([
 	'auto',
@@ -196,6 +199,46 @@ function toIdentifier(text: string): string | undefined {
 	return /^[A-Za-z_]/.test(id) ? id : `_${id}`;
 }
 
+const RESERVED_BREAKPOINTS = new Set(['base', ...TOP_LEVEL]);
+
+function addBreakpoints(
+	names: Map<string, Condition>,
+	source: unknown,
+	where: string,
+	path: Path,
+	taken?: Map<string, Condition>
+) {
+	if (source === undefined || source === null) return;
+	if (typeof source !== 'object' || Array.isArray(source))
+		throw new LayoutError(`${where} must be a mapping from a name to a query`, path);
+	for (const [name, query] of Object.entries(source as Record<string, unknown>)) {
+		const at = [...path, name];
+		if (!IDENT.test(name) || isQueryTerm(name) || RESERVED_BREAKPOINTS.has(name))
+			throw new LayoutError(
+				`"${name}" cannot be a breakpoint name. A name is an identifier that is not a query term (such as x400 or portrait), "base", or a top-level key`,
+				at
+			);
+		if (taken?.has(name))
+			throw new LayoutError(
+				`The breakpoint "${name}" is also in the \`breakpoints\` option. Use a different name`,
+				at
+			);
+		if (typeof query !== 'string' && typeof query !== 'number')
+			throw new LayoutError(`The breakpoint "${name}" must be a query, for example 600..`, at);
+		// A breakpoint cannot use another name, so the order of the names does not matter.
+		names.set(name, parseQuery(String(query), new Map(), at));
+	}
+}
+
+/** The named breakpoints: the `breakpoints` option, then the names in the layout. */
+function breakpointNames(own: unknown, shared: unknown): Map<string, Condition> {
+	const fromOption = new Map<string, Condition>();
+	addBreakpoints(fromOption, shared, 'The `breakpoints` option', []);
+	const names = new Map(fromOption);
+	addBreakpoints(names, own, '`breakpoints`', ['breakpoints'], fromOption);
+	return names;
+}
+
 /**
  * Builds a validated layout from a plain object. This is the shared entry point: the YAML parser
  * ends here, and so does a layout written in JavaScript.
@@ -204,7 +247,7 @@ function toIdentifier(text: string): string | undefined {
  * and then from a hash of the content. The same content always gets the same name.
  */
 export function parseLayoutObject(
-	input: LayoutInput,
+	input: LayoutInput<never> | object,
 	options: CompileOptions = {},
 	locate?: (path: Path) => Range | undefined
 ): Layout {
@@ -230,34 +273,27 @@ export function parseLayoutObject(
 		const base = parseStep(obj, undefined, options);
 		if (!base.areas) throw new LayoutError('The base step must set `areas`', []);
 
+		const names = breakpointNames(obj.breakpoints, options.breakpoints);
+
 		const queries: Step[] = [];
-		const seen = new Set<string>();
 		for (const [key, value] of Object.entries(obj)) {
 			if (TOP_LEVEL.has(key) || value === undefined) continue;
-			// A bare number such as `600` is shorthand for `600x`.
-			const normalised = NUMBER.test(key) ? `${key}x` : key;
-			const m = QUERY_KEY.exec(normalised);
-			if (!m || (m[1] === undefined && m[2] === undefined))
+			const when = parseQuery(key, names, [key]);
+			if (container === 'inline-size' && usesHeight(when))
 				throw new LayoutError(
-					`Unknown key "${key}": expected a setting or a query like 600x400, 600x, x400`,
+					`"${key}" needs the height of the container, but \`container\` is "inline-size". Use a width query, or set \`container: size\``,
 					[key]
 				);
-			const id = `${m[1] ?? ''}x${m[2] ?? ''}`;
-			if (seen.has(id)) throw new LayoutError(`Query "${key}" duplicates an earlier query`, [key]);
-			seen.add(id);
 			if (!value || typeof value !== 'object' || Array.isArray(value))
 				throw new LayoutError(`"${key}" must be a mapping`, [key]);
 
 			const step = parseStep(value as Record<string, unknown>, key, options);
-			if (m[1] !== undefined) step.minWidth = Number(m[1]);
-			if (m[2] !== undefined) step.minHeight = Number(m[2]);
+			step.when = when;
 			queries.push(step);
 		}
 
-		queries.sort(
-			(a, b) => (a.minWidth ?? 0) - (b.minWidth ?? 0) || (a.minHeight ?? 0) - (b.minHeight ?? 0)
-		);
-		return { name: name as string, container, steps: [base, ...queries], locate };
+		const steps = orderSteps([base, ...queries]);
+		return { name: name as string, container, steps, locate };
 	} catch (e) {
 		if (e instanceof LayoutError && !e.range && locate) e.range = locate(e.path);
 		throw e;

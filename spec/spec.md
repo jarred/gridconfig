@@ -1,6 +1,6 @@
 # GridConfig layout spec
 
-**Status: draft 0.4.** The compiler in `packages/core` is the implementation of this document. The tests are in `packages/core/test` and `packages/unplugin/test`. Refer to [Implementation notes](#implementation-notes) for the parts that are not built yet.
+**Status: draft 0.5.** The compiler in `packages/core` is the implementation of this document. The tests are in `packages/core/test` and `packages/unplugin/test`. Refer to [Implementation notes](#implementation-notes) for the parts that are not built yet.
 
 Two other notes explore how GridConfig can work with other tools. They are not part of this spec: [Tailwind](./tailwind-plugin.md) and [StyleX](./stylex-support.md).
 
@@ -63,10 +63,11 @@ An area map is a multi-line string in all three forms. A list of rows is not per
 
 The top level is the **base step**. It also has these keys.
 
-| Key         | Required | Description                                                                                                                                  |
-| ----------- | -------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
-| `name`      | no       | An identifier (`[A-Za-z_][\w-]*`). It is the name of the container and a part of the `data-grid-layout` selector. See below for the default. |
-| `container` | no       | `size` (default) or `inline-size`. Use `inline-size` if the container has no fixed height.                                                   |
+| Key           | Required | Description                                                                                                                                  |
+| ------------- | -------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| `name`        | no       | An identifier (`[A-Za-z_][\w-]*`). It is the name of the container and a part of the `data-grid-layout` selector. See below for the default. |
+| `container`   | no       | `size` (default) or `inline-size`. Use `inline-size` if the container has no fixed height.                                                   |
+| `breakpoints` | no       | Named queries. Refer to [Named breakpoints](#named-breakpoints).                                                                             |
 
 The default `name` has two sources, in this order:
 
@@ -79,18 +80,92 @@ Each other key is a step setting (below) or a query key. The base step must set 
 
 ### Steps and query keys
 
-The top-level settings are the base step. Each query key defines one more step.
+The top-level settings are the base step. The base step matches each container size. Each query key defines one more step.
 
-A query key gives minimum values, in px. A query key cannot use a variable or a token, because CSS does not permit `var()` in a container condition.
+A query key is a list of **terms**. A query key cannot use a variable or a token, because CSS does not permit `var()` in a container condition. All sizes are in px.
 
-| Key       | Compiles to                                  |
-| --------- | -------------------------------------------- |
-| `600x400` | `(min-width: 600px) and (min-height: 400px)` |
-| `600x`    | `(min-width: 600px)`                         |
-| `x400`    | `(min-height: 400px)`                        |
-| `600`     | same as `600x`                               |
+#### Size terms
 
-The compiler puts the steps in this order: first by min-width, then by min-height. A missing value counts as 0. This order is the cascade order. If more than one step matches, the later step wins, one property at a time.
+A size term gives a width range, a height range, or both. An `x` separates the width from the height. A range has a minimum, a maximum, or both. Two dots separate the minimum from the maximum.
+
+| Key              | Compiles to                                        |
+| ---------------- | -------------------------------------------------- |
+| `600`            | `(min-width: 600px)`                               |
+| `600x`, `600..`  | same as `600`                                      |
+| `x400`           | `(min-height: 400px)`                              |
+| `600x400`        | `(min-width: 600px) and (min-height: 400px)`       |
+| `..600`          | `(width < 600px)`                                  |
+| `600..900`       | `(600px <= width < 900px)`                         |
+| `x..400`         | `(height < 400px)`                                 |
+| `600..900x400..` | `(600px <= width < 900px) and (min-height: 400px)` |
+
+A minimum is inclusive. A maximum is exclusive. Thus two ranges that meet at one value do not overlap, and they leave no gap. At a width of exactly 600 px, `..600` does not match and `600..900` matches.
+
+#### Ratio and orientation terms
+
+| Key         | Compiles to                    |
+| ----------- | ------------------------------ |
+| `16/9`      | `(aspect-ratio >= 16/9)`       |
+| `..4/3`     | `(aspect-ratio < 4/3)`         |
+| `4/3..16/9` | `(4/3 <= aspect-ratio < 16/9)` |
+| `landscape` | `(orientation: landscape)`     |
+| `portrait`  | `(orientation: portrait)`      |
+
+A ratio is width to height. A ratio alone is a minimum, the same as a size alone. A container is `portrait` when its height is equal to its width or more than its width. Thus a square container is `portrait`.
+
+A height, a ratio, and an orientation need the height of the container. With `container: inline-size`, a key that has one of these terms is an error.
+
+#### Combined terms
+
+- A space between terms means AND. `600.. landscape` matches when the width is 600 px or more and the container is landscape.
+- A comma between parts means OR. `..400, x..300` matches when the width is less than 400 px or the height is less than 300 px.
+
+A part can have only one width term, one height term, one ratio term, and one orientation term. To give a width a minimum and a maximum, write one range: `600..900`, not `600 ..900`.
+
+Note about YAML: a key with a comma does not need quotes in a block mapping. A key that starts with `{`, `[`, or `,` needs quotes.
+
+#### Named breakpoints
+
+The top-level key `breakpoints` gives a name to a query. A key can use the name as a term.
+
+```yaml
+breakpoints:
+  md: 600..
+  short: x..500
+
+areas: A
+
+md:
+  gap: 8
+
+md short:
+  gap: 4
+```
+
+- A name obeys the identifier rule (`[A-Za-z_][\w-]*`).
+- A name must not be a query term (for example `x400` or `portrait`), `base`, or a top-level key.
+- The value of a name is a query. It can have AND and OR. It cannot use another name.
+- A name with OR changes into one part for each alternative. Thus `compact landscape`, with `compact: '..400, x..300'`, is `..400 landscape, x..300 landscape`.
+
+The compiler option `breakpoints` gives names to all layouts. A tool can read them from the configuration of a project. A layout must not give a new value to a name from the option. Names are resolved at build time. Thus a layout that compiles when the code runs must get the same option.
+
+#### The step order
+
+A step is a region of container sizes. Step A is **inside** step B when each size that matches A also matches B. For example, `600x400` is inside `600` and inside `x400`.
+
+The compiler puts the steps in this order:
+
+1. The base step is first, because each step is inside it.
+2. A step comes after each step that it is inside. Thus the more specific step wins.
+3. The compiler puts other steps in order of their smallest width, then their smallest height, then the order in the source.
+
+The order in the source has no effect on which step wins a property. Thus the YAML form and the object form give the same result. This is important for the object form, because JavaScript puts number keys (`600`) before other keys.
+
+The compiler finds these errors:
+
+- Two keys that match the same sizes, for example `600` and `600..`.
+- A key that matches no size, for example `..600x700.. landscape`.
+- A key that matches each size, for example `0`. Put its settings at the top level.
 
 ### Settings
 
@@ -179,22 +254,48 @@ Note about YAML: a value that starts with `{` must have quotes (`'{space.2}'`). 
 
 ### Cascade semantics
 
-Each step is a **patch on the base**. A step writes only the values that it sets. If more than one step matches, the cascade of the browser decides. Thus the later step wins, one property at a time. A step does not inherit from the previous step. A step never depends on the match of another step.
+Each step is a **patch on the base**. A step writes only the values that it sets. If more than one step matches, the cascade of the browser decides. The later step in [the step order](#the-step-order) wins, one property at a time. A step does not inherit from the previous step. A step never depends on the match of another step.
 
-- Only the steps that set `gap`, `padding`, `areas`, `cols`, `rows`, or `css` write them.
+- Only the steps that set `gap`, `padding`, `areas`, `cols`, `rows`, `css`, or a `flow` entry write them.
 - A step can set `areas` and not set `cols` or `rows`. Then the step writes calculated tracks for the missing axis (refer to [Tracks](#tracks)). These tracks replace the tracks of earlier steps. Thus old tracks cannot conflict with an area map of a different size.
 - A step can set `cols` or `rows` and not set `areas`. Then the step writes only the tracks.
 - The **active area map** at a container size is the map of the last matching step that sets `areas`.
 
-Nested ranges (`100x100 → 200x200 → 600x600`) work as people expect. Steps on different axes (`x400` with `600`) also work. Each property comes from the last matching step that sets it.
+**One winner.** At each size, each property must have one clear winner. The winner is the matching step that is inside all the other matching steps that set the property. If two steps set the same property, both match at one size, and neither step is inside the other, the compiler gives an error. The error gives the first size where both steps match. It also gives two fixes:
 
-**Validation.** The compiler checks the tracks of a step against each area map that can be active at the same time as the tracks. It checks a step that sets `areas` and tracks against its own map. It checks a step that sets only `cols` or `rows` against each step with `areas`. That step must be able to be active when the first step matches. Only a mismatch that the compiler can prove is an error.
+- Add a step for the sizes where both steps match. This step is inside both steps, so it wins there.
+- Change one step so that the two steps do not overlap, for example with a maximum.
+
+```yaml
+areas: A
+
+x400:
+  gap: 4
+
+600:
+  gap: 8 # Error: "x400" and "600" both set `gap`, and both match at 600 × 400.
+
+600x400:
+  gap: 12 # This step fixes the error. It is inside x400 and inside 600.
+```
+
+Steps that set different properties can overlap with no error. In the example, `x400` can set `areas` and `600` can set `gap`. Each property comes from the last matching step that sets it.
+
+The compiler cannot parse `css`. Thus two `css` values that overlap give a warning, not an error. The step order decides each declaration.
+
+`--grid-breakpoint` is not a part of this rule. If two steps overlap and neither is inside the other, the later step in the order is the active step. Refer to [Active step](#active-step).
+
+**A step with no effect.** A step has no effect when other steps set all of its properties at each size where it matches, and the step is never the active step. The compiler gives a warning for this step.
+
+**Validation.** The compiler examines each region of sizes. At each region, the track count of the winning `cols` and `rows` must be the same as the winning area map. Only a mismatch that the compiler can prove is an error.
+
+**Method.** The edges of all the regions are lines: a width, a height, or a ratio. The compiler examines one size in each area between the lines, one size on each line, and each corner. Each step gives the same result at all the sizes of one area. Thus these sizes are sufficient, and the result is exact.
 
 ### Hidden areas
 
 The layout hides an item when its `data-grid-area` is not in the active area map.
 
-Take each step that sets `areas`. The layout uses some area names that are not in the map of this step. The layout hides these areas when this step matches and no later step with `areas` matches. A later step cannot cancel `display: none`. Thus the compiler writes the rule as an exclusive range. The range uses `not (…)` conditions.
+Take each step that sets `areas`. The layout uses some area names that are not in the map of this step. The layout hides these areas when this step matches and no later step with `areas` matches. "Later" means later in [the step order](#the-step-order). A later step cannot cancel `display: none`. Thus the compiler writes the rule as an exclusive range. The range uses `not (…)` conditions.
 
 An omitted area is always hidden. This is absolute in v1. You cannot keep an absent area visible. The hide rule is `display: none !important`.
 
@@ -218,7 +319,7 @@ flow:
     B: row between center gap {space.2}
 ```
 
-A style query on `--gc-step` can also change the CSS of an area at a step. But a style query matches the active step only. Thus the author must write a value again for each later step. `flow` obeys the cascade of the steps, the same as the other settings.
+A style query on `--grid-breakpoint` can also change the CSS of an area at a step. But a style query matches the active step only. Thus the author must write a value again for each later step. `flow` obeys the cascade of the steps, the same as the other settings.
 
 #### The flow string
 
@@ -302,12 +403,14 @@ flow:
 x400:
   flow:
     B: row end
-600x:
+600x400:
   flow:
     B: column center
 ```
 
-`600x` comes after `x400` in the step order. At 600 × 400, both steps match, and `600x` wins in full. The result is `column center stretch`. If `600x` wrote only the values that are different from the base, the result would be `row end stretch`.
+`600x400` is inside `x400`. At 600 × 400, both steps match, and `600x400` wins in full. The result is `column center stretch`. If `600x400` wrote only the values that are different from the base, the result would be `row end stretch`.
+
+Each entry is a separate property for the [one-winner rule](#cascade-semantics). Thus two overlapping steps can set flow for different areas.
 
 The hide rule wins over flow. Thus flow on a hidden area has no effect, and the compiler gives no warning. When the area shows again, the flow that is active at that size applies.
 
@@ -395,7 +498,7 @@ This is example output for the example at the top. The format of the output is n
 		grid-template-columns: repeat(1, 1fr);
 		grid-template-rows: repeat(1, 1fr);
 		grid-template-areas: 'A';
-		--gc-step: base;
+		--grid-breakpoint: base;
 	}
 	[data-grid-layout='hero'] > [data-grid-area='A'] {
 		grid-area: A;
@@ -410,7 +513,7 @@ This is example output for the example at the top. The format of the output is n
 			grid-template-columns: repeat(2, 1fr);
 			grid-template-rows: repeat(2, 1fr);
 			grid-template-areas: 'A A' 'B B';
-			--gc-step: 100x100;
+			--grid-breakpoint: 100x100;
 		}
 	}
 
@@ -420,7 +523,7 @@ This is example output for the example at the top. The format of the output is n
 			grid-template-columns: repeat(2, 1fr);
 			grid-template-rows: 1fr 40px;
 			grid-template-areas: 'A A' '. B';
-			--gc-step: 200x200;
+			--grid-breakpoint: 200x200;
 		}
 	}
 }
@@ -463,19 +566,19 @@ The browser changes the `display` of a grid item to a block-level value. Thus an
 
 ### Active step
 
-Each step sets the custom property `--gc-step` on the grid element. The value is the query key of the step, or `base` for the base step. The cascade gives the active step: the last step that matches. Thus two steps that match at the same time give one value.
+Each step sets the custom property `--grid-breakpoint` on the grid element. The value is the query key of the step, or `base` for the base step. The cascade gives the active step: the last step that matches. Thus two steps that match at the same time give one value.
 
 Content can use a style query to target a step. The custom property inherits, so a descendant at any depth can use it:
 
 ```css
-@container style(--gc-step: 200x200) {
+@container style(--grid-breakpoint: 200x200) {
 	h1 {
 		font-size: 12cqmin;
 	}
 }
 ```
 
-A nested layout sets its own value for its subtree. JavaScript can read the value with `getComputedStyle(grid).getPropertyValue('--gc-step')`. Style queries for custom properties are in all current browsers (Baseline in 2026). An older browser ignores the rule.
+A nested layout sets its own value for its subtree. JavaScript can read the value with `getComputedStyle(grid).getPropertyValue('--grid-breakpoint')`. Style queries for custom properties are in all current browsers (Baseline in 2026). An older browser ignores the rule.
 
 Use the style query, and do not copy the size conditions of a step to page CSS. A copy of the conditions tells you that a step matches, but not that it is active.
 
@@ -492,9 +595,14 @@ The parser and the compiler throw an error for each of these:
 - An object layout that has a value that is not plain data.
 - A `grid` template that has a `${}` expression.
 - A base step that has no `areas`.
-- An unknown top-level key that is not a valid query key.
+- An unknown top-level key that is not a valid query key, or an unknown term in a query key.
 - An unknown setting in a step, or `name` or `container` in a step.
-- Two query keys that give the same query (`600` and `600x`).
+- A range or a ratio range with a minimum that is not less than the maximum (`900..600`), or a ratio that is not two positive numbers.
+- A part of a key with two terms for the same dimension (`600 ..900`), or an empty part (`600,`).
+- Two query keys that match the same sizes (`600` and `600..`), a key that matches no size, or a key that matches each size.
+- A height, a ratio, or an orientation term with `container: inline-size`.
+- An invalid breakpoint name, a breakpoint that uses another name, or a name in a layout that is also in the `breakpoints` option.
+- Two steps that set the same property, match at the same size, and are not inside each other. Refer to [Cascade semantics](#cascade-semantics).
 - An empty area map, rows of different lengths, an invalid or reserved area name, or an area that is not a rectangle.
 - A track count that is not the same as the area map that the compiler checks it against.
 - A malformed value: unbalanced `()` or `{}`, an empty token `{}`, or an operator at the start, at the end, or twice in a row.
@@ -507,6 +615,8 @@ The parser and the compiler throw an error for each of these:
 The compiler gives a warning, and does not fail, for this:
 
 - `cqh`, `cqb`, `cqmin`, or `cqmax` with `container: inline-size`. There is no height to measure. Thus the browser uses viewport units instead.
+- Two `css` values that overlap with no winner.
+- A step with no effect.
 
 An error has a structured location: `{ message, path, range? }`. The `path` is the key path in the document (for example `["200x200", "areas"]`).
 
@@ -526,7 +636,9 @@ baseCss: string                       // the shared base rules in the default la
 baseCssFor(layer: string | null): string  // the shared base rules in a given layer
 ```
 
-`options`: `tokenPrefix`, `tokenVar`, `defaultName`, `layer`, `debug`. The tag form takes no options.
+`options`: `tokenPrefix`, `tokenVar`, `defaultName`, `layer`, `debug`, `breakpoints`. The tag form takes no options.
+
+`breakpoints` is a map from a name to a query, for example `{ md: '600..' }`. Refer to [Named breakpoints](#named-breakpoints). In TypeScript, the object form types the names from its own `breakpoints` key as keys.
 
 `debug: true` adds data for development tools. Refer to [Inspector](#inspector). Use it in development only, because it makes the CSS larger.
 
@@ -556,17 +668,21 @@ The package `@gridconfig/devtools` is an overlay for the browser. It works in ea
 - The active step, and the areas that the step hides.
 - Problems in the markup: a child with no `data-grid-area`, an area name that the layout does not have, and a host with no height.
 
+The guides show only when the pointer is on the layout or its labels. Move the pointer away to see the design without them. The tag with the controls stays, and it shows the number of problems. On a touch screen, and during a resize, the guides stay.
+
 The overlay is in the top layer of the browser (a `popover`). Thus an ancestor with `overflow: hidden` cannot clip it. It has a shadow root. Thus the CSS of the page cannot change it.
 
 **Resize.** The select and the handle set an inline `width` and `height` on the real host element. The compiler does not move the element. The page around it will reflow.
 
-The select sets the host to the minimum size of a step. The handle snaps to the size of a step when it is within 6 px. Hold Alt to turn this off. Close the overlay, or press the reset button, to give the natural size back.
+The select sets the host to the nearest size where the step is the active step. The handle snaps to the edge of a step when it is within 6 px. Hold Alt to turn this off. Close the overlay, or press the reset button, to give the natural size back.
 
 **Pop out.** The pop-out button moves the layout to the centre of the screen. A dim scrim covers the page. The real host element goes to the top layer of the browser (a `popover`). It does not move in the DOM. Thus the CSS that depends on its ancestors still applies.
 
-The host keeps the padding, border, color, and overflow that the page gives it. A host with no background gets the background behind it. A host that has no size gets 480 by 360. A resize stays inside the viewport, and it does not reflow the page. Esc, a click on the scrim, or the button puts the host back. If the page replaces the host, for example after a file change, the new host with the same name pops out again.
+The host keeps the padding, border, color, and overflow that the page gives it. A host with no background gets the background behind it. A host that has no size gets 480 by 360. A resize stays inside the viewport, and it does not reflow the page.
 
-**Debug data.** With `debug: true`, the compiler puts the steps in `CompiledLayout.debug`. A step that sets flow has a `flow` map, with each entry as a flow object or `"none"`. The compiler also writes the steps in the custom property `--gc-debug` on the host. The value is a CSS string that holds JSON. Thus the data goes with the CSS in each route, also in a plain stylesheet.
+Esc or the button puts the host back. A click on the scrim does nothing, so a click cannot close the view by accident. If the page replaces the host, for example after a file change, the new host with the same name pops out again.
+
+**Debug data.** With `debug: true`, the compiler puts the steps in `CompiledLayout.debug`. The format has version 2. Each query step has a `when`: a list of alternatives, each with the ranges of the step. Core exports `matches` and `samplePoints` from `@gridconfig/core/runtime` to use it. A step that sets flow has a `flow` map, with each entry as a flow object or `"none"`. The compiler also writes the steps in the custom property `--gc-debug` on the host. The value is a CSS string that holds JSON. Thus the data goes with the CSS in each route, also in a plain stylesheet.
 
 Without the data, the overlay still draws from the computed styles. It then shows used sizes and no steps. The Vite plugin sets `debug: true` when the dev server runs.
 
@@ -581,6 +697,7 @@ Without the data, the overlay still draws from the computed styles. It then show
 These parts are built:
 
 - The parser and the compiler: cascade semantics, value grammar, validation, hiding, flow, warnings, and structured errors.
+- The query keys: ranges with a maximum, ratios, orientation, AND, OR, named breakpoints, the step order, and the one-winner rule.
 - The three forms: YAML text, objects, and the `grid` function. The default `name`, the removal of shared indentation, and the checks for plain data, tags, and multiple documents.
 - The Vite plugin (`packages/unplugin`). It loads `.grid` files and `.yaml?grid` imports. It replaces each static `grid` template and object with the compiled result. It only looks at files that import `grid` from `@gridconfig/core`. It reports an error when two files give the same layout name.
 - The Svelte `Grid` component (`packages/svelte`). It uses the `data-grid-*` attributes.
@@ -605,8 +722,10 @@ These parts are not built yet:
 - **Layer (decided for v1).** Layers are on by default, in the layer `gridconfig`. The reason: a utility class such as `gap-4` must be able to override a layout. The cost: an unlayered reset such as `* { padding: 0 }` removes the layout padding, in any source order. A page can put its reset in an earlier layer to prevent this. Browser tests record both cases. The hide rules stay outside the layer, because `!important` reverses the order of layers.
 - **Names (decided for v1).** The function is `grid`. It matches the `.grid` extension, the package name, and the `data-grid-*` attributes. The result of `grid` is a layout, and a component takes it as a `layout` prop. The query for a plain YAML file is `?grid`. It is not `?layout`, because SvelteKit uses "layout" for route layouts. An import of `grid` can use an alias, for example `import { grid as g }`, if a file already has a variable `grid`. The build plugin follows the alias.
 - **Flow (later).** Reverse directions (`row-reverse`, `column-reverse`) and shared entries (`B C: column`) are not in v1. The inspector can show the flow of an area next to its label. A future per-area setting (`keep`, or a per-area `css`) must use the same shape as `flow`: a map from the area name to a value.
-- **Named steps (deferred).** A step can get an optional name, for example `as: wide`. Then `--gc-step` has the name, and page CSS does not repeat a size.
-- **Reactive step (deferred).** The adapters can give the active step to JavaScript, for logic such as a change of component. The value comes from `--gc-step`, with a `ResizeObserver` on the host. Styles do not need it: use the style query.
+- **Named steps (partly decided).** [Named breakpoints](#named-breakpoints) give a short value to `--grid-breakpoint`. A style query for a key with dots, slashes, or spaces works in Chromium. Do a test in other browsers before we recommend it.
+- **Units in keys (later).** Keys in `rem` follow the font size of the user. To keep the [one-winner rule](#cascade-semantics) exact, a layout must use one unit in all its keys.
+- **Tools for the step order (later).** The data of the regions can give a `gridconfig explain` command (the step that sets each property at a size) and a map of the steps in the inspector.
+- **Reactive step (deferred).** The adapters can give the active step to JavaScript, for logic such as a change of component. The value comes from `--grid-breakpoint`, with a `ResizeObserver` on the host. Styles do not need it: use the style query.
 - **Identifiers.** The container names and the selectors are the `name` of the layout. A name that the compiler makes (a file name or a hash) has a low risk of conflict inside one project. Do production builds add a short hash to prevent a conflict between packages?
-- **Token breakpoints.** Named breakpoints (`{bp.md}`) need resolution at build time, because `var()` cannot be in a container condition. They are not in v1.
+- **Token breakpoints (decided).** Named breakpoints replace `{bp.md}`. The `breakpoints` option gives names to all layouts at build time, because `var()` cannot be in a container condition.
 - **`css` escape hatch.** Raw declarations do not work in the same way in the shadow-DOM output. Decide if the shadow-DOM output permits them.

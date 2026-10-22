@@ -1,4 +1,7 @@
 import type { Range } from './errors.ts';
+import type { Condition } from './query.ts';
+
+export type { Bound, Clause, Condition, RatioBound, RatioValue } from './query.ts';
 
 /** How the direct children of an area are arranged. All values are resolved; `gap` is CSS. */
 export type Flow = {
@@ -26,9 +29,8 @@ export type FlowInput = {
 export type Step = {
 	/** The query key this step was written under; undefined for the base step. */
 	key?: string;
-	/** Container min-width in px; undefined for the base step or a height-only query. */
-	minWidth?: number;
-	minHeight?: number;
+	/** The container sizes where the step matches; undefined for the base step, which matches every size. */
+	when?: Condition;
 	/** CSS values: the value grammar has already been applied. */
 	cols?: string;
 	rows?: string;
@@ -45,7 +47,10 @@ export type Step = {
 export type Layout = {
 	name: string;
 	container: 'size' | 'inline-size';
-	/** Base step first (no min-* values), then query steps sorted by min-width, then min-height. */
+	/**
+	 * The steps in cascade order. The base step is first. A step comes after each step that
+	 * contains it. Other steps follow the smallest width, then the smallest height, then the source.
+	 */
 	steps: Step[];
 	/** Maps a key path to a source range, for error reporting. */
 	locate?: (path: (string | number)[]) => Range | undefined;
@@ -57,8 +62,8 @@ export type Warning = { message: string; path: (string | number)[] };
 export type DebugStep = {
 	/** The query key, or null for the base step. */
 	key: string | null;
-	minWidth?: number;
-	minHeight?: number;
+	/** The container sizes where the step matches. Absent for the base step. */
+	when?: Condition;
 	cols?: string;
 	rows?: string;
 	gap?: string;
@@ -73,7 +78,7 @@ export type DebugStep = {
  */
 export type DebugInfo = {
 	/** The version of this format. */
-	v: 1;
+	v: 2;
 	name: string;
 	container: 'size' | 'inline-size';
 	/** Every area name used by the layout. */
@@ -115,10 +120,29 @@ export type CompileOptions = {
 	 * custom property `--gc-debug` on the host. Use it in development only: it makes the CSS larger.
 	 */
 	debug?: boolean;
+	/**
+	 * Named breakpoints for all layouts, for example `{ md: '600..', short: 'x..500' }`. A layout
+	 * can use a name as a query term. A layout can also define its own names in `breakpoints`.
+	 */
+	breakpoints?: Record<string, string | number>;
 };
 
-/** A query key: minimum container width and/or height in px, such as `600x400`, `600x`, `x400` or `600`. */
-export type QueryKey = `${number}x${number}` | `${number}x` | `x${number}` | `${number}`;
+/**
+ * A query key. A key is a size (`600`, `600x400`, `x400`, `..900`, `600..900`), a ratio (`16/9`,
+ * `..4/3`), `portrait`, `landscape`, or a name from `breakpoints`. Spaces join terms (AND) and
+ * commas join alternatives (OR). This type covers the common forms. `LayoutInput` types the names.
+ */
+export type QueryKey =
+	| `${number}`
+	| `${number}x${string}`
+	| `x${string}`
+	| `${number}..${string}`
+	| `..${string}`
+	| `${number}/${string}`
+	| `${string} ${string}`
+	| `${string},${string}`
+	| 'portrait'
+	| 'landscape';
 
 /** The settings that the base and every query step accept. */
 export type StepInput = {
@@ -136,9 +160,14 @@ export type StepInput = {
 	flow?: Record<string, string | FlowInput>;
 };
 
-/** A layout written as a plain object. It has the same shape as the YAML form. */
-export type LayoutInput = StepInput & {
+/**
+ * A layout written as a plain object. It has the same shape as the YAML form. `B` is the names of
+ * the breakpoints that the layout can use as keys.
+ */
+export type LayoutInput<B extends string = never> = StepInput & {
 	/** Optional. Defaults to a file name stem, or to a hash of the content. */
 	name?: string;
 	container?: 'size' | 'inline-size';
-} & { [K in QueryKey]?: StepInput };
+	/** Named breakpoints: a name and a query, for example `md: 600..`. Names can be query terms. */
+	breakpoints?: Record<B, string | number>;
+} & { [K in QueryKey | NoInfer<B>]?: StepInput };

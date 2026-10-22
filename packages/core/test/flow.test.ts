@@ -165,7 +165,7 @@ flow:
 600x:
   flow:
     B: row
-x400:
+..600x400:
   flow:
     B: column end
 800x:
@@ -178,7 +178,7 @@ x400:
 			'display: flex; flex-direction: column; justify-content: center; align-items: flex-start; gap: normal; flex-wrap: nowrap;'
 		],
 		[
-			'@container f (min-height: 400px)',
+			'@container f (width < 600px) and (min-height: 400px)',
 			'display: flex; flex-direction: column; justify-content: flex-end; align-items: stretch; gap: normal; flex-wrap: nowrap;'
 		],
 		[

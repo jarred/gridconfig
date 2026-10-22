@@ -1,0 +1,7 @@
+# A key with alternatives. The step matches when the container is narrow or short.
+areas: A B
+
+'..300, x..200':
+  areas: |
+    A
+    B

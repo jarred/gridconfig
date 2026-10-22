@@ -1,10 +1,12 @@
-import { STEP_PROPERTY, attributes } from './attributes.ts';
+import { BREAKPOINT_PROPERTY, attributes } from './attributes.ts';
 import { DEBUG_PROPERTY } from './debug.ts';
 import { LayoutError } from './errors.ts';
 import { flowDeclarations } from './flow.ts';
 import { inLayer, resolveLayer } from './layer.ts';
 import { parseLayout } from './parse.ts';
 import type { CompileOptions, CompiledLayout, DebugInfo, Layout, Step, Warning } from './types.ts';
+import { analyseCascade, sizeText, stepLabel } from './cascade.ts';
+import { conditionCss, conditionInParens, conditionKey, intersect, limitBefore } from './query.ts';
 import { splitTerms } from './values.ts';
 
 export { baseCss, baseCssFor } from './base.ts';
@@ -36,16 +38,8 @@ function infer(areas: string[][], axis: Axis) {
 	return `repeat(${axis === 'cols' ? areas[0].length : areas.length}, 1fr)`;
 }
 
-function conditions(step: Step): string[] {
-	const p: string[] = [];
-	if (step.minWidth !== undefined) p.push(`(min-width: ${step.minWidth}px)`);
-	if (step.minHeight !== undefined) p.push(`(min-height: ${step.minHeight}px)`);
-	return p;
-}
-
 function negated(step: Step): string {
-	const p = conditions(step);
-	return `(not ${p.length > 1 ? `(${p.join(' and ')})` : p[0]})`;
+	return `(not ${conditionInParens(step.when!)})`;
 }
 
 function block(selector: string, body: string[], indent = ''): string {
@@ -62,50 +56,90 @@ function declarations(e: Emitted, step: Step): string[] {
 		d.push(`grid-template-areas: ${e.areas.map((row) => `'${row.join(' ')}'`).join(' ')};`);
 	if (step.css) d.push(step.css.endsWith(';') ? step.css : `${step.css};`);
 	// Every step sets it, so the cascade gives the active step: the last step that matches.
-	d.push(`${STEP_PROPERTY}: ${step.key ?? 'base'};`);
+	d.push(`${BREAKPOINT_PROPERTY}: ${step.key ?? 'base'};`);
 	return d;
 }
 
+/** The properties that a step writes, with the path of the setting to blame in a message. */
+function writes(step: Step, e: Emitted, at: (key: string) => Path): Map<string, Path> {
+	const out = new Map<string, Path>();
+	if (e.areas) out.set('areas', at('areas'));
+	for (const axis of ['cols', 'rows'] as const)
+		if (e[axis]) out.set(axis, at(step[axis] !== undefined ? axis : 'areas'));
+	if (e.gap !== undefined) out.set('gap', at('gap'));
+	if (e.padding !== undefined) out.set('padding', at('padding'));
+	for (const area of Object.keys(step.flow ?? {})) out.set(`flow.${area}`, [...at('flow'), area]);
+	if (step.css) out.set('css', at('css'));
+	return out;
+}
+
+function describe(prop: string, steps: Step[]): string {
+	if (prop === 'cols' || prop === 'rows') {
+		const name = prop === 'cols' ? 'the columns' : 'the rows';
+		// A step with `areas` also writes the tracks that it does not set.
+		return steps.some((s) => s[prop] === undefined) ? `${name} (\`areas\` sets them too)` : name;
+	}
+	if (prop.startsWith('flow.')) return `the flow of ${prop.slice(5)}`;
+	return `\`${prop}\``;
+}
+
 /**
- * Steps are patches on the base and the browser's cascade picks the winner per property, so any
- * step can be active together with any others. All conditions are minimums, so everything that
- * matches at a size also matches at every larger size: checking "who wins" at the smallest size
- * where a set of steps all match is enough.
+ * Checks the cascade at every size. Each property at each size must have one clear winner: the
+ * matching step that is inside every other matching step that writes the property. Then the
+ * track counts must agree with the active area map.
  */
-function validate(steps: Step[], emit: Emitted[], path: (i: number, key: string) => Path) {
-	const areaSteps = steps.flatMap((s, i) => (s.areas ? [i] : []));
-	const matchesAt = (j: number, w: number, h: number) =>
-		(steps[j].minWidth ?? 0) <= w && (steps[j].minHeight ?? 0) <= h;
-	const label = (i: number) => (i === 0 ? 'the base step' : `"${steps[i].key}"`);
+function validate(
+	steps: Step[],
+	emit: Emitted[],
+	path: (i: number, key: string) => Path,
+	warnings: Warning[]
+) {
+	const props = steps.map((s, i) => writes(s, emit[i], (key) => path(i, key)));
+	const report = analyseCascade(
+		steps,
+		props.map((p) => new Set(p.keys()))
+	);
+
+	for (const c of report.conflicts) {
+		const [a, b] = [steps[c.a], steps[c.b]];
+		const overlap = intersect(a.when!, b.when!);
+		const fix = overlap ? ` ("${conditionKey(overlap)}")` : '';
+		const limited = limitBefore(a.when!, b.when!) ?? limitBefore(b.when!, a.when!);
+		const limit = limited
+			? ` (for example "${conditionKey(limited)}" in place of ${limitBefore(a.when!, b.when!) ? stepLabel(a) : stepLabel(b)})`
+			: '';
+		const message = `${stepLabel(a)} and ${stepLabel(b)} both set ${describe(c.prop, [a, b])}, and both match at ${sizeText(c.at)}. Add a step for the sizes where both match${fix}, or change one of them so that they do not overlap${limit}`;
+		// `css` is not parsed, so the compiler cannot know if the two values set the same property.
+		if (c.prop === 'css') warnings.push({ message, path: props[c.b].get('css')! });
+		else throw new LayoutError(message, props[c.b].get(c.prop)!);
+	}
 
 	for (const axis of ['cols', 'rows'] as const) {
-		const writers = emit.flatMap((e, i) => (e[axis] ? [i] : []));
-		steps.forEach((step, c) => {
-			const list = step[axis];
-			if (list === undefined) return;
+		const found = new Set<string>();
+		report.winners.forEach((w, pi) => {
+			const t = w.get(axis);
+			const m = w.get('areas');
+			if (t === undefined || m === undefined || found.has(`${t},${m}`)) return;
+			found.add(`${t},${m}`);
+			const list = emit[t][axis]!;
 			const actual = countTracks(list);
-			if (actual === null) return;
-
-			for (const k of areaSteps) {
-				if (k !== c) {
-					const w = Math.max(steps[c].minWidth ?? 0, steps[k].minWidth ?? 0);
-					const h = Math.max(steps[c].minHeight ?? 0, steps[k].minHeight ?? 0);
-					const tracksSurvive = !writers.some((j) => j > c && matchesAt(j, w, h));
-					const mapSurvives = !areaSteps.some((j) => j > k && matchesAt(j, w, h));
-					if (!tracksSurvive || !mapSurvives) continue;
-				}
-				const areas = steps[k].areas!;
-				const expected = axis === 'cols' ? areas[0].length : areas.length;
-				if (actual !== expected)
-					throw new LayoutError(
-						k === c
-							? `${axis} defines ${actual} tracks but the area map has ${expected}`
-							: `${axis} defines ${actual} tracks but the area map from ${label(k)} can be active at the same time and has ${expected}`,
-						path(c, axis)
-					);
-			}
+			const areas = steps[m].areas!;
+			const expected = axis === 'cols' ? areas[0].length : areas.length;
+			if (actual === null || actual === expected) return;
+			throw new LayoutError(
+				t === m
+					? `${axis} defines ${actual} tracks but the area map has ${expected}`
+					: `${axis} defines ${actual} tracks but the area map from ${stepLabel(steps[m])} is active with it at ${sizeText(report.points[pi])} and has ${expected}`,
+				path(t, axis)
+			);
 		});
 	}
+
+	for (const i of report.dead)
+		warnings.push({
+			message: `${stepLabel(steps[i])} has no effect: at each size where it matches, other steps set everything that it sets`,
+			path: [steps[i].key!]
+		});
 }
 
 function build(layout: Layout, options: CompileOptions): CompiledLayout {
@@ -123,7 +157,8 @@ function build(layout: Layout, options: CompileOptions): CompiledLayout {
 		padding: s.padding ?? (i === 0 ? '0' : undefined)
 	}));
 
-	validate(steps, emit, path);
+	const warnings: Warning[] = [];
+	validate(steps, emit, path, warnings);
 
 	const names = new Set(emit.flatMap((e) => e.areas?.flat() ?? []));
 	names.delete('.');
@@ -160,7 +195,7 @@ function build(layout: Layout, options: CompileOptions): CompiledLayout {
 		if (i === 0) return;
 		const body = declarations(emit[i], step);
 		const rules = [block(sel, body, '  '), ...flowRules(step, '  ')];
-		css.push(`@container ${name} ${conditions(step).join(' and ')} {\n${rules.join('\n')}\n}`);
+		css.push(`@container ${name} ${conditionCss(step.when!)} {\n${rules.join('\n')}\n}`);
 	});
 
 	// A step that sets `areas` hides every name its map lacks, for as long as it is the active
@@ -176,7 +211,11 @@ function build(layout: Layout, options: CompileOptions): CompiledLayout {
 		if (!absent.length) return;
 
 		const later = steps.slice(i + 1).filter((s) => s.areas);
-		const when = [...conditions(step), ...later.map(negated)];
+		// A step with one clause is a list of parts joined by `and`, so it needs no extra ().
+		const own = !step.when
+			? []
+			: [step.when.length === 1 ? conditionCss(step.when) : conditionInParens(step.when)];
+		const when = [...own, ...later.map(negated)];
 		const target =
 			absent.length === 1
 				? `[${attributes.area}="${absent[0]}"]`
@@ -185,7 +224,6 @@ function build(layout: Layout, options: CompileOptions): CompiledLayout {
 		hide.push(when.length ? `@container ${name} ${when.join(' and ')} {\n  ${rule}\n}` : rule);
 	});
 
-	const warnings: Warning[] = [];
 	if (layout.container === 'inline-size')
 		steps.forEach((step, i) => {
 			for (const key of ['cols', 'rows', 'gap', 'padding', 'css'] as const) {
@@ -200,14 +238,13 @@ function build(layout: Layout, options: CompileOptions): CompiledLayout {
 
 	const debug: DebugInfo | undefined = options.debug
 		? {
-				v: 1,
+				v: 2,
 				name,
 				container: layout.container,
 				areas: [...names],
 				steps: steps.map((s, i) => ({
 					key: s.key ?? null,
-					...(s.minWidth !== undefined && { minWidth: s.minWidth }),
-					...(s.minHeight !== undefined && { minHeight: s.minHeight }),
+					...(s.when && { when: s.when }),
 					...(emit[i].cols && { cols: emit[i].cols }),
 					...(emit[i].rows && { rows: emit[i].rows }),
 					...(emit[i].gap !== undefined && { gap: emit[i].gap }),

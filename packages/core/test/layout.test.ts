@@ -158,12 +158,12 @@ name: t
 areas: A
 x400:
   areas: A B C
-600:
+600x..400:
   cols: 3
 `,
 		/base step.*has 1/
 	);
-	assert.deepEqual(e.path, ['600', 'cols']);
+	assert.deepEqual(e.path, ['600x..400', 'cols']);
 });
 
 test('track counts that can never meet are not errors', () => {
@@ -263,7 +263,7 @@ areas: |
   gap: 4
   areas: |
     A B
-200:
+200x100:
   gap: 8
 `;
 
@@ -276,19 +276,19 @@ test('debug is off by default', () => {
 test('debug gives the steps in cascade order, with inferred values', () => {
 	const { debug } = compileLayout(DEBUG_SRC, { debug: true });
 	assert.ok(debug);
-	assert.equal(debug.v, 1);
+	assert.equal(debug.v, 2);
 	assert.deepEqual(debug.areas, ['A', 'B']);
 	assert.deepEqual(
 		debug.steps.map((s) => s.key),
-		[null, '100x100', '200']
+		[null, '100x100', '200x100']
 	);
 	assert.equal(debug.steps[0].cols, 'repeat(1, 1fr)');
 	assert.equal(debug.steps[0].gap, '0');
 	assert.equal(debug.steps[1].gap, '4px');
 	assert.equal(debug.steps[1].cols, 'repeat(2, 1fr)');
 	assert.deepEqual(debug.steps[1].areas, [['A', 'B']]);
-	assert.equal(debug.steps[2].minWidth, 200);
-	assert.equal(debug.steps[2].minHeight, undefined);
+	assert.deepEqual(debug.steps[2].when, [{ w: { min: 200 }, h: { min: 100 } }]);
+	assert.equal(debug.steps[0].when, undefined);
 	assert.equal(debug.steps[2].gap, '8px');
 	assert.equal(debug.steps[2].cols, undefined);
 });
@@ -307,7 +307,7 @@ test('debug does not change the other css', () => {
 	assert.equal(withDebug.replace(/ --gc-debug: "(?:[^"\\]|\\.)*";/, ''), plain);
 });
 
-test('every step sets --gc-step to its key, and the base sets "base"', () => {
+test('every step sets --grid-breakpoint to its key, and the base sets "base"', () => {
 	const { css } = compileLayout(
 		`
 name: s
@@ -316,30 +316,30 @@ areas: A
   gap: 4
 x400:
   padding: 2
-600x:
+600x100:
   gap: 8
 `,
 		{ layer: false }
 	);
-	assert.match(css, /\[data-grid-layout="s"\] \{[^}]*--gc-step: base;\n\}/);
+	assert.match(css, /\[data-grid-layout="s"\] \{[^}]*--grid-breakpoint: base;\n\}/);
 	for (const [query, key] of [
 		['(min-width: 100px) and (min-height: 100px)', '100x100'],
 		['(min-height: 400px)', 'x400'],
-		['(min-width: 600px)', '600x']
+		['(min-width: 600px) and (min-height: 100px)', '600x100']
 	])
 		assert.ok(
 			css.includes(`@container s ${query} {\n  [data-grid-layout="s"] {`) &&
 				new RegExp(
-					`@container s ${query.replace(/[()]/g, '\\$&')} \\{[^}]*--gc-step: ${key};`
+					`@container s ${query.replace(/[()]/g, '\\$&')} \\{[^}]*--grid-breakpoint: ${key};`
 				).test(css),
-			`${key} sets --gc-step`
+			`${key} sets --grid-breakpoint`
 		);
 });
 
-test('a step that sets nothing else still gets a block for --gc-step', () => {
+test('a step that sets nothing else still gets a block for --grid-breakpoint', () => {
 	const { css } = compileLayout('name: e\nareas: A\n500:\n  css: ""\n', { layer: false });
 	assert.match(
 		css,
-		/@container e \(min-width: 500px\) \{\n {2}\[data-grid-layout="e"\] \{\n {4}--gc-step: 500;/
+		/@container e \(min-width: 500px\) \{\n {2}\[data-grid-layout="e"\] \{\n {4}--grid-breakpoint: 500;/
 	);
 });
