@@ -1,0 +1,41 @@
+name: brand
+areas: A
+
+# business card
+450x250:
+  padding: 8
+  gap: 4
+  cols: 80 1fr*3
+  rows: 1fr*2 200
+  areas: |
+    BBB.
+    ..DD
+    A.DD
+
+630..900x900:
+  padding: 16
+  gap: 8
+  areas: |
+    BBBB..AA
+    CCC...AA
+    ........
+    ........
+    ........
+    ........
+    ........
+    ........
+    ....DDDD
+    ....DDDD
+    ....DDDD
+    ....DDDD
+
+
+900x500:
+  padding: 0
+  gap: 0
+  rows: 100 1fr*2 auto
+  areas: |
+    ....AA
+    ..DDDD
+    ..DDDD
+    BBCC..

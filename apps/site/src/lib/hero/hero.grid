@@ -9,11 +9,15 @@ padding: 4
     B
 
 400x600:
+  padding: 8
+  gap: 8
   areas: |
     A C
     B B
 
 1200x600:
+  padding: 16
+  gap: 16  
   areas: |
     A B
     C B
@@ -21,6 +25,8 @@ padding: 4
 1300x900:
   rows: 80 1fr*2 80
   cols: 80 1fr*2 80
+  padding: 16
+  gap: 16  
   areas: |
     . . . .
     . A B .
@@ -28,6 +34,8 @@ padding: 4
     . . . .
 
 1600x1400:
+  padding: 0
+  gap: 16
   cols: 120 1fr*2 120
   areas: |
     . . B B
@@ -36,8 +44,10 @@ padding: 4
     . . B B
 
 2400x1400:
+  padding: 32
+  gap: 16
   areas: |
-    . A B B
+    A . B B
+    . . B B
+    . . B B
     . C B B
-    . . B B
-    . . B B

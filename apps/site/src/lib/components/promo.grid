@@ -1,0 +1,37 @@
+name: promo
+areas: A
+padding: 4
+gap: 4
+
+250x150:
+  rows: 1fr 1fr
+  areas: |
+    A
+    B
+
+450x200:
+  cols: 1fr 1fr
+  rows: 1fr 1fr
+  gap: 16
+  padding: 0
+  flow:
+    B: column center start
+  areas: |
+    A C
+    B C
+
+300..450x400:
+  rows: 1fr auto*2
+  areas: |
+    C
+    A
+    B
+
+900x400:
+  gap: 16
+  padding: 16
+  rows: auto auto 1fr
+  areas: |
+    A D C C
+    B B C C
+    E E C C

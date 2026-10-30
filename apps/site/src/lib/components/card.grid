@@ -1,0 +1,23 @@
+name: card
+areas: B
+padding: 8
+gap: 8
+
+200x200:
+  rows: 1fr auto
+  areas: |
+    B
+    C
+
+400x400:
+  rows: 1fr auto 1fr
+  areas: |
+    A A
+    B B
+    C C
+
+800x800:
+  areas: |
+    A A A
+    A A A
+    B C D

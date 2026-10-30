@@ -1,0 +1,137 @@
+# Ad and social media formats.
+# Each step targets a band of aspect ratios, so one layout covers each format in that band.
+# Ratio bands do not overlap (a max is exclusive). Size steps sit inside their band.
+#
+#   band        ratio        formats
+#   sky         < 1:3        160x600 wide skyscraper, 120x600 skyscraper
+#   tall        1:3 – 2:3    300x600 half page, 1080x1920 story / reel (9:16)
+#   feed        2:3 – 9:10   1080x1350 portrait post (4:5)
+#   base        9:10 – 3:2   300x250 MPU, 336x280, 250x250, 1080x1080 square post
+#   link        3:2 – 5:2    1200x628 link post (1.91:1), 1280x720 video (16:9)
+#   banner      5:2 – 6:1    970x250 billboard, 1500x500 X header, 1584x396 LinkedIn
+#   mobile      5:2 – 6:1, <500 320x100 large mobile banner
+#   strip       >= 6:1       728x90 leaderboard, 468x60 banner, 320x50 mobile banner
+#   leaderboard >= 6:1, 900+ 970x90 super leaderboard
+#   story       tall, 1200+  1080x1920 story / reel, with platform safe zones
+
+# Areas: L logo, H headline, C copy, I image, B button (call to action).
+
+name: ad
+
+breakpoints:
+  sky: ..1/3
+  tall: 1/3..2/3
+  feed: 2/3..9/10
+  link: 3/2..5/2
+  banner: 5/2..6/1
+  mobile: 5/2..6/1 ..500
+  strip: 6/1..
+  leaderboard: 6/1.. 900..
+  story: 1/3..2/3 x1200..
+
+# Base: square and near-square (MPU, square post).
+gap: 3cqmin
+padding: 0
+rows: 1fr auto auto auto
+flow:
+  L: row start end
+  C: column end start
+  B: row end end
+areas: |
+  I I
+  H H
+  C C
+  L B
+
+sky:
+  gap: 4cqw
+
+  rows: auto 3fr auto auto auto
+  flow:
+    L: row start start
+    B: row end end
+  areas: |
+    L
+    I
+    H
+    C
+    B
+
+tall:
+  rows: 4fr auto auto auto
+  flow:
+    L: row start center
+    B: row end end
+  areas: |
+    I I
+    H H
+    C C
+    L B
+
+# Instagram and TikTok cover the top and bottom of a story with UI. Keep content clear of them.
+story:
+  padding: 13cqh 6cqw 18cqh
+
+feed:
+  rows: 1fr auto auto auto
+  areas: |
+    I I
+    H H
+    C C
+    L B
+
+link:
+  gap: 2cqw
+
+  cols: 2fr 1fr 1fr
+  rows: 1fr 4fr auto auto
+  flow:
+    L: row start center
+    C: column start start
+    B: row end end
+  areas: |
+    I H H
+    I C C
+    I C C
+    I L B
+
+banner:
+  cols: 1fr 1fr auto auto
+  rows: 1fr 1fr
+  gap: 4cqh
+
+  flow:
+    L: row end start
+    H: column start start
+    C: column end start
+    B: row end end
+  areas: |
+    I H H L
+    I C . B
+
+mobile:
+  cols: 1fr auto
+  flow:
+    B: row end center
+  areas: |
+    H B
+    C B
+
+strip:
+  cols: 1fr auto
+  rows: 1fr
+  gap: 2cqh
+
+  flow:
+    L: row center center
+    H: row start center
+    B: row center center
+  areas: H B
+
+leaderboard:
+  cols: 1fr*3 auto
+  flow:
+    C: row start center
+  areas: |
+    I H H B
+    I C C B
