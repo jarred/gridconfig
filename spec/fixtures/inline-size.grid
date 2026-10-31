@@ -1,5 +1,4 @@
-# An inline-size container. Width queries work. The host has a definite height from its parent.
-container: inline-size
+# The default container is inline-size. Width queries work. The host has a definite height from its parent.
 areas: A
 
 300:

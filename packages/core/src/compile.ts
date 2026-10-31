@@ -1,4 +1,4 @@
-import { BREAKPOINT_PROPERTY, attributes } from './attributes.ts';
+import { STEP_PROPERTY, attributes } from './attributes.ts';
 import { DEBUG_PROPERTY } from './debug.ts';
 import { LayoutError } from './errors.ts';
 import { flowDeclarations } from './flow.ts';
@@ -56,7 +56,7 @@ function declarations(e: Emitted, step: Step): string[] {
 		d.push(`grid-template-areas: ${e.areas.map((row) => `'${row.join(' ')}'`).join(' ')};`);
 	if (step.css) d.push(step.css.endsWith(';') ? step.css : `${step.css};`);
 	// Every step sets it, so the cascade gives the active step: the last step that matches.
-	d.push(`${BREAKPOINT_PROPERTY}: ${step.key ?? 'base'};`);
+	d.push(`${STEP_PROPERTY}: ${step.key ?? 'base'};`);
 	return d;
 }
 

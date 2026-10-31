@@ -33,18 +33,13 @@ const RESERVED_AREAS = new Set([
 	'revert'
 ]);
 
-/** `3` -> repeat(3, 1fr); `3x200px` -> repeat(3, minmax(200px, 1fr)); `1fr*3` -> repeat(3, 1fr). */
+/** `100 1fr` -> 100px 1fr; `1fr*3` -> repeat(3, 1fr). The area map gives the track count. */
 function tracks(value: unknown, options: CompileOptions, path: Path): string {
-	if (typeof value === 'number') {
-		if (!Number.isInteger(value) || value < 1)
-			throw new LayoutError('A track count must be a positive integer', path);
-		return `repeat(${value}, 1fr)`;
-	}
+	if (typeof value === 'number') value = String(value);
 	if (typeof value !== 'string') throw new LayoutError('Expected a number or a string', path);
 
 	const terms = splitTerms(value, path);
 	if (!terms.length) throw new LayoutError('Value is empty', path);
-	if (terms.length === 1 && /^\d+$/.test(terms[0])) return tracks(Number(terms[0]), options, path);
 
 	return terms
 		.map((term) => {
@@ -55,7 +50,10 @@ function tracks(value: unknown, options: CompileOptions, path: Path): string {
 				);
 			const min = /^(\d+)x(.+)$/.exec(term);
 			if (min)
-				return `repeat(${min[1]}, minmax(${convertTerm(min[2], false, options, path)}, 1fr))`;
+				throw new LayoutError(
+					`"${term}" is not a track. For ${min[1]} tracks of at least ${min[2]}, write minmax(${min[2]}, 1fr)*${min[1]}`,
+					path
+				);
 			const rep = /^(.+)\*(\d+)$/.exec(term);
 			if (rep) return `repeat(${rep[2]}, ${convertTerm(rep[1], false, options, path)})`;
 			return convertTerm(term, false, options, path);
@@ -266,7 +264,7 @@ export function parseLayoutObject(
 		} else if (typeof name !== 'string' || !IDENT.test(name))
 			throw new LayoutError('`name` must be a valid identifier', ['name']);
 
-		const container = obj.container ?? 'size';
+		const container = obj.container ?? 'inline-size';
 		if (container !== 'size' && container !== 'inline-size')
 			throw new LayoutError('`container` must be "size" or "inline-size"', ['container']);
 
@@ -281,7 +279,7 @@ export function parseLayoutObject(
 			const when = parseQuery(key, names, [key]);
 			if (container === 'inline-size' && usesHeight(when))
 				throw new LayoutError(
-					`"${key}" needs the height of the container, but \`container\` is "inline-size". Use a width query, or set \`container: size\``,
+					`"${key}" needs the height of the container. Set \`container: size\` at the top level and give the host a height, or use a width query`,
 					[key]
 				);
 			if (!value || typeof value !== 'object' || Array.isArray(value))

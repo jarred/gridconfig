@@ -6,6 +6,7 @@
 	// track counts to the CSS, which sizes the dots and the letters from them.
 	const layout = grid`
 		name: logo
+		container: size
 		padding: 1cqh
 		areas: |
 			grid grid
@@ -84,6 +85,7 @@
 
 	const gridLayout = grid`
 		name: logo-grid
+		container: size
 		areas: G
 		css: '--cols: 1; --rows: 1'
 
@@ -100,6 +102,7 @@
 
 	const configLayout = grid`
 		name: logo-config
+		container: size
 		css: '--cols: 3; --rows: 2'
 		areas: |
 			C O N

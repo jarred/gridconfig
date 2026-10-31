@@ -9,6 +9,7 @@ Describe a CSS grid that changes shape with its container. GridConfig compiles t
 ```yaml
 # card.grid
 name: card
+container: size # a box with a fixed height; the default is inline-size
 areas: A
 
 100x100:
@@ -47,7 +48,7 @@ const object = grid({ areas: 'A', 600: { areas: 'A A\nB B' } });
 
 With the Vite plugin, static layouts compile at build time. Without it, they compile when the code runs.
 
-**Status:** early prototype. Nothing is published yet. The format is in [`spec/spec.md`](spec/spec.md) (draft 0.3).
+**Status:** early prototype. Nothing is published yet. The format is in [`spec/spec.md`](spec/spec.md) (draft 0.6).
 
 ## Repository structure
 

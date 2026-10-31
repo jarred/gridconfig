@@ -142,7 +142,7 @@
 	}
 
 	/* The cqw, cqh and cqmin units here measure the ad host, the nearest size container. */
-	@container style(--grid-breakpoint: sky) {
+	@container style(--grid-step: sky) {
 		* {
 			--logo-size: clamp(9px, 11cqw, 32px);
 			--head-size: clamp(11px, 14cqw, 40px);
@@ -151,7 +151,7 @@
 		}
 	}
 
-	@container style(--grid-breakpoint: tall) or style(--grid-breakpoint: story) {
+	@container style(--grid-step: tall) or style(--grid-step: story) {
 		* {
 			--logo-size: clamp(9px, 5cqw, 56px);
 			--head-size: clamp(12px, 10cqw, 120px);
@@ -160,14 +160,14 @@
 		}
 	}
 
-	@container style(--grid-breakpoint: link) {
+	@container style(--grid-step: link) {
 		* {
 			--head-size: clamp(11px, 11cqh, 96px);
 			--copy-size: clamp(9px, 5cqh, 40px);
 		}
 	}
 
-	@container style(--grid-breakpoint: banner) or style(--grid-breakpoint: mobile) {
+	@container style(--grid-step: banner) or style(--grid-step: mobile) {
 		* {
 			--logo-size: clamp(9px, 12cqh, 64px);
 			--head-size: clamp(11px, 16cqh, 88px);
@@ -176,7 +176,7 @@
 		}
 	}
 
-	@container style(--grid-breakpoint: strip) or style(--grid-breakpoint: leaderboard) {
+	@container style(--grid-step: strip) or style(--grid-step: leaderboard) {
 		* {
 			--logo-size: clamp(9px, 28cqh, 28px);
 			--head-size: clamp(10px, 30cqh, 30px);

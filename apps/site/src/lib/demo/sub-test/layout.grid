@@ -1,5 +1,6 @@
 areas: A
 name: sub-test
+container: size
 
 100x100:
   gap: 4

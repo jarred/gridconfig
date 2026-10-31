@@ -1,4 +1,5 @@
 name: promo
+container: size
 areas: A
 padding: 4
 gap: 4

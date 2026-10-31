@@ -1,16 +1,15 @@
 areas: A
 name: hero
+container: size
 
 100x100:
   gap: 4
-  cols: 2
-  rows: 2
   padding: 4
   areas: |
     A A
     B B
 
-# Keys are min-width x min-height; each step inherits from the previous one.
+# Keys are min-width x min-height. A larger step overrides the steps it is inside.
 200x200:
   gap: 8
   rows: 2fr 1fr

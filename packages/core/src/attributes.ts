@@ -7,6 +7,6 @@ export const attributes = {
 
 /**
  * The custom property that holds the key of the active step on the grid element: "base", or a
- * query key such as "450x200". Content can target a step with `@container style(--grid-breakpoint: 450x200)`.
+ * query key such as "450x200". Content can target a step with `@container style(--grid-step: 450x200)`.
  */
-export const BREAKPOINT_PROPERTY = '--grid-breakpoint';
+export const STEP_PROPERTY = '--grid-step';

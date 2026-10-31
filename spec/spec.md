@@ -1,6 +1,6 @@
 # GridConfig layout spec
 
-**Status: draft 0.5.** The compiler in `packages/core` is the implementation of this document. The tests are in `packages/core/test` and `packages/unplugin/test`. Refer to [Implementation notes](#implementation-notes) for the parts that are not built yet.
+**Status: draft 0.6.** The compiler in `packages/core` is the implementation of this document. The tests are in `packages/core/test` and `packages/unplugin/test`. Refer to [Implementation notes](#implementation-notes) for the parts that are not built yet.
 
 Two other notes explore how GridConfig can work with other tools. They are not part of this spec: [Tailwind](./tailwind-plugin.md) and [StyleX](./stylex-support.md).
 
@@ -13,6 +13,7 @@ This document does not describe framework usage (Svelte, React, Vue, Astro, Web 
 
 ```yaml
 name: hero
+container: size
 areas: A
 
 100x100:
@@ -66,7 +67,7 @@ The top level is the **base step**. It also has these keys.
 | Key           | Required | Description                                                                                                                                  |
 | ------------- | -------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
 | `name`        | no       | An identifier (`[A-Za-z_][\w-]*`). It is the name of the container and a part of the `data-grid-layout` selector. See below for the default. |
-| `container`   | no       | `size` (default) or `inline-size`. Use `inline-size` if the container has no fixed height.                                                   |
+| `container`   | no       | `inline-size` (default) or `size`. Use `size` for a box with a fixed height, and to use height, ratio, or orientation keys.                  |
 | `breakpoints` | no       | Named queries. Refer to [Named breakpoints](#named-breakpoints).                                                                             |
 
 The default `name` has two sources, in this order:
@@ -113,7 +114,9 @@ A minimum is inclusive. A maximum is exclusive. Thus two ranges that meet at one
 
 A ratio is width to height. A ratio alone is a minimum, the same as a size alone. A container is `portrait` when its height is equal to its width or more than its width. Thus a square container is `portrait`.
 
-A height, a ratio, and an orientation need the height of the container. With `container: inline-size`, a key that has one of these terms is an error.
+A height, a ratio, and an orientation need the height of the container. Thus a key that has one of these terms needs `container: size`. Without it, the key is an error. The error tells you to set `container: size`.
+
+With `container: size`, the host does not get its height from its content. The host must get a definite height from the page, for example from a parent with a height, or the host is 0 px high. With `inline-size`, the host gets its height from its content, as a normal block does.
 
 #### Combined terms
 
@@ -129,6 +132,7 @@ Note about YAML: a key with a comma does not need quotes in a block mapping. A k
 The top-level key `breakpoints` gives a name to a query. A key can use the name as a term.
 
 ```yaml
+container: size
 breakpoints:
   md: 600..
   short: x..500
@@ -195,18 +199,18 @@ The area map is a multi-line string. Each line is a row.
 
 ### Tracks
 
-`cols` and `rows` accept a number or a track list. Spaces separate the tracks in a track list.
+`cols` and `rows` accept a track list. Spaces separate the tracks.
 
 | Input         | Output                                 |
 | ------------- | -------------------------------------- |
-| `3` (alone)   | `repeat(3, 1fr)`                       |
-| `3x200px`     | `repeat(3, minmax(200px, 1fr))`        |
-| `1fr*3`       | `repeat(3, 1fr)`                       |
 | `100 1fr`     | `100px 1fr`                            |
+| `200`         | `200px`                                |
+| `1fr*3`       | `repeat(3, 1fr)`                       |
 | anything else | no change, after the value rules apply |
 
-- A single number is a repeat count. It must be a positive integer. In a list, a bare number is px.
-- In the shorthands `NxSIZE` and `SIZE*N`, `SIZE` obeys the [value grammar](#values). But `SIZE` cannot have spaces or operators. Use `minmax()` or `calc()` for a more complex size.
+- A bare number is px, as in each other value. The area map gives the number of tracks. Thus a layout does not give a track count.
+- In the shorthand `SIZE*N`, `N` is a positive integer, and `SIZE` obeys the [value grammar](#values). But `SIZE` cannot have spaces or operators. For more columns of a minimum size, write `minmax(200px, 1fr)*3`.
+- `NxSIZE` (for example `3x200px`) is an error. `x` is only for the query keys.
 - Spaces in `()` or `{}` do not split tokens. Thus `minmax(100px, 1fr)` is one track.
 - A track list cannot have operators. Use `calc()` for one track.
 - A step can set `areas` and not set `cols` or `rows`. Then the compiler calculates the missing item from the area map as `repeat(N, 1fr)`. The compiler writes it in the output of that step.
@@ -267,6 +271,7 @@ Each step is a **patch on the base**. A step writes only the values that it sets
 - Change one step so that the two steps do not overlap, for example with a maximum.
 
 ```yaml
+container: size
 areas: A
 
 x400:
@@ -283,7 +288,7 @@ Steps that set different properties can overlap with no error. In the example, `
 
 The compiler cannot parse `css`. Thus two `css` values that overlap give a warning, not an error. The step order decides each declaration.
 
-`--grid-breakpoint` is not a part of this rule. If two steps overlap and neither is inside the other, the later step in the order is the active step. Refer to [Active step](#active-step).
+`--grid-step` is not a part of this rule. If two steps overlap and neither is inside the other, the later step in the order is the active step. Refer to [Active step](#active-step).
 
 **A step with no effect.** A step has no effect when other steps set all of its properties at each size where it matches, and the step is never the active step. The compiler gives a warning for this step.
 
@@ -319,7 +324,7 @@ flow:
     B: row between center gap {space.2}
 ```
 
-A style query on `--grid-breakpoint` can also change the CSS of an area at a step. But a style query matches the active step only. Thus the author must write a value again for each later step. `flow` obeys the cascade of the steps, the same as the other settings.
+A style query on `--grid-step` can also change the CSS of an area at a step. But a style query matches the active step only. Thus the author must write a value again for each later step. `flow` obeys the cascade of the steps, the same as the other settings.
 
 #### The flow string
 
@@ -498,7 +503,7 @@ This is example output for the example at the top. The format of the output is n
 		grid-template-columns: repeat(1, 1fr);
 		grid-template-rows: repeat(1, 1fr);
 		grid-template-areas: 'A';
-		--grid-breakpoint: base;
+		--grid-step: base;
 	}
 	[data-grid-layout='hero'] > [data-grid-area='A'] {
 		grid-area: A;
@@ -513,7 +518,7 @@ This is example output for the example at the top. The format of the output is n
 			grid-template-columns: repeat(2, 1fr);
 			grid-template-rows: repeat(2, 1fr);
 			grid-template-areas: 'A A' 'B B';
-			--grid-breakpoint: 100x100;
+			--grid-step: 100x100;
 		}
 	}
 
@@ -523,7 +528,7 @@ This is example output for the example at the top. The format of the output is n
 			grid-template-columns: repeat(2, 1fr);
 			grid-template-rows: 1fr 40px;
 			grid-template-areas: 'A A' '. B';
-			--grid-breakpoint: 200x200;
+			--grid-step: 200x200;
 		}
 	}
 }
@@ -566,19 +571,19 @@ The browser changes the `display` of a grid item to a block-level value. Thus an
 
 ### Active step
 
-Each step sets the custom property `--grid-breakpoint` on the grid element. The value is the query key of the step, or `base` for the base step. The cascade gives the active step: the last step that matches. Thus two steps that match at the same time give one value.
+Each step sets the custom property `--grid-step` on the grid element. The value is the query key of the step, or `base` for the base step. The cascade gives the active step: the last step that matches. Thus two steps that match at the same time give one value.
 
 Content can use a style query to target a step. The custom property inherits, so a descendant at any depth can use it:
 
 ```css
-@container style(--grid-breakpoint: 200x200) {
+@container style(--grid-step: 200x200) {
 	h1 {
 		font-size: 12cqmin;
 	}
 }
 ```
 
-A nested layout sets its own value for its subtree. JavaScript can read the value with `getComputedStyle(grid).getPropertyValue('--grid-breakpoint')`. Style queries for custom properties are in all current browsers (Baseline in 2026). An older browser ignores the rule.
+A nested layout sets its own value for its subtree. JavaScript can read the value with `getComputedStyle(grid).getPropertyValue('--grid-step')`. Style queries for custom properties are in all current browsers (Baseline in 2026). An older browser ignores the rule.
 
 Use the style query, and do not copy the size conditions of a step to page CSS. A copy of the conditions tells you that a step matches, but not that it is active.
 
@@ -600,11 +605,12 @@ The parser and the compiler throw an error for each of these:
 - A range or a ratio range with a minimum that is not less than the maximum (`900..600`), or a ratio that is not two positive numbers.
 - A part of a key with two terms for the same dimension (`600 ..900`), or an empty part (`600,`).
 - Two query keys that match the same sizes (`600` and `600..`), a key that matches no size, or a key that matches each size.
-- A height, a ratio, or an orientation term with `container: inline-size`.
+- A height, a ratio, or an orientation term without `container: size`.
 - An invalid breakpoint name, a breakpoint that uses another name, or a name in a layout that is also in the `breakpoints` option.
 - Two steps that set the same property, match at the same size, and are not inside each other. Refer to [Cascade semantics](#cascade-semantics).
 - An empty area map, rows of different lengths, an invalid or reserved area name, or an area that is not a rectangle.
 - A track count that is not the same as the area map that the compiler checks it against.
+- A track in the form `NxSIZE`, for example `3x200px`. The error gives the `minmax()` replacement.
 - A malformed value: unbalanced `()` or `{}`, an empty token `{}`, or an operator at the start, at the end, or twice in a row.
 - A `css` value that has `</style`. It can break out of an injected `<style>` element.
 - A `flow` value that is not a map, or a flow key that is not an area name in an area map.
@@ -614,7 +620,7 @@ The parser and the compiler throw an error for each of these:
 
 The compiler gives a warning, and does not fail, for this:
 
-- `cqh`, `cqb`, `cqmin`, or `cqmax` with `container: inline-size`. There is no height to measure. Thus the browser uses viewport units instead.
+- `cqh`, `cqb`, `cqmin`, or `cqmax` without `container: size`. There is no height to measure. Thus the browser uses viewport units instead.
 - Two `css` values that overlap with no winner.
 - A step with no effect.
 
@@ -722,10 +728,10 @@ These parts are not built yet:
 - **Layer (decided for v1).** Layers are on by default, in the layer `gridconfig`. The reason: a utility class such as `gap-4` must be able to override a layout. The cost: an unlayered reset such as `* { padding: 0 }` removes the layout padding, in any source order. A page can put its reset in an earlier layer to prevent this. Browser tests record both cases. The hide rules stay outside the layer, because `!important` reverses the order of layers.
 - **Names (decided for v1).** The function is `grid`. It matches the `.grid` extension, the package name, and the `data-grid-*` attributes. The result of `grid` is a layout, and a component takes it as a `layout` prop. The query for a plain YAML file is `?grid`. It is not `?layout`, because SvelteKit uses "layout" for route layouts. An import of `grid` can use an alias, for example `import { grid as g }`, if a file already has a variable `grid`. The build plugin follows the alias.
 - **Flow (later).** Reverse directions (`row-reverse`, `column-reverse`) and shared entries (`B C: column`) are not in v1. The inspector can show the flow of an area next to its label. A future per-area setting (`keep`, or a per-area `css`) must use the same shape as `flow`: a map from the area name to a value.
-- **Named steps (partly decided).** [Named breakpoints](#named-breakpoints) give a short value to `--grid-breakpoint`. A style query for a key with dots, slashes, or spaces works in Chromium. Do a test in other browsers before we recommend it.
+- **Named steps (partly decided).** [Named breakpoints](#named-breakpoints) give a short value to `--grid-step`. A style query for a key with dots, slashes, or spaces works in Chromium. Do a test in other browsers before we recommend it.
 - **Units in keys (later).** Keys in `rem` follow the font size of the user. To keep the [one-winner rule](#cascade-semantics) exact, a layout must use one unit in all its keys.
 - **Tools for the step order (later).** The data of the regions can give a `gridconfig explain` command (the step that sets each property at a size) and a map of the steps in the inspector.
-- **Reactive step (deferred).** The adapters can give the active step to JavaScript, for logic such as a change of component. The value comes from `--grid-breakpoint`, with a `ResizeObserver` on the host. Styles do not need it: use the style query.
+- **Reactive step (deferred).** The adapters can give the active step to JavaScript, for logic such as a change of component. The value comes from `--grid-step`, with a `ResizeObserver` on the host. Styles do not need it: use the style query.
 - **Identifiers.** The container names and the selectors are the `name` of the layout. A name that the compiler makes (a file name or a hash) has a low risk of conflict inside one project. Do production builds add a short hash to prevent a conflict between packages?
 - **Token breakpoints (decided).** Named breakpoints replace `{bp.md}`. The `breakpoints` option gives names to all layouts at build time, because `var()` cannot be in a container condition.
 - **`css` escape hatch.** Raw declarations do not work in the same way in the shadow-DOM output. Decide if the shadow-DOM output permits them.

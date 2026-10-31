@@ -1,3 +1,4 @@
+container: size
 # Steps on different axes match together. Each property comes from the last matching step that sets it.
 areas: |
   A

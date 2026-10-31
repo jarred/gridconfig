@@ -19,6 +19,7 @@ import {
 const compiled = compileLayout(
 	`
 name: card
+container: size
 areas: |
   A
 100x100:
@@ -168,6 +169,7 @@ test('sizeForStep goes to the nearest size where a step with a max or a ratio is
 	const ranged = compileLayout(
 		`
 name: r
+container: size
 areas: A
 ..600:
   gap: 1

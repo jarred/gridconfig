@@ -1,3 +1,4 @@
+container: size
 # Orientation and aspect ratio. 16/9 is inside landscape, so it wins where both match.
 areas: |
   A

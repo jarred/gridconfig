@@ -41,7 +41,7 @@ const run = (module: Result) =>
 test('loads a .grid file and names it after the file', async () => {
 	const dir = await mkdtemp(join(tmpdir(), 'gc-'));
 	const file = join(dir, 'hero.grid');
-	await writeFile(file, 'areas: A\n100x100:\n  areas: |\n    A A\n    B B\n');
+	await writeFile(file, 'areas: A\n100:\n  areas: |\n    A A\n    B B\n');
 	const p = setup();
 	const compiled = run(await p.load(file));
 	assert.equal(compiled.name, 'hero');

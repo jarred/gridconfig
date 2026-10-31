@@ -1,3 +1,4 @@
+container: size
 # The example from the spec: steps on both axes, an empty cell, mixed track sizes, a token gap.
 areas: A
 

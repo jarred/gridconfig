@@ -1,4 +1,5 @@
 name: homepage
+container: size
 areas: A
 gap: 4
 padding: 4

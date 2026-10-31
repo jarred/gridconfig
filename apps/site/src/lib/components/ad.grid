@@ -17,6 +17,7 @@
 # Areas: L logo, H headline, C copy, I image, B button (call to action).
 
 name: ad
+container: size
 
 breakpoints:
   sky: ..1/3

@@ -1,3 +1,4 @@
+container: size
 # Two steps on different axes set the same property. The step for the sizes where both match
 # is inside both, so it wins there. Without it, the compiler reports an error.
 areas: A

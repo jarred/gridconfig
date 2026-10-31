@@ -10,7 +10,7 @@ import type { LayoutInput } from '../src/types.ts';
 const yaml = `
 name: hero
 areas: A
-100x100:
+100:
   gap: 4
   areas: |
     A A
@@ -20,7 +20,7 @@ areas: A
 const object: LayoutInput = {
 	name: 'hero',
 	areas: 'A',
-	'100x100': { gap: 4, areas: 'A A\nB B' }
+	'100': { gap: 4, areas: 'A A\nB B' }
 };
 
 test('an object compiles to the same CSS as the YAML form', () => {
@@ -41,7 +41,7 @@ test('the object type rejects unknown keys and array areas', () => {
 });
 
 test('name is optional: file stem, then content hash', () => {
-	const noName = 'areas: A\n100x100:\n  areas: |\n    A A\n    B B\n';
+	const noName = 'areas: A\n100:\n  areas: |\n    A A\n    B B\n';
 	assert.equal(parseLayout(noName, { defaultName: 'hero' }).name, 'hero');
 	assert.equal(parseLayout(noName, { defaultName: 'hero.card' }).name, 'hero-card');
 	assert.equal(parseLayout(noName, { defaultName: '1-hero' }).name, '_1-hero');
@@ -50,9 +50,9 @@ test('name is optional: file stem, then content hash', () => {
 	const hashed = parseLayout(noName).name;
 	assert.match(hashed, /^gc-[0-9a-z]{7}$/);
 	assert.equal(parseLayout(noName).name, hashed, 'deterministic');
-	assert.notEqual(parseLayout(noName + '200x200:\n  gap: 1\n').name, hashed);
+	assert.notEqual(parseLayout(noName + '200:\n  gap: 1\n').name, hashed);
 	// The same content gets the same name in both syntaxes.
-	assert.equal(parseLayoutObject({ areas: 'A', '100x100': { areas: 'A A\nB B' } }).name, hashed);
+	assert.equal(parseLayoutObject({ areas: 'A', '100': { areas: 'A A\nB B' } }).name, hashed);
 });
 
 test('a name that is present must still be valid', () => {
@@ -62,11 +62,11 @@ test('a name that is present must still be valid', () => {
 
 test('indented YAML works and keeps line numbers', () => {
 	const indented =
-		'\n    name: hero\n    areas: A\n    100x100:\n      gap: 4\n      areas: |\n        A A\n        B B\n';
+		'\n    name: hero\n    areas: A\n    100:\n      gap: 4\n      areas: |\n        A A\n        B B\n';
 	assert.equal(compileLayout(indented).css, compileLayout(yaml).css);
 
 	try {
-		compileLayout('\n    name: hero\n    areas: A\n    100x100:\n      gap: 1 +\n');
+		compileLayout('\n    name: hero\n    areas: A\n    100:\n      gap: 1 +\n');
 		assert.fail('expected an error');
 	} catch (e) {
 		assert.ok(e instanceof LayoutError);
@@ -87,7 +87,7 @@ test('a layout must be plain data', () => {
 });
 
 test('undefined values are treated as absent', () => {
-	const result = grid({ areas: 'A', gap: undefined, '100x100': undefined, name: 'u' });
+	const result = grid({ areas: 'A', gap: undefined, '100': undefined, name: 'u' });
 	assert.equal(result.name, 'u');
 	assert.doesNotMatch(result.css, /@container/);
 });
@@ -96,7 +96,7 @@ test('the grid tag compiles a template', () => {
 	const result = grid`
 		name: tagged
 		areas: A
-		100x100:
+		100:
 			areas: |
 				A A
 				B B

@@ -20,7 +20,7 @@
 		text-box-trim: both;
 	}
 
-	@container style(--grid-breakpoint: 300x400) {
+	@container style(--grid-step: 300x400) {
 		h1 {
 			opacity: 0.4;
 		}

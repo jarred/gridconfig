@@ -102,7 +102,7 @@ export type CascadeReport = {
 };
 
 /** The active step: every step writes it. */
-export const ACTIVE = '--grid-breakpoint';
+export const ACTIVE = '--grid-step';
 
 /**
  * Tests the cascade. `steps` are in cascade order. `props[i]` are the properties that step `i`

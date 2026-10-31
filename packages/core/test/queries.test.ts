@@ -22,6 +22,7 @@ test('the key grammar compiles to container conditions', () => {
 	const { css } = compileLayout(
 		`
 name: q
+container: size
 areas: A
 ..400:
   gap: 1
@@ -52,6 +53,7 @@ test('ratios, orientation, AND and OR', () => {
 	const { css } = compileLayout(
 		`
 name: q
+container: size
 areas: A
 16/9:
   gap: 1
@@ -72,9 +74,12 @@ landscape x..300:
 });
 
 test('an OR of clauses with more than one part gets ()', () => {
-	const { css } = compileLayout('name: q\nareas: A\n"600x400, landscape 900":\n  gap: 1\n', {
-		layer: false
-	});
+	const { css } = compileLayout(
+		'name: q\ncontainer: size\nareas: A\n"600x400, landscape 900":\n  gap: 1\n',
+		{
+			layer: false
+		}
+	);
 	assert.deepEqual(blocks(css), [
 		'((min-width: 600px) and (min-height: 400px)) or ((min-width: 900px) and (orientation: landscape))'
 	]);
@@ -114,6 +119,7 @@ areas: A B
 test('the hide rule for an OR step uses () so that it can be negated', () => {
 	const { css } = compileLayout(`
 name: q
+container: size
 areas: A
 '..400, x..300':
   areas: A B
@@ -129,12 +135,10 @@ areas: A
 test('a more specific step wins, in any source order', () => {
 	const order = (source: string) => parseLayout(source).steps.map((s) => s.key ?? 'base');
 	// 600x400 is inside 600 and inside x400, so it comes after both.
-	assert.deepEqual(order('areas: A\n600x400:\n  gap: 1\nx400:\n  gap: 2\n600:\n  padding: 1\n'), [
-		'base',
-		'x400',
-		'600',
-		'600x400'
-	]);
+	assert.deepEqual(
+		order('container: size\nareas: A\n600x400:\n  gap: 1\nx400:\n  gap: 2\n600:\n  padding: 1\n'),
+		['base', 'x400', '600', '600x400']
+	);
 	assert.deepEqual(order('areas: A\n1200:\n  gap: 1\n600..1200:\n  gap: 2\n600:\n  gap: 3\n'), [
 		'base',
 		'600',
@@ -157,21 +161,23 @@ test('the object form does not depend on the order of number keys', () => {
 
 test('two steps that set the same property must not overlap without a winner', () => {
 	const e = fails(
-		'name: q\nareas: A\nx400:\n  gap: 1\n600:\n  gap: 2\n',
+		'name: q\ncontainer: size\nareas: A\nx400:\n  gap: 1\n600:\n  gap: 2\n',
 		/"x400" and "600" both set `gap`, and both match at 600 × 400\. Add a step for the sizes where both match \("600x400"\), or change one of them so that they do not overlap \(for example "\.\.600x400" in place of "x400"\)/
 	);
 	assert.deepEqual(e.path, ['600', 'gap']);
-	assert.equal(e.range?.start.line, 6);
+	assert.equal(e.range?.start.line, 7);
 
 	// A step for the overlap resolves it.
-	compileLayout('name: q\nareas: A\nx400:\n  gap: 1\n600:\n  gap: 2\n600x400:\n  gap: 3\n');
+	compileLayout(
+		'name: q\ncontainer: size\nareas: A\nx400:\n  gap: 1\n600:\n  gap: 2\n600x400:\n  gap: 3\n'
+	);
 	// Steps that set different properties can overlap.
-	compileLayout('name: q\nareas: A\nx400:\n  gap: 1\n600:\n  padding: 2\n');
+	compileLayout('name: q\ncontainer: size\nareas: A\nx400:\n  gap: 1\n600:\n  padding: 2\n');
 });
 
 test('a conflict on the tracks names the setting that writes them', () => {
 	const e = fails(
-		'name: q\nareas: A\nx400:\n  areas: A B\n600:\n  cols: 1fr 2fr\n',
+		'name: q\ncontainer: size\nareas: A\nx400:\n  areas: A B\n600:\n  cols: 1fr 2fr\n',
 		/both set the columns \(`areas` sets them too\)/
 	);
 	assert.deepEqual(e.path, ['600', 'cols']);
@@ -179,15 +185,17 @@ test('a conflict on the tracks names the setting that writes them', () => {
 
 test('flow entries conflict per area', () => {
 	fails(
-		'name: q\nareas: A B\nx400:\n  flow:\n    B: row\n600:\n  flow:\n    B: column\n',
+		'name: q\ncontainer: size\nareas: A B\nx400:\n  flow:\n    B: row\n600:\n  flow:\n    B: column\n',
 		/both set the flow of B/
 	);
-	compileLayout('name: q\nareas: A B\nx400:\n  flow:\n    A: row\n600:\n  flow:\n    B: column\n');
+	compileLayout(
+		'name: q\ncontainer: size\nareas: A B\nx400:\n  flow:\n    A: row\n600:\n  flow:\n    B: column\n'
+	);
 });
 
 test('two css values that overlap give a warning, not an error', () => {
 	const { warnings } = compileLayout(
-		"name: q\nareas: A\nx400:\n  css: 'color: red'\n600:\n  css: 'color: blue'\n"
+		"name: q\ncontainer: size\nareas: A\nx400:\n  css: 'color: red'\n600:\n  css: 'color: blue'\n"
 	);
 	assert.equal(warnings.length, 1);
 	assert.match(warnings[0].message, /both set `css`/);
@@ -197,6 +205,7 @@ test('two css values that overlap give a warning, not an error', () => {
 test('a step with no effect gives a warning', () => {
 	const { warnings } = compileLayout(`
 name: q
+container: size
 areas: A
 600:
   gap: 1
@@ -216,6 +225,7 @@ test('names from breakpoints', () => {
 	const { css } = compileLayout(
 		`
 name: q
+container: size
 breakpoints:
   md: 600..
   short: x..500
@@ -231,16 +241,19 @@ wide:
 		{ layer: false }
 	);
 	assert.ok(blocks(css).includes('(min-width: 600px) and (height < 500px)'));
-	assert.match(css, /--grid-breakpoint: md short;/);
-	assert.match(css, /--grid-breakpoint: wide;/);
+	assert.match(css, /--grid-step: md short;/);
+	assert.match(css, /--grid-step: wide;/);
 });
 
 test('names from the breakpoints option', () => {
 	const options = { breakpoints: { md: '600..', lg: 1000 } };
-	const { css } = compileLayout('name: q\nareas: A\nmd:\n  gap: 1\nlg:\n  gap: 2\n', {
-		...options,
-		layer: false
-	});
+	const { css } = compileLayout(
+		'name: q\ncontainer: size\nareas: A\nmd:\n  gap: 1\nlg:\n  gap: 2\n',
+		{
+			...options,
+			layer: false
+		}
+	);
 	assert.deepEqual(blocks(css), ['(min-width: 600px)', '(min-width: 1000px)']);
 	fails(
 		'name: q\nbreakpoints:\n  md: 700\nareas: A\n',
@@ -253,6 +266,7 @@ test('a name can be an OR, and AND distributes over it', () => {
 	const { css } = compileLayout(
 		`
 name: q
+container: size
 breakpoints:
   compact: '..400, x..300'
 areas: A
@@ -267,23 +281,43 @@ compact landscape:
 });
 
 test('query errors', () => {
-	fails('name: q\nareas: A\nfoo: 1', /Unknown key "foo"/);
-	fails('name: q\nareas: A\n600 foo:\n  gap: 1', /Unknown term "foo" in "600 foo"/);
-	fails('name: q\nareas: A\n100:\n  gap: 1\n100x:\n  gap: 2', /"100x" duplicates "100"/);
-	fails('name: q\nareas: A\n600:\n  gap: 1\n600..:\n  gap: 2', /duplicates/);
-	fails('name: q\nareas: A\n900..600:\n  gap: 1', /is empty/);
-	fails('name: q\nareas: A\n16/9..4/3:\n  gap: 1', /is empty/);
-	fails('name: q\nareas: A\n600 ..900:\n  gap: 1', /more than one width term/);
-	fails('name: q\nareas: A\nportrait landscape:\n  gap: 1', /more than one orientation term/);
-	fails('name: q\nareas: A\n..600x700.. landscape:\n  gap: 1', /matches no container size/);
-	fails('name: q\nareas: A\n0:\n  gap: 1', /matches every container size/);
-	fails('name: q\nareas: A\n"600,":\n  gap: 1', /empty alternative/);
-	fails('name: q\nareas: A\n0/9:\n  gap: 1', /two positive numbers/);
+	fails('name: q\ncontainer: size\nareas: A\nfoo: 1', /Unknown key "foo"/);
+	fails(
+		'name: q\ncontainer: size\nareas: A\n600 foo:\n  gap: 1',
+		/Unknown term "foo" in "600 foo"/
+	);
+	fails(
+		'name: q\ncontainer: size\nareas: A\n100:\n  gap: 1\n100x:\n  gap: 2',
+		/"100x" duplicates "100"/
+	);
+	fails('name: q\ncontainer: size\nareas: A\n600:\n  gap: 1\n600..:\n  gap: 2', /duplicates/);
+	fails('name: q\ncontainer: size\nareas: A\n900..600:\n  gap: 1', /is empty/);
+	fails('name: q\ncontainer: size\nareas: A\n16/9..4/3:\n  gap: 1', /is empty/);
+	fails('name: q\ncontainer: size\nareas: A\n600 ..900:\n  gap: 1', /more than one width term/);
+	fails(
+		'name: q\ncontainer: size\nareas: A\nportrait landscape:\n  gap: 1',
+		/more than one orientation term/
+	);
+	fails(
+		'name: q\ncontainer: size\nareas: A\n..600x700.. landscape:\n  gap: 1',
+		/matches no container size/
+	);
+	fails('name: q\ncontainer: size\nareas: A\n0:\n  gap: 1', /matches every container size/);
+	fails('name: q\ncontainer: size\nareas: A\n"600,":\n  gap: 1', /empty alternative/);
+	fails('name: q\ncontainer: size\nareas: A\n0/9:\n  gap: 1', /two positive numbers/);
 	fails('name: q\nbreakpoints:\n  x400: 600\nareas: A', /cannot be a breakpoint name/);
 	fails('name: q\nbreakpoints:\n  portrait: 600\nareas: A', /cannot be a breakpoint name/);
 	fails('name: q\nbreakpoints:\n  gap: 600\nareas: A', /cannot be a breakpoint name/);
 	fails('name: q\nbreakpoints:\n  a: 600\n  b: a x400\nareas: A', /Unknown term "a"/);
 	fails('name: q\nbreakpoints: 600\nareas: A', /must be a mapping/);
+});
+
+test('the container is inline-size by default, and a height key says how to opt in to size', () => {
+	assert.match(
+		compileLayout('name: d\nareas: A\n600:\n  gap: 1').css,
+		/container: d \/ inline-size;/
+	);
+	fails('name: d\nareas: A\nx400:\n  gap: 1', /Set `container: size` at the top level/);
 });
 
 test('an inline-size container cannot use a height, a ratio, or an orientation', () => {
@@ -311,6 +345,7 @@ test('sample points touch every region, edge and corner', () => {
 test('the hide rule of an OR step puts the OR in ()', () => {
 	const { css } = compileLayout(`
 name: q
+container: size
 areas: A B
 '..400, x..300':
   areas: A

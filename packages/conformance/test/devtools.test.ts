@@ -45,6 +45,7 @@ after(async () => {
 
 const SOURCE = `
 name: card
+container: size
 areas: A
 100x100:
   gap: 4

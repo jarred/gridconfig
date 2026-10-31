@@ -49,6 +49,7 @@ test('example layout compiles as the spec shows', () => {
 	const { css, areas, warnings } = compileLayout(
 		`
 name: hero
+container: size
 areas: A
 100x100:
   gap: 4
@@ -82,6 +83,7 @@ areas: A
 test('mixed-axis steps follow the cascade, not the previous step', () => {
 	const { css } = compileLayout(`
 name: t
+container: size
 areas: A
 x400:
   areas: A B
@@ -120,21 +122,33 @@ areas: A
 test('tracks', () => {
 	const { css } = compileLayout(`
 name: t
-cols: 3x200px
+cols: minmax(200px, 1fr)*3
 rows: 1fr*2
 areas: |
   A A A
   B B B
 100:
   cols: '{space.8} 1fr 100'
-  rows: 2
+  rows: 40 1fr
   areas: |
     A B C
     . . .
+200:
+  cols: 300
+  rows: 40
+  areas: A
 `);
 	assert.match(css, /grid-template-columns: repeat\(3, minmax\(200px, 1fr\)\);/);
 	assert.match(css, /grid-template-rows: repeat\(2, 1fr\);/);
 	assert.match(css, /grid-template-columns: var\(--space-8\) 1fr 100px;/);
+	assert.match(css, /grid-template-rows: 40px 1fr;/);
+	// A bare number is px, also alone. The area map gives the track count.
+	assert.match(css, /grid-template-columns: 300px;/);
+	assert.match(css, /grid-template-rows: 40px;/);
+});
+
+test('the NxSIZE track shorthand is an error that gives the replacement', () => {
+	fails('name: t\nareas: AAA\ncols: 3x200px', /write minmax\(200px, 1fr\)\*3/);
 });
 
 test('track counts are checked against the area map', () => {
@@ -143,7 +157,7 @@ test('track counts are checked against the area map', () => {
 name: t
 areas: |
   A B
-cols: 3
+cols: 1fr*3
 `,
 		/3 tracks but the area map has 2/
 	);
@@ -155,11 +169,12 @@ test('track counts are checked against every map that can be active with them', 
 	const e = fails(
 		`
 name: t
+container: size
 areas: A
 x400:
   areas: A B C
 600x..400:
-  cols: 3
+  cols: 1fr*3
 `,
 		/base step.*has 1/
 	);
@@ -170,11 +185,12 @@ test('track counts that can never meet are not errors', () => {
 	// `600` only ever applies together with `x400`'s map, because `600x400` shadows the base.
 	compileLayout(`
 name: t
+container: size
 areas: A
 300x300:
   areas: A B C
 600x300:
-  cols: 3
+  cols: 1fr*3
 `);
 });
 
@@ -257,6 +273,7 @@ test('baseCssFor uses the same layer', async () => {
 
 const DEBUG_SRC = `
 name: d
+container: size
 areas: |
   A
 100x100:
@@ -307,10 +324,11 @@ test('debug does not change the other css', () => {
 	assert.equal(withDebug.replace(/ --gc-debug: "(?:[^"\\]|\\.)*";/, ''), plain);
 });
 
-test('every step sets --grid-breakpoint to its key, and the base sets "base"', () => {
+test('every step sets --grid-step to its key, and the base sets "base"', () => {
 	const { css } = compileLayout(
 		`
 name: s
+container: size
 areas: A
 100x100:
   gap: 4
@@ -321,7 +339,7 @@ x400:
 `,
 		{ layer: false }
 	);
-	assert.match(css, /\[data-grid-layout="s"\] \{[^}]*--grid-breakpoint: base;\n\}/);
+	assert.match(css, /\[data-grid-layout="s"\] \{[^}]*--grid-step: base;\n\}/);
 	for (const [query, key] of [
 		['(min-width: 100px) and (min-height: 100px)', '100x100'],
 		['(min-height: 400px)', 'x400'],
@@ -330,16 +348,16 @@ x400:
 		assert.ok(
 			css.includes(`@container s ${query} {\n  [data-grid-layout="s"] {`) &&
 				new RegExp(
-					`@container s ${query.replace(/[()]/g, '\\$&')} \\{[^}]*--grid-breakpoint: ${key};`
+					`@container s ${query.replace(/[()]/g, '\\$&')} \\{[^}]*--grid-step: ${key};`
 				).test(css),
-			`${key} sets --grid-breakpoint`
+			`${key} sets --grid-step`
 		);
 });
 
-test('a step that sets nothing else still gets a block for --grid-breakpoint', () => {
+test('a step that sets nothing else still gets a block for --grid-step', () => {
 	const { css } = compileLayout('name: e\nareas: A\n500:\n  css: ""\n', { layer: false });
 	assert.match(
 		css,
-		/@container e \(min-width: 500px\) \{\n {2}\[data-grid-layout="e"\] \{\n {4}--grid-breakpoint: 500;/
+		/@container e \(min-width: 500px\) \{\n {2}\[data-grid-layout="e"\] \{\n {4}--grid-step: 500;/
 	);
 });

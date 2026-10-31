@@ -159,6 +159,7 @@ test('none writes revert-layer for all six properties', () => {
 test('a step writes all six properties for each area in its entry', () => {
 	const { css } = compileLayout(`
 name: f
+container: size
 areas: A B
 flow:
   B: column center start

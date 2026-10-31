@@ -1,4 +1,4 @@
-// `--grid-breakpoint` holds the active step, so content can target a step with a style query.
+// `--grid-step` holds the active step, so content can target a step with a style query.
 import assert from 'node:assert/strict';
 import { after, before, describe, test } from 'node:test';
 import { baseCssFor, compileLayout } from '@gridconfig/core';
@@ -16,6 +16,7 @@ after(async () => {
 // 300x400 and 450x200 can match at the same time. Both set `areas`, so 450x400 decides there.
 const OUTER = compileLayout(`
 name: promo
+container: size
 areas: A
 100x100:
   areas: |
@@ -39,12 +40,12 @@ areas: X
 
 const PAGE_CSS = `
 .probe { color: rgb(0, 0, 0); }
-@container style(--grid-breakpoint: base) { .probe { color: rgb(1, 1, 1); } }
-@container style(--grid-breakpoint: 100x100) { .probe { color: rgb(2, 2, 2); } }
-@container style(--grid-breakpoint: 300x400) { .probe { color: rgb(3, 3, 3); } }
-@container style(--grid-breakpoint: 450x200) { .probe { color: rgb(4, 4, 4); } }
-@container style(--grid-breakpoint: 200) { .probe { color: rgb(5, 5, 5); } }
-@container style(--grid-breakpoint: 450x400) { .probe { color: rgb(6, 6, 6); } }
+@container style(--grid-step: base) { .probe { color: rgb(1, 1, 1); } }
+@container style(--grid-step: 100x100) { .probe { color: rgb(2, 2, 2); } }
+@container style(--grid-step: 300x400) { .probe { color: rgb(3, 3, 3); } }
+@container style(--grid-step: 450x200) { .probe { color: rgb(4, 4, 4); } }
+@container style(--grid-step: 200) { .probe { color: rgb(5, 5, 5); } }
+@container style(--grid-step: 450x400) { .probe { color: rgb(6, 6, 6); } }
 `;
 
 async function page(): Promise<Page> {
@@ -78,7 +79,7 @@ async function at(p: Page, w: number, h: number) {
 			const read = (id: string) => getComputedStyle(document.getElementById(id)!).color;
 			const grid = document.querySelector('[data-grid-layout="promo"]')!;
 			return {
-				step: getComputedStyle(grid).getPropertyValue('--grid-breakpoint').trim(),
+				step: getComputedStyle(grid).getPropertyValue('--grid-step').trim(),
 				deep: read('deep'),
 				child: read('child'),
 				nested: read('nested')
@@ -88,7 +89,7 @@ async function at(p: Page, w: number, h: number) {
 	);
 }
 
-describe('--grid-breakpoint', () => {
+describe('--grid-step', () => {
 	test('names the active step, the last step that matches', async () => {
 		const p = await page();
 		for (const [w, h, step, color] of [
@@ -122,9 +123,10 @@ describe('--grid-breakpoint', () => {
 	});
 });
 
-describe('--grid-breakpoint with ranges, ratios and names', () => {
+describe('--grid-step with ranges, ratios and names', () => {
 	const LABELS = compileLayout(`
 name: labels
+container: size
 breakpoints:
   wide: 600..
 areas: X
@@ -139,10 +141,10 @@ wide:
 `);
 	const CSS = `
 .probe { color: rgb(0, 0, 0); }
-@container style(--grid-breakpoint: ..300) { .probe { color: rgb(1, 1, 1); } }
-@container style(--grid-breakpoint: 300..600x..400) { .probe { color: rgb(2, 2, 2); } }
-@container style(--grid-breakpoint: wide) { .probe { color: rgb(3, 3, 3); } }
-@container style(--grid-breakpoint: 300..600 ..3/4) { .probe { color: rgb(4, 4, 4); } }
+@container style(--grid-step: ..300) { .probe { color: rgb(1, 1, 1); } }
+@container style(--grid-step: 300..600x..400) { .probe { color: rgb(2, 2, 2); } }
+@container style(--grid-step: wide) { .probe { color: rgb(3, 3, 3); } }
+@container style(--grid-step: 300..600 ..3/4) { .probe { color: rgb(4, 4, 4); } }
 `;
 
 	test('a style query can name each kind of key', async () => {
@@ -170,7 +172,7 @@ ${CSS}
 					box.style.height = `${h}px`;
 					const grid = document.querySelector('[data-grid-layout="labels"]')!;
 					return {
-						step: getComputedStyle(grid).getPropertyValue('--grid-breakpoint').trim(),
+						step: getComputedStyle(grid).getPropertyValue('--grid-step').trim(),
 						color: getComputedStyle(document.getElementById('probe')!).color
 					};
 				},

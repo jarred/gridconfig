@@ -1,4 +1,5 @@
 name: card
+container: size
 areas: B
 padding: 8
 gap: 8
