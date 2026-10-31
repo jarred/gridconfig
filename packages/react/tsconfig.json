@@ -1,0 +1,5 @@
+{
+	"extends": "../../tsconfig.base.json",
+	// The devtools source imports CSS with `?raw`. Its declaration is not in this package.
+	"include": ["src", "test", "../devtools/src/raw.d.ts"]
+}

@@ -46,7 +46,7 @@ const inline = grid`
 const object = grid({ areas: 'A', 600: { areas: 'A A\nB B' } });
 ```
 
-With the Vite plugin, static layouts compile at build time. Without it, they compile when the code runs.
+With the Vite plugin, static layouts compile at build time, and their CSS is bundled like any other CSS. Without it, they compile when the code runs, and the `Grid` component injects the CSS.
 
 **Status:** early prototype. Nothing is published yet. The format is in [`spec/spec.md`](spec/spec.md) (draft 0.6).
 
@@ -58,11 +58,12 @@ With the Vite plugin, static layouts compile at build time. Without it, they com
 | `packages/core`        | `@gridconfig/core`                  | Parser, compiler, value grammar, `grid`, types. `./runtime` has the parts that need no YAML parser.            |
 | `packages/unplugin`    | `@gridconfig/unplugin`              | Bundler plugins. Vite for now: loads `.grid` files and compiles static `grid` calls.                           |
 | `packages/svelte`      | `@gridconfig/svelte`                | `Grid` component for Svelte 5                                                                                  |
+| `packages/react`       | `@gridconfig/react`                 | `Grid` component for React 19                                                                                  |
 | `packages/devtools`    | `@gridconfig/devtools`              | Inspector overlay for the browser: areas, authored tracks, steps, resize and checks of the markup.             |
 | `packages/conformance` | `@gridconfig/conformance` (private) | Loads the fixtures in Chromium and checks the layout the browser makes.                                        |
 | `apps/site`            | `@gridconfig/site`                  | The gridconfig.dev site: docs and playground (currently a demo page)                                           |
 
-Planned: `cli`, `react`, `vue`, `astro`, `element` (Web Components), an editor extension for `.grid` files, and `examples/`.
+Planned: `cli`, `vue`, `astro`, `element` (Web Components), an editor extension for `.grid` files, and `examples/`.
 
 ## Development
 

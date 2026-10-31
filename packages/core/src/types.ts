@@ -89,8 +89,16 @@ export type DebugInfo = {
 
 export type CompiledLayout = {
 	name: string;
-	/** Per-layout CSS. Needs `baseCssFor(layer)` on the page as well. */
+	/**
+	 * Per-layout CSS. Needs `baseCssFor(layer)` on the page as well. Empty when `bundled` is true,
+	 * because the bundler delivers the CSS.
+	 */
 	css: string;
+	/**
+	 * True when a build plugin imports the layout CSS and the shared base as CSS modules. An adapter
+	 * then must not inject them. Absent when the layout compiled when the code ran.
+	 */
+	bundled?: true;
 	/** The cascade layer of the CSS, or null when the layout was compiled with `layer: false`. */
 	layer: string | null;
 	/** Every area name used by the layout. */

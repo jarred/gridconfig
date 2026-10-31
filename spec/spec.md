@@ -541,6 +541,14 @@ This is example output for the example at the top. The format of the output is n
 }
 ```
 
+### Delivery
+
+The page needs the shared base one time, and the CSS of each layout one time. There are two routes.
+
+**Build plugin.** A layout that compiles at build time imports its CSS as CSS modules. A `.grid` file, a `.yaml?grid` import, and a static `grid` call each import two modules: the shared base in the layer of the layout, and the CSS of the layout. The bundler then delivers the CSS as it delivers other CSS: one time for each page, in a stylesheet, also with server rendering. In development, a change to a layout updates the styles, and the page does not reload. The compiled layout then has `bundled: true` and an empty `css`. An adapter must not inject the CSS of a bundled layout.
+
+**Runtime.** A layout that compiles when the code runs has its CSS in `css`. The adapter injects `baseCssFor(layer)` and `css`, one time for each page if it can. Two layouts on one page cannot have the same name. Thus the adapter can use the name to remove duplicates, but a layout that changes at runtime must get a new stylesheet. The React adapter gives the CSS to React as `<style href precedence>`, and React puts it in the head one time. The Svelte adapter puts the CSS in `<svelte:head>` for each instance.
+
 ### Flow output
 
 For each step that sets flow, the compiler writes one rule for each area in the entry. The rule has the same selector as the `grid-area` rule, and it is in the same block as the other output of the step. The rule sets six properties: `display`, `flex-direction`, `justify-content`, `align-items`, `gap`, and `flex-wrap`.
@@ -637,7 +645,7 @@ grid`…`                                         // a static template; returns 
 grid(input: LayoutInput, options?): CompiledLayout
 parseLayout(source: string, options?): Layout     // YAML text
 parseLayoutObject(input: LayoutInput, options?): Layout
-compileLayout(source: string | Layout, options?): { name: string; css: string; layer: string | null; areas: string[]; warnings: Warning[] }
+compileLayout(source: string | Layout, options?): { name: string; css: string; layer: string | null; areas: string[]; warnings: Warning[]; bundled?: true }
 baseCss: string                       // the shared base rules in the default layer
 baseCssFor(layer: string | null): string  // the shared base rules in a given layer
 ```
@@ -650,7 +658,7 @@ baseCssFor(layer: string | null): string  // the shared base rules in a given la
 
 `layer` is a name, `true` (the default name `gridconfig`), or `false` (no layer). A name can have dots for a nested layer. An invalid name is an error.
 
-`css` is only the per-layout part. The page also needs the base rules from `baseCssFor(layer)`. `layer` is the layer that the compiler used, or `null`. `areas` is a list of each area name. Thus generated code can give typed access.
+`css` is only the per-layout part. The page also needs the base rules from `baseCssFor(layer)`. `bundled` is `true` when a build plugin delivers the CSS. Then `css` is empty. Refer to [Delivery](#delivery). `layer` is the layer that the compiler used, or `null`. `areas` is a list of each area name. Thus generated code can give typed access.
 
 ---
 
@@ -706,19 +714,19 @@ These parts are built:
 - The query keys: ranges with a maximum, ratios, orientation, AND, OR, named breakpoints, the step order, and the one-winner rule.
 - The three forms: YAML text, objects, and the `grid` function. The default `name`, the removal of shared indentation, and the checks for plain data, tags, and multiple documents.
 - The Vite plugin (`packages/unplugin`). It loads `.grid` files and `.yaml?grid` imports. It replaces each static `grid` template and object with the compiled result. It only looks at files that import `grid` from `@gridconfig/core`. It reports an error when two files give the same layout name.
-- The Svelte `Grid` component (`packages/svelte`). It uses the `data-grid-*` attributes.
+- The Vite plugin delivers the CSS of each layout that it compiles as CSS modules. Refer to [Delivery](#delivery).
+- The Svelte `Grid` component (`packages/svelte`) and the React `Grid` component (`packages/react`, React 19). They use the `data-grid-*` attributes, and inject CSS only for a layout that compiled when the code ran.
 - The inspector (`packages/devtools`). Refer to [Inspector](#inspector). Browser tests cover the drawing, the select, the handles, and the checks of the markup.
 - Browser tests (`packages/conformance`). Each fixture in `spec/fixtures` is a `.grid` file and a list of expected results at many container sizes. The tests load the compiled CSS in Chromium and compare the used tracks, the gaps, the position of each area, and the computed flow properties of each area. Other tests record how the CSS interacts with page CSS, cascade layers, and resets.
 
 These parts are not built yet:
 
-1. Each `Grid` instance injects the shared base. The CSS packaging work (CLI and bundler plugin) will deliver it one time for each page.
-2. Typed area access, the JSON Schema, `areaColor`, and the CLI.
-3. Plugins for bundlers other than Vite.
-4. The editor extension.
-5. A core entry point without the YAML parser, for code that uses only objects.
-6. The shadow-DOM selector strategy for Web Components.
-7. More browser fixtures: nested layouts, and browsers other than Chromium.
+1. Typed area access, the JSON Schema, `areaColor`, and the CLI.
+2. Plugins for bundlers other than Vite.
+3. The editor extension.
+4. A core entry point without the YAML parser, for code that uses only objects.
+5. The shadow-DOM selector strategy for Web Components.
+6. More browser fixtures: nested layouts, and browsers other than Chromium.
 
 ---
 

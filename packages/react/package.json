@@ -1,0 +1,43 @@
+{
+	"name": "@gridconfig/react",
+	"version": "0.0.0",
+	"description": "GridConfig Grid component for React 19.",
+	"license": "MIT",
+	"type": "module",
+	"exports": {
+		".": "./src/index.ts"
+	},
+	"files": [
+		"dist"
+	],
+	"publishConfig": {
+		"access": "public",
+		"exports": {
+			".": {
+				"types": "./dist/index.d.ts",
+				"default": "./dist/index.js"
+			}
+		}
+	},
+	"scripts": {
+		"build": "tsc -p tsconfig.build.json",
+		"prepublishOnly": "pnpm build",
+		"test": "node --test \"test/**/*.test.ts\"",
+		"check": "tsc -p tsconfig.json"
+	},
+	"dependencies": {
+		"@gridconfig/core": "workspace:*",
+		"@gridconfig/devtools": "workspace:*",
+		"esm-env": "^1.2.2"
+	},
+	"peerDependencies": {
+		"react": "^19.0.0"
+	},
+	"devDependencies": {
+		"@types/react": "^19.3.0",
+		"@types/react-dom": "^19.3.0",
+		"react": "^19.3.1",
+		"react-dom": "^19.3.1",
+		"typescript": "^6.0.3"
+	}
+}

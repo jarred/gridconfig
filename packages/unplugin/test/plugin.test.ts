@@ -31,12 +31,11 @@ function must(result: Result): { code: string } {
 	return result;
 }
 
-const run = (module: Result) =>
-	JSON.parse(
-		must(module)
-			.code.replace(/^export default /, '')
-			.replace(/;$/, '')
-	);
+/** The layout that a layout module exports. The module starts with its CSS imports. */
+const parseModule = (code: string) =>
+	JSON.parse(code.replace(/^(?:import "[^"]*";)*\nexport default /, '').replace(/;$/, ''));
+
+const run = (module: Result) => parseModule(must(module).code);
 
 test('loads a .grid file and names it after the file', async () => {
 	const dir = await mkdtemp(join(tmpdir(), 'gc-'));
@@ -140,13 +139,62 @@ test('reports interpolation as an error', () => {
 	);
 });
 
-test('passes plugin options to inline layouts', () => {
+test('passes plugin options to inline layouts', async () => {
 	const p = setup({ tokenPrefix: 'ds' });
-	const out = p.transform(
-		src("const a = grid({ name: 't', areas: 'A', gap: '{space.2}' });"),
-		'/x/a.ts'
+	p.transform(src("const a = grid({ name: 't', areas: 'A', gap: '{space.2}' });"), '/x/a.ts');
+	assert.match((await p.load('\0virtual:gridconfig/layout.t.css')) as never, /var\(--ds-space-2\)/);
+});
+
+test('a layout file imports its CSS and the base, and does not carry the CSS', async () => {
+	const dir = await mkdtemp(join(tmpdir(), 'gc-'));
+	const file = join(dir, 'card.grid');
+	await writeFile(file, 'areas: A\n600:\n  gap: 4\n');
+	const p = setup();
+	const code = must(await p.load(file)).code;
+	assert.match(
+		code,
+		/^import "virtual:gridconfig\/base\.gridconfig\.css";import "virtual:gridconfig\/layout\.card\.css";\n/
 	);
-	assert.match(must(out).code, /var\(--ds-space-2\)/);
+	const layout = parseModule(code);
+	assert.equal(layout.css, '');
+	assert.equal(layout.bundled, true);
+
+	const css = (await p.load('\0virtual:gridconfig/layout.card.css')) as unknown as string;
+	assert.match(css, /container: card \/ inline-size/);
+	const base = (await p.load('\0virtual:gridconfig/base.gridconfig.css')) as unknown as string;
+	assert.match(base, /^@layer gridconfig \{/);
+});
+
+test('the base module follows the layer option', async () => {
+	const p = setup({ layer: false });
+	const code = run(p.transform('name: n\nareas: A\n', '/x/n.yaml?grid'));
+	assert.equal(code.layer, null);
+	const base = (await p.load('\0virtual:gridconfig/base.-.css')) as unknown as string;
+	assert.doesNotMatch(base, /@layer/);
+	assert.match(base, /:where\(\[data-grid-layout\]\)/);
+});
+
+test('inline layouts import their CSS on the line of the core import', () => {
+	const code = src(
+		"const a = grid({ name: 'i', areas: 'A' });\nconst b = grid({ name: 'j', areas: 'A' });"
+	);
+	const out = must(setup().transform(code, '/x/a.ts')).code;
+	const [first] = out.split('\n');
+	assert.equal(
+		first,
+		`import { grid } from '@gridconfig/core';;import "virtual:gridconfig/base.gridconfig.css";import "virtual:gridconfig/layout.i.css";import "virtual:gridconfig/layout.j.css";`
+	);
+	assert.equal(out.split('\n').length, code.split('\n').length);
+	assert.match(out, /"bundled":true/);
+});
+
+test('in a svelte file, the CSS imports stay inside the script', () => {
+	const code = `<script>\n  import { grid } from '@gridconfig/core';\n</script>\n<Grid layout={grid({ name: 's', areas: 'A' })} />`;
+	const out = must(setup().transform(code, '/x/A.svelte')).code;
+	assert.match(
+		out,
+		/<script>\n {2}import \{ grid \} from '@gridconfig\/core';;import "virtual:gridconfig\/base/
+	);
 });
 
 test('calls with their own options are left for runtime', () => {
@@ -162,11 +210,7 @@ test('adds debug data when the dev server runs, and not in a build', () => {
 	const run = (command: string) => {
 		plugin.configResolved({ command });
 		const out = plugin.transform.call({}, 'name: d\nareas: A\n', '/x/d.yaml?grid');
-		return JSON.parse(
-			must(out)
-				.code.replace(/^export default /, '')
-				.replace(/;$/, '')
-		);
+		return parseModule(must(out).code);
 	};
 	assert.equal(run('build').debug, undefined);
 	assert.equal(run('serve').debug.name, 'd');

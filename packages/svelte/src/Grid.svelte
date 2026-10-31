@@ -24,9 +24,12 @@
 	});
 </script>
 
+<!-- A layout from the build plugin imports its CSS. Only a layout compiled at runtime injects it. -->
 <svelte:head>
-	<!-- eslint-disable-next-line svelte/no-at-html-tags -- CSS comes from our own compiler -->
-	{@html `<style>${baseCssFor(layout.layer)}\n${layout.css}</style>`}
+	{#if !layout.bundled}
+		<!-- eslint-disable-next-line svelte/no-at-html-tags -- CSS comes from our own compiler -->
+		{@html `<style>${baseCssFor(layout.layer)}\n${layout.css}</style>`}
+	{/if}
 </svelte:head>
 
 <!-- The grid can't be its own query container, so the host element is the container. -->
