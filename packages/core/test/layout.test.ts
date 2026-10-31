@@ -194,6 +194,25 @@ areas: A
 `);
 });
 
+test('a map of capitals and dots with no spaces has one cell for each character', () => {
+	const { css } = compileLayout('name: c\nareas: |\n  AAB\n  ..B\n');
+	assert.match(css, /grid-template-areas: 'A A B' '\. \. B';/);
+});
+
+test('each other map has one name for each word, also in one column', () => {
+	const { css, areas } = compileLayout('name: w\nareas: |\n  image\n  title\n  text\n');
+	assert.deepEqual(areas, ['image', 'title', 'text']);
+	assert.match(css, /grid-template-areas: 'image' 'title' 'text';/);
+	assert.match(compileLayout('name: v\nareas: |\n  Header\n  Main\n').css, /'Header' 'Main'/);
+});
+
+test('a character map error says how the map was read', () => {
+	fails(
+		'name: h\nareas: |\n  HEADER\n  MAIN\n',
+		/Row 2 has 4 cells, expected 6\. This map has no spaces and only capitals/
+	);
+});
+
 test('errors carry a path and a source range', () => {
 	const e = fails(
 		`name: t

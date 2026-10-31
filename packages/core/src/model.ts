@@ -69,16 +69,20 @@ function parseAreas(source: unknown, path: Path): string[][] {
 		.filter(Boolean);
 	if (!lines.length) throw new LayoutError('Area map is empty', path);
 
-	// Whitespace-separated allows multi-character names; otherwise each character is a cell.
-	const spaced = lines.some((l) => /\s/.test(l));
+	// A map of only capitals and dots, with no spaces, has one cell for each character (`AAB`).
+	// Each other map has one name for each word, so a single column of names works (`image`).
+	const chars = lines.every((l) => /^[A-Z.]+$/.test(l));
+	const hint = chars
+		? '. This map has no spaces and only capitals, so each character is a cell. For names with more than one letter, use lowercase or put spaces between the cells'
+		: '';
 	const grid = lines.map((l) =>
-		(spaced ? l.split(/\s+/) : [...l]).map((c) => (/^\.+$/.test(c) ? '.' : c))
+		(chars ? [...l] : l.split(/\s+/)).map((c) => (/^\.+$/.test(c) ? '.' : c))
 	);
 
 	grid.forEach((row, i) => {
 		if (row.length !== grid[0].length)
 			throw new LayoutError(
-				`Row ${i + 1} has ${row.length} cells, expected ${grid[0].length}`,
+				`Row ${i + 1} has ${row.length} cells, expected ${grid[0].length}${hint}`,
 				path
 			);
 		for (const cell of row) {
@@ -104,7 +108,7 @@ function parseAreas(source: unknown, path: Path): string[][] {
 	);
 	for (const [name, b] of boxes)
 		if ((b.r1 - b.r0 + 1) * (b.c1 - b.c0 + 1) !== b.n)
-			throw new LayoutError(`Area "${name}" is not a filled rectangle`, path);
+			throw new LayoutError(`Area "${name}" is not a filled rectangle${hint}`, path);
 
 	return grid;
 }
