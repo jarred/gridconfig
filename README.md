@@ -4,7 +4,7 @@ A powerful layout engine that utilises CSS Grid and @Container Queries.
 
 Describe a CSS grid that changes shape with its container. GridConfig compiles the description to static CSS container queries plus a small DOM contract that any framework can use.
 
-[See the Spec for more](spec/spec.md)
+Read the [guide](docs/README.md) to learn it, or the [spec](spec/spec.md) for the exact rules.
 
 ```yaml
 # card.grid
@@ -82,4 +82,4 @@ pnpm lint
 
 ## Cascade layers
 
-The compiled CSS goes in the cascade layer `gridconfig`, except the hide rules. A utility class in a later layer can override a layout. Use the `layer` option to set the name, or `layer: false` for no layer. Tailwind users: set `layer: 'components'`. Use `baseCssFor(layer)` for the shared base. Refer to the [spec](./spec/spec.md).
+The compiled CSS goes in the cascade layer `gridconfig`, except the hide rules. A utility class in a later layer can override a layout. Use the `layer` option to set the name, or `layer: false` for no layer. Tailwind users: set `layer: 'components'`. Use `baseCssFor(layer)` for the shared base. Refer to [the compiled output](./spec/output.md#css-contract).

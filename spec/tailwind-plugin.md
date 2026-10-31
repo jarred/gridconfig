@@ -8,7 +8,7 @@ Tailwind CSS v4 and GridConfig can work together. The first step needs no new co
 
 Tailwind puts its CSS in cascade layers. Unlayered CSS wins over layered CSS. Thus an unlayered layout blocks a utility such as `gap-4`.
 
-The compiler now puts its CSS in a layer by default, and the `layer` option sets the name. The browser tests in `packages/conformance` confirm that a utility wins when the layout is in `components`. Refer to the [layout spec](./spec.md).
+The compiler now puts its CSS in a layer by default, and the `layer` option sets the name. The browser tests in `packages/conformance` confirm that a utility wins when the layout is in `components`. Refer to [the compiled output](./output.md#css-contract).
 
 A Tailwind plugin is possible. It gives a small benefit over the plain import. We recommend the plain import first, then the plugin only if people ask for it.
 
