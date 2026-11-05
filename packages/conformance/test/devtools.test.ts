@@ -70,8 +70,6 @@ type Options = {
 	warnings?: string[];
 	/** More CSS for the page, for example a nested layout. */
 	css?: string;
-	/** What the inspector finds in sessionStorage when it starts. */
-	storage?: unknown;
 };
 
 /** A page with the layout in a 150 x 150 box at (140, 100), and the inspector installed. */
@@ -82,7 +80,7 @@ async function setup(options: Options = {}): Promise<Page> {
 	const page = await browser.newPage({ viewport: { width: 800, height: 600 } });
 	const warnings = options.warnings;
 	if (warnings) page.on('console', (m) => m.type() === 'warning' && warnings.push(m.text()));
-	// A page from a real origin, because a blank page cannot use sessionStorage.
+	// A page from a real origin, so that a test can reload it.
 	const html = `<!doctype html><html><head><style>
 body { margin: 0; }
 ${baseCssFor(compiled.layer)}
@@ -99,13 +97,14 @@ ${options.wrap ?? '<div id="wrap">__BOX__</div>'}
 		route.fulfill({ contentType: 'text/html', body: html })
 	);
 	await page.goto('https://gridconfig.test/');
-	if (options.storage !== undefined)
-		await page.evaluate(
-			(v) => sessionStorage.setItem('gridconfig-devtools', JSON.stringify(v)),
-			options.storage
-		);
+	await start(page, options.open);
+	return page;
+}
+
+/** Installs the inspector, and opens it unless `open` is false. */
+async function start(page: Page, open?: boolean) {
 	await page.addScriptTag({ content: script });
-	if (options.open !== false)
+	if (open !== false)
 		await page.evaluate(() => {
 			(
 				globalThis as unknown as { __gridconfigDevtools: { open(): void } }
@@ -113,8 +112,26 @@ ${options.wrap ?? '<div id="wrap">__BOX__</div>'}
 		});
 	await settle(page);
 	// The guides show while the pointer is over the layout: start there.
-	if (options.open !== false) await page.mouse.move(215, 175);
-	return page;
+	if (open !== false) await page.mouse.move(215, 175);
+}
+
+/** Puts a copy of each host in its place, with no inline style, as a hot update does. */
+const replaceHosts = (page: Page) =>
+	page.evaluate(() => {
+		const box = document.querySelector('#box')!;
+		const copy = box.cloneNode(true) as Element;
+		for (const host of copy.querySelectorAll('[data-grid-host]')) host.removeAttribute('style');
+		box.replaceChildren(...copy.childNodes);
+	});
+
+/** Drags the corner handle of the selected host by (dx, dy). */
+async function dragCorner(page: Page, dx: number, dy: number) {
+	const dot = (await page.locator('gridconfig-devtools .handle.dot').boundingBox())!;
+	await page.mouse.move(dot.x + 6, dot.y + 6);
+	await page.mouse.down();
+	await page.mouse.move(dot.x + 6 + dx, dot.y + 6 + dy, { steps: 3 });
+	await page.mouse.up();
+	await settle(page);
 }
 
 const settle = (page: Page) =>
@@ -817,8 +834,15 @@ describe('a nested layout follows its cell', () => {
 	});
 
 	test('a size stored for the nested layout does not pin it', async () => {
-		// For example from an earlier visit, when the nested layout was selected.
-		const page = await setup({ ...nested, storage: { sizes: { '/|inner': { w: 30, h: 30 } } } });
+		// The nested layout had a size, and then the page replaced the hosts.
+		const page = await setup(nested);
+		await selectHost(page, 'inner');
+		await settle(page);
+		await dragCorner(page, -20, -20);
+		await selectHost(page, 'card');
+		await replaceHosts(page);
+		await settle(page);
+		assert.equal((await sizes(page)).style, '');
 		await page.locator('gridconfig-devtools select').selectOption('2');
 		await settle(page);
 		const s = await sizes(page);
@@ -830,12 +854,7 @@ describe('a nested layout follows its cell', () => {
 		const page = await setup(nested);
 		await selectHost(page, 'inner');
 		await settle(page);
-		const dot = (await page.locator('gridconfig-devtools .handle.dot').boundingBox())!;
-		await page.mouse.move(dot.x + 6, dot.y + 6);
-		await page.mouse.down();
-		await page.mouse.move(dot.x - 20, dot.y - 20, { steps: 3 });
-		await page.mouse.up();
-		await settle(page);
+		await dragCorner(page, -20, -20);
 		assert.notEqual((await sizes(page)).style, '');
 
 		await selectHost(page, 'card');
@@ -848,15 +867,73 @@ describe('a nested layout follows its cell', () => {
 		await page.close();
 	});
 
-	test('a size for a layout on another page does not apply here', async () => {
-		const page = await setup({ storage: { sizes: { '/other|card': { w: 300, h: 300 } } } });
+	test('a size comes back when the page replaces the host, on the same page only', async () => {
+		const page = await setup();
+		await dragCorner(page, 60, 70);
+		assert.deepEqual(await hostSize(page), [210, 220]);
+
+		await page.evaluate(() => history.pushState(null, '', '/other'));
+		await replaceHosts(page);
+		await settle(page);
 		assert.deepEqual(await hostSize(page), [150, 150]);
+
+		await page.evaluate(() => history.pushState(null, '', '/'));
+		await replaceHosts(page);
+		await settle(page);
+		assert.deepEqual(await hostSize(page), [210, 220]);
+		await page.close();
+	});
+});
+
+describe('the state does not outlive the page', () => {
+	test('after a reload, the host has its natural size and the inspector is closed', async () => {
+		const page = await setup();
+		await dragCorner(page, 60, 70);
+		assert.deepEqual(await hostSize(page), [210, 220]);
+		await page.locator('gridconfig-devtools .popout').click();
+		await settle(page);
+
+		await page.reload();
+		await start(page, false);
+		assert.deepEqual(await hostSize(page), [150, 150]);
+		assert.equal(
+			await page.evaluate(() => document.querySelector('[data-grid-host]')!.getAttribute('style')),
+			null
+		);
+		assert.equal(await page.locator('gridconfig-devtools .toggle').isHidden(), true);
 		await page.close();
 	});
 
-	test('a size for this page comes back', async () => {
-		const page = await setup({ storage: { sizes: { '/|card': { w: 210, h: 220 } } } });
+	test('the debug prop opens the inspector, and its removal closes it and gives the size back', async () => {
+		const page = await setup({ open: false });
+		const toggle = page.locator('gridconfig-devtools .toggle');
+		assert.equal(await toggle.isHidden(), true);
+
+		await page.evaluate(() =>
+			document.querySelector('[data-grid-host]')!.setAttribute('data-grid-debug', '')
+		);
+		await settle(page);
+		await settle(page);
+		assert.equal(await toggle.getAttribute('aria-pressed'), 'true');
+		await page.mouse.move(215, 175);
+		await dragCorner(page, 60, 70);
 		assert.deepEqual(await hostSize(page), [210, 220]);
+
+		await page.evaluate(() =>
+			document.querySelector('[data-grid-host]')!.removeAttribute('data-grid-debug')
+		);
+		await settle(page);
+		await settle(page);
+		assert.deepEqual(await hostSize(page), [150, 150]);
+		assert.equal(await toggle.isHidden(), true);
+
+		// The size is gone, also when the prop comes back.
+		await page.evaluate(() =>
+			document.querySelector('[data-grid-host]')!.setAttribute('data-grid-debug', '')
+		);
+		await settle(page);
+		await settle(page);
+		assert.deepEqual(await hostSize(page), [150, 150]);
 		await page.close();
 	});
 });

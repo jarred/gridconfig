@@ -1,6 +1,6 @@
 <script lang="ts">
-	import Logo from '#lib/components/Logo.svelte';
-	import Ad from '#lib/components/Ad.svelte';
+	import Logo from '#lib/components/logo.svelte';
+	import Ad from '#lib/components/ad.svelte';
 </script>
 
 <main>

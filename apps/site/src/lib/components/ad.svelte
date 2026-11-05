@@ -64,7 +64,7 @@
 </script>
 
 <a class="ad" {href} style:width="{w}px" style:height="{h}px" aria-label="{headline}. {cta}">
-	<Grid {layout}>
+	<Grid {layout} debug={false}>
 		<div data-grid-area="I" class="image">
 			<Logo />
 		</div>

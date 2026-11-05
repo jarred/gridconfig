@@ -34,7 +34,6 @@ export type Controller = {
 	destroy(): void;
 };
 
-const KEY = 'gridconfig-devtools';
 const SNAP = 6;
 const MIN_SIZE = 16;
 /** How long the page must be still before the check for hosts with no size. */
@@ -52,8 +51,7 @@ const OVERRIDDEN = [
 
 type Saved = Map<string, [string, string]>;
 type Size = { w: number; h: number };
-type Stored = {
-	open?: boolean;
+type State = {
 	name?: string;
 	/** Sizes the person set, by page path and layout name: "/promo|hero". */
 	sizes?: Record<string, Size>;
@@ -172,23 +170,11 @@ export function install(): Controller | null {
 	let poppedSaved: Saved = new Map();
 	let poppedHadSize = false;
 
-	// Storage can fail (private windows, blocked cookies). The inspector works without it.
-	const read = (): Stored => {
-		try {
-			return JSON.parse(sessionStorage.getItem(KEY) ?? '{}') as Stored;
-		} catch {
-			return {};
-		}
-	};
-	const write = (patch: (s: Stored) => void) => {
-		try {
-			const s = read();
-			patch(s);
-			sessionStorage.setItem(KEY, JSON.stringify(s));
-		} catch {
-			/* no storage */
-		}
-	};
+	// The state is in memory. It stays through a hot update, because the controller is global, so a
+	// host that the page replaces gets its size back. A reload starts clean.
+	const state: State = {};
+	/** True while a host has the `debug` prop. The inspector opens and closes with it. */
+	let debugOn = false;
 
 	// DOM.
 	const root = document.createElement('gridconfig-devtools');
@@ -251,7 +237,7 @@ export function install(): Controller | null {
 		for (const inner of [...touched])
 			if (inner !== host && host.contains(inner) && inner !== popped) {
 				restore(inner);
-				write((s) => s.sizes && delete s.sizes[sizeKey(inner)]);
+				if (state.sizes) delete state.sizes[sizeKey(inner)];
 			}
 	}
 
@@ -281,9 +267,8 @@ export function install(): Controller | null {
 		set('min-height', '0');
 		const size = { w: Math.round(w), h: Math.round(h) };
 		if (!persist) return;
-		if (host === popped)
-			write((s) => (s.popped = { name: nameOf(host), path: location.pathname, ...size }));
-		else write((s) => ((s.sizes ??= {})[sizeKey(host)] = size));
+		if (host === popped) state.popped = { name: nameOf(host), path: location.pathname, ...size };
+		else (state.sizes ??= {})[sizeKey(host)] = size;
 	}
 
 	/** The largest size that fits in the viewport while a host is popped out. */
@@ -310,7 +295,7 @@ export function install(): Controller | null {
 		popped = host;
 		selected = host;
 		optionsKey = '';
-		write((s) => (s.name = nameOf(host)));
+		state.name = nameOf(host);
 
 		const now = contentSize(host);
 		const start = size ?? (now.w > 0 && now.h > 0 ? now : POP_DEFAULT);
@@ -351,7 +336,7 @@ export function install(): Controller | null {
 			else host.style.removeProperty(p);
 		poppedSaved = new Map();
 		if (!poppedHadSize) restore(host);
-		write((s) => delete s.popped);
+		delete state.popped;
 		schedule();
 	}
 
@@ -367,7 +352,7 @@ export function install(): Controller | null {
 
 	function reset(host: Element) {
 		restore(host);
-		write((s) => s.sizes && delete s.sizes[sizeKey(host)]);
+		if (state.sizes) delete state.sizes[sizeKey(host)];
 		schedule();
 	}
 
@@ -406,7 +391,21 @@ export function install(): Controller | null {
 		frame = 0;
 		checkSizes();
 		const hosts = hostsOf();
-		toggleButton.hidden = hosts.length === 0;
+		// The `debug` prop opens the inspector on its host. When the last `debug` goes, for example in
+		// a hot update, the inspector closes and the hosts get their natural size again.
+		const debugHost = hosts.find((host) => host.hasAttribute('data-grid-debug'));
+		if (debugHost && !debugOn) {
+			debugOn = true;
+			return open(debugHost);
+		}
+		if (!debugHost && debugOn) {
+			debugOn = false;
+			state.sizes = {};
+			if (isOpen) return close();
+		}
+		// The button shows only for a page that asks for it with the `debug` prop. While the inspector
+		// is open (from the keys), the button stays, so it can close it.
+		toggleButton.hidden = hosts.length === 0 || !(debugHost || isOpen);
 		toggleButton.setAttribute('aria-pressed', String(isOpen));
 		if (!isOpen || hosts.length === 0) {
 			decor.replaceChildren();
@@ -428,26 +427,21 @@ export function install(): Controller | null {
 				/* Not shown. */
 			}
 		}
-		const stored = read();
-		if (
-			!popped &&
-			stored.popped &&
-			(stored.popped.path ?? location.pathname) === location.pathname
-		) {
-			const again = hosts.find((h) => nameOf(h) === stored.popped!.name);
-			if (again) popOut(again, stored.popped);
+		if (!popped && state.popped && (state.popped.path ?? location.pathname) === location.pathname) {
+			const again = hosts.find((h) => nameOf(h) === state.popped!.name);
+			if (again) popOut(again, state.popped);
 		}
 
 		if (!selected || !selected.isConnected) {
-			const wanted = read().name;
+			const wanted = state.name;
 			selected = hosts.find((h) => nameOf(h) === wanted) ?? hosts[0];
 			watch();
 		}
 
-		// Sizes from an earlier visit come back, for example after a reload. Only for the selected
+		// Sizes come back when the page replaces a host, for example in a hot update. Only for the selected
 		// host and the hosts around it: a nested layout follows its cell. The hosts are in document
 		// order, so an outer host gets its size before an inner one.
-		const sizes = stored.sizes ?? {};
+		const sizes = state.sizes ?? {};
 		for (const host of hosts) {
 			const s = sizes[sizeKey(host)];
 			if (s && !overrides.has(host) && !drag && host !== popped && host.contains(selected))
@@ -754,12 +748,16 @@ export function install(): Controller | null {
 			subtree: true,
 			childList: true,
 			attributes: true,
-			attributeFilter: [attributes.host, attributes.layout, attributes.area, 'style', 'class']
+			attributeFilter: [
+				attributes.host,
+				attributes.layout,
+				attributes.area,
+				'data-grid-debug',
+				'style',
+				'class'
+			]
 		});
-		const debugHost = document.querySelector(`[${attributes.host}][data-grid-debug]`);
-		if (debugHost) open(debugHost);
-		else if (read().open) open();
-		else schedule();
+		schedule();
 	};
 
 	window.addEventListener('scroll', schedule, true);
@@ -777,20 +775,18 @@ export function install(): Controller | null {
 		if (drag && drag.host !== host) endDrag();
 		selected = host;
 		optionsKey = '';
-		write((s) => (s.name = nameOf(host)));
+		state.name = nameOf(host);
 		watch();
 		schedule();
 	}
 	function open(host?: Element) {
 		isOpen = true;
-		write((s) => (s.open = true));
 		if (host) select_(host);
 		else schedule();
 		watch();
 	}
 	function close() {
 		isOpen = false;
-		write((s) => (s.open = false));
 		endDrag();
 		popIn();
 		for (const host of [...touched]) restore(host);

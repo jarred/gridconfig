@@ -2,6 +2,7 @@ node_modules
 .vscode
 
 # Output
+.obsidian
 .output
 .vercel
 .netlify
