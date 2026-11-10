@@ -110,6 +110,8 @@ A name can be part of a key (`wide short`). The `breakpoints` option of the plug
 layoutPlugin({ breakpoints: { md: '600..', lg: '1000..' } });
 ```
 
+A layout that compiles in the browser gets the same names from the plugin. Refer to [Options for every layout](./getting-started.md#options-for-every-layout).
+
 A name also makes a short value for [step styles](./styling.md#style-content-for-a-step).
 
 ## When two steps overlap

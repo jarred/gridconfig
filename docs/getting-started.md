@@ -126,6 +126,35 @@ const same = grid({ areas: 'A', 600: { areas: 'A B' } });
 
 With the Vite plugin, a static `grid` call compiles at build time, as a `.grid` file does. Without the plugin, or when the object is built from variables, it compiles in the browser and `Grid` injects its CSS.
 
+## Options for every layout
+
+The plugin takes the options that apply to every layout: named breakpoints, a prefix for tokens, and the cascade layer.
+
+```ts
+layoutPlugin({ breakpoints: { md: '600..' }, tokenPrefix: 'ds', layer: 'components' });
+```
+
+A layout that compiles in the browser gets these options from the plugin too. You do not need to do anything.
+
+Where there is no plugin, for example in a test runner or a different bundler, make your own `grid` with `createGrid`. Keep the options in one file, so that the plugin can use the same ones:
+
+```ts
+// src/lib/grid.ts
+import { createGrid } from '@gridconfig/core';
+
+export const options = { breakpoints: { md: '600..' }, tokenPrefix: 'ds' };
+export const grid = createGrid(options);
+```
+
+Import `grid` from this file in place of `@gridconfig/core`. To compile its static calls at build time, tell the plugin where the file is:
+
+```ts
+// vite.config.ts
+import { options } from './src/lib/grid.ts';
+
+layoutPlugin({ ...options, modules: ['./src/lib/grid.ts'] });
+```
+
 ## The inspector
 
 In development, `Grid` loads an overlay that draws the areas, the tracks and the active step. Press Alt+Shift+G to show or hide it, or pass `debug` to `Grid` to open it on that grid. It can resize the layout to each step, and it finds markup problems such as a child with no `data-grid-area`. Refer to [@gridconfig/devtools](../packages/devtools/README.md).

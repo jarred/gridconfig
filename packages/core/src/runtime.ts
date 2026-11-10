@@ -1,5 +1,11 @@
 // The parts of core that need no YAML parser, safe to ship to the browser.
-export { GAP_PROPERTY, PADDING_PROPERTY, STEP_PROPERTY, attributes } from './attributes.ts';
+export {
+	GAP_PROPERTY,
+	PADDING_PROPERTY,
+	PROJECT_OPTIONS,
+	STEP_PROPERTY,
+	attributes
+} from './attributes.ts';
 export { baseCss, baseCssFor } from './base.ts';
 export { DEFAULT_LAYER } from './layer.ts';
 export { DEBUG_PROPERTY } from './debug.ts';

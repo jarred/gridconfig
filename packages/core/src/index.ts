@@ -1,11 +1,18 @@
-export { GAP_PROPERTY, PADDING_PROPERTY, STEP_PROPERTY, attributes } from './attributes.ts';
+export {
+	GAP_PROPERTY,
+	PADDING_PROPERTY,
+	PROJECT_OPTIONS,
+	STEP_PROPERTY,
+	attributes
+} from './attributes.ts';
 export { baseCss, baseCssFor } from './base.ts';
 export { compileLayout } from './compile.ts';
 export { DEBUG_PROPERTY } from './debug.ts';
 export { DEFAULT_LAYER } from './layer.ts';
 export { LayoutError } from './errors.ts';
 export type { Range } from './errors.ts';
-export { grid } from './grid.ts';
+export { createGrid, grid } from './grid.ts';
+export type { Grid } from './grid.ts';
 export { parseLayoutObject } from './model.ts';
 export { parseLayout } from './parse.ts';
 export type {

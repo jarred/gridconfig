@@ -1,6 +1,7 @@
 import { GAP_PROPERTY, PADDING_PROPERTY } from './attributes.ts';
 import { LayoutError } from './errors.ts';
 import { parseFlow } from './flow.ts';
+import { DEFAULT_LAYER, resolveLayer } from './layer.ts';
 import type { Range } from './errors.ts';
 import type { CompileOptions, Layout, LayoutInput, Step } from './types.ts';
 import { orderSteps } from './cascade.ts';
@@ -252,6 +253,22 @@ function hash(text: string): string {
 	return (h >>> 0).toString(36).padStart(7, '0');
 }
 
+/**
+ * The options that change the CSS of a layout, as text for the name hash. Empty when all of them
+ * have their defaults, so that a layout with no options keeps its name. `tokenVar` is a function
+ * and cannot be a part of the hash.
+ */
+function optionsKey(options: CompileOptions): string {
+	const layer = resolveLayer(options.layer);
+	const used = {
+		...(options.tokenPrefix && { tokenPrefix: options.tokenPrefix }),
+		...(layer !== DEFAULT_LAYER && { layer }),
+		...(options.breakpoints &&
+			Object.keys(options.breakpoints).length > 0 && { breakpoints: options.breakpoints })
+	};
+	return Object.keys(used).length ? stable(used) : '';
+}
+
 /** Turns a file name stem such as `hero.card` or `1-hero` into a valid layout name. */
 function toIdentifier(text: string): string | undefined {
 	const id = text.replace(/[^\w-]+/g, '-').replace(/^-+|-+$/g, '');
@@ -322,7 +339,7 @@ export function parseLayoutObject(
 		if (name === undefined || name === null) {
 			name =
 				(options.defaultName !== undefined ? toIdentifier(options.defaultName) : undefined) ??
-				`gc-${hash(stable(obj))}`;
+				`gc-${hash(stable(obj) + optionsKey(options))}`;
 		} else if (typeof name !== 'string' || !IDENT.test(name))
 			throw new LayoutError('`name` must be a valid identifier', ['name']);
 		else if (RESERVED_NAMES.has(name.toLowerCase()))

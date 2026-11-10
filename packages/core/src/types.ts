@@ -170,12 +170,13 @@ export type StepInput = {
 
 /**
  * A layout written as a plain object. It has the same shape as the YAML form. `B` is the names of
- * the breakpoints that the layout can use as keys.
+ * the breakpoints that the layout can use as keys. `P` is the names from the options of
+ * `createGrid`: they can also be keys, but the layout does not define them.
  */
-export type LayoutInput<B extends string = never> = StepInput & {
+export type LayoutInput<B extends string = never, P extends string = never> = StepInput & {
 	/** Optional. Defaults to a file name stem, or to a hash of the content. */
 	name?: string;
 	container?: 'size' | 'inline-size';
 	/** Named breakpoints: a name and a query, for example `md: 600..`. Names can be query terms. */
 	breakpoints?: Record<B, string | number>;
-} & { [K in QueryKey | NoInfer<B>]?: StepInput };
+} & { [K in QueryKey | NoInfer<B> | P]?: StepInput };

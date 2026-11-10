@@ -1,9 +1,16 @@
 import { readFile } from 'node:fs/promises';
-import { basename, extname } from 'node:path';
+import { basename, extname, isAbsolute, resolve as resolvePath } from 'node:path';
 import type { Plugin, ViteDevServer } from 'vite';
-import { LayoutError, baseCssFor, compileLayout, parseLayoutObject } from '@gridconfig/core';
+import {
+	LayoutError,
+	PROJECT_OPTIONS,
+	baseCssFor,
+	compileLayout,
+	parseLayoutObject
+} from '@gridconfig/core';
 import type { CompileOptions, CompiledLayout, LayoutInput } from '@gridconfig/core';
-import { findCalls, lineOf, localNames } from './extract.ts';
+import { findCalls, lineOf, namedImports } from './extract.ts';
+import type { Import } from './extract.ts';
 
 /** Files that can contain `grid` calls. The scanner reads raw text, so single-file components work. */
 const SOURCE = /\.(?:[cm]?[jt]sx?|svelte|vue|astro|mdx?)$/;
@@ -14,8 +21,20 @@ const RESOLVED = '\0' + VIRTUAL;
 const baseId = (layer: string | null) => `${VIRTUAL}base.${layer ?? '-'}.css`;
 const layoutId = (name: string) => `${VIRTUAL}layout.${name}.css`;
 
-/** The first import of `grid` from core. CSS imports go after it, so they stay inside a <script>. */
-const CORE_IMPORT = /import\s+\{[^}]*\}\s*from\s*['"]@gridconfig\/core['"];?/;
+const CORE = '@gridconfig/core';
+/** A module that sets the options of the plugin as the project options of the page. */
+const OPTIONS_ID = `${VIRTUAL}options`;
+
+export type PluginOptions = CompileOptions & {
+	/**
+	 * Modules of the project that export a `grid` made with `createGrid`, for example
+	 * `['./src/lib/grid.ts']` or `['$lib/grid']`. A path is relative to the root of the project.
+	 * The plugin compiles the static calls of a `grid` that a file imports from one of them, as it
+	 * does for the `grid` of `@gridconfig/core`. It uses the options of the plugin, so `createGrid`
+	 * must get the same options.
+	 */
+	modules?: string[];
+};
 
 type Context = {
 	warn(message: string): void;
@@ -25,6 +44,7 @@ type Context = {
 		loc?: { file: string; line: number; column: number };
 	}): never;
 	addWatchFile?(file: string): void;
+	resolve?(source: string, importer?: string): Promise<{ id: string } | null>;
 };
 
 /**
@@ -36,7 +56,22 @@ type Context = {
  *   The plugin replaces the call with the compiled result. A call that is not static compiles
  *   when the code runs.
  */
-export function layoutPlugin(options: CompileOptions = {}): Plugin {
+export function layoutPlugin(pluginOptions: PluginOptions = {}): Plugin {
+	const { modules = [], ...options } = pluginOptions;
+	let root = process.cwd();
+	/** The resolved ids of `modules`. */
+	let moduleIds: Promise<Set<string>> | undefined;
+	const withoutQuery = (id: string) => id.split('?')[0];
+	function resolveModules(ctx: Context): Promise<Set<string>> {
+		moduleIds ??= Promise.all(
+			modules.map(async (m) => {
+				const source = m.startsWith('.') || isAbsolute(m) ? resolvePath(root, m) : m;
+				return (await ctx.resolve?.(source))?.id ?? source;
+			})
+		).then((ids) => new Set(ids.map(withoutQuery)));
+		return moduleIds;
+	}
+
 	/** Layout name for each file, to find two files that give the same name. */
 	const names = new Map<string, string>();
 	/** Debug data for development tools: on when the dev server runs, unless the options say else. */
@@ -110,12 +145,80 @@ export function layoutPlugin(options: CompileOptions = {}): Plugin {
 		}
 	}
 
+	/**
+	 * Replaces the static `grid` calls of a file with compiled layouts. `sources` are the imports
+	 * that give a `grid` function. `core` are the imports from `@gridconfig/core`: a file that can
+	 * compile a layout when it runs also imports the project options.
+	 */
+	function rewrite(ctx: Context, code: string, file: string, sources: Import[], core: Import[]) {
+		const local = new Set(
+			sources.flatMap((i) => i.names.filter((n) => n.imported === 'grid').map((n) => n.local))
+		);
+		const runtime = core.filter((i) =>
+			i.names.some((n) => n.imported === 'grid' || n.imported === 'createGrid')
+		);
+		const calls = local.size ? findCalls(code, local) : [];
+		if (!calls.length && !runtime.length) return;
+
+		let out = '';
+		let cursor = 0;
+		const imports: string[] = runtime.length ? [OPTIONS_ID] : [];
+		// The new imports go on the line of the first import that gives `grid`, so that they stay
+		// inside a <script> and the lines after it do not move.
+		const anchor = Math.min(
+			...[...sources.filter((i) => i.names.some((n) => local.has(n.local))), ...runtime].map(
+				(i) => i.end
+			)
+		);
+		type Edit = { start: number; end: number; text: () => string };
+		const edits: Edit[] = [{ start: anchor, end: anchor, text: () => `;${importLines(imports)}` }];
+
+		for (const call of calls) {
+			const startLine = lineOf(code, call.start);
+			const original = code.slice(call.start, call.end);
+			let compiled: CompiledLayout;
+
+			try {
+				if (call.kind === 'interpolation')
+					throw new LayoutError(
+						'A grid template cannot contain ${} expressions: layouts must be static'
+					);
+				compiled =
+					call.kind === 'template'
+						? compileLayout(call.source, compileOptions())
+						: compileLayout(
+								parseLayoutObject(call.value as LayoutInput, options),
+								compileOptions()
+							);
+			} catch (e) {
+				// Lines inside a template start at the line of its opening backtick.
+				return report(ctx, e, file, startLine - 1);
+			}
+			for (const w of compiled.warnings) ctx.warn(`${file}:${startLine}: ${w.message}`);
+
+			// Keep the line count, so that the lines after the call do not move.
+			const newlines = '\n'.repeat(original.split('\n').length - 1);
+			const bundled = bundle(compiled);
+			imports.push(...bundled.imports);
+			const text = `(${JSON.stringify(bundled.layout)})` + newlines;
+			edits.push({ start: call.start, end: call.end, text: () => text });
+		}
+
+		for (const edit of edits.sort((a, b) => a.start - b.start)) {
+			out += code.slice(cursor, edit.start) + edit.text();
+			cursor = edit.end;
+		}
+		out += code.slice(cursor);
+		return { code: out, map: null };
+	}
+
 	return {
 		name: 'gridconfig:layout',
 		enforce: 'pre',
 
 		configResolved(config) {
 			serving = config.command === 'serve';
+			root = config.root;
 		},
 
 		configureServer(dev) {
@@ -127,6 +230,13 @@ export function layoutPlugin(options: CompileOptions = {}): Plugin {
 		},
 
 		async load(id) {
+			if (id === '\0' + OPTIONS_ID) {
+				// A layout that compiles when the code runs reads these options. `tokenVar` is a function
+				// and cannot go to the page: use `createGrid` for it.
+				const { tokenPrefix, layer, breakpoints } = options;
+				const shared = { tokenPrefix, layer, breakpoints, debug: compileOptions().debug };
+				return `globalThis[Symbol.for(${JSON.stringify(PROJECT_OPTIONS)})] = ${JSON.stringify(shared)};`;
+			}
 			if (id.startsWith(RESOLVED)) {
 				const css = styles.get(id);
 				if (css !== undefined) return css;
@@ -152,50 +262,25 @@ export function layoutPlugin(options: CompileOptions = {}): Plugin {
 			}
 
 			if (!SOURCE.test(file) || file.includes('/node_modules/') || query.includes('type=')) return;
-			if (!code.includes('@gridconfig/core')) return;
-			const local = localNames(code);
-			if (!local.size) return;
+			if (!code.includes(CORE) && !(modules.length && /\bgrid\b/.test(code))) return;
 
-			const calls = findCalls(code, local);
-			if (!calls.length) return;
+			const imports = namedImports(code);
+			const core = imports.filter((i) => i.source === CORE);
+			const others = modules.length
+				? imports.filter((i) => i.source !== CORE && i.names.some((n) => n.imported === 'grid'))
+				: [];
+			if (!others.length) return rewrite(this, code, file, core, core);
 
-			let out = '';
-			let cursor = 0;
-			const imports: string[] = [];
-			for (const call of calls) {
-				const startLine = lineOf(code, call.start);
-				const original = code.slice(call.start, call.end);
-				let compiled: CompiledLayout;
-
-				try {
-					if (call.kind === 'interpolation')
-						throw new LayoutError(
-							'A grid template cannot contain ${} expressions: layouts must be static'
-						);
-					compiled =
-						call.kind === 'template'
-							? compileLayout(call.source, compileOptions())
-							: compileLayout(
-									parseLayoutObject(call.value as LayoutInput, options),
-									compileOptions()
-								);
-				} catch (e) {
-					// Lines inside a template start at the line of its opening backtick.
-					return report(this, e, file, startLine - 1);
+			// An import from a module of the project: compile its calls if the module is in `modules`.
+			return (async () => {
+				const known = await resolveModules(this);
+				const mine: Import[] = [];
+				for (const i of others) {
+					const resolved = await this.resolve(i.source, id);
+					if (resolved && known.has(withoutQuery(resolved.id))) mine.push(i);
 				}
-				for (const w of compiled.warnings) this.warn(`${file}:${startLine}: ${w.message}`);
-
-				// Keep the line count, so that the lines after the call do not move.
-				const newlines = '\n'.repeat(original.split('\n').length - 1);
-				const bundled = bundle(compiled);
-				imports.push(...bundled.imports);
-				out += code.slice(cursor, call.start) + `(${JSON.stringify(bundled.layout)})` + newlines;
-				cursor = call.end;
-			}
-			out += code.slice(cursor);
-			// On the same line as the core import, so that the lines after it do not move.
-			out = out.replace(CORE_IMPORT, (m) => `${m};${importLines(imports)}`);
-			return { code: out, map: null };
+				return rewrite(this, code, file, [...core, ...mine], core);
+			})();
 		}
 	};
 }

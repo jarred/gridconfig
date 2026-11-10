@@ -120,7 +120,8 @@ test('works in a svelte file', () => {
 test('ignores files without a grid import', () => {
 	const p = setup();
 	assert.equal(p.transform('const a = grid`areas: A`;', '/x/a.ts'), undefined);
-	assert.equal(p.transform(src('const a = 1;'), '/x/a.ts'), undefined);
+	const other = "import { baseCss } from '@gridconfig/core';\nconst a = grid`areas: A`;";
+	assert.equal(p.transform(other, '/x/a.ts'), undefined);
 	assert.equal(p.transform(src("grid({ areas: 'A' })"), '/x/node_modules/pkg/a.js'), undefined);
 });
 
@@ -182,7 +183,7 @@ test('inline layouts import their CSS on the line of the core import', () => {
 	const [first] = out.split('\n');
 	assert.equal(
 		first,
-		`import { grid } from '@gridconfig/core';;import "virtual:gridconfig/base.gridconfig.css";import "virtual:gridconfig/layout.i.css";import "virtual:gridconfig/layout.j.css";`
+		`import { grid } from '@gridconfig/core';;import "virtual:gridconfig/options";import "virtual:gridconfig/base.gridconfig.css";import "virtual:gridconfig/layout.i.css";import "virtual:gridconfig/layout.j.css";`
 	);
 	assert.equal(out.split('\n').length, code.split('\n').length);
 	assert.match(out, /"bundled":true/);
@@ -193,13 +194,71 @@ test('in a svelte file, the CSS imports stay inside the script', () => {
 	const out = must(setup().transform(code, '/x/A.svelte')).code;
 	assert.match(
 		out,
-		/<script>\n {2}import \{ grid \} from '@gridconfig\/core';;import "virtual:gridconfig\/base/
+		/<script>\n {2}import \{ grid \} from '@gridconfig\/core';;import "virtual:gridconfig\/options";import "virtual:gridconfig\/base/
 	);
 });
 
 test('calls with their own options are left for runtime', () => {
 	const code = src("const a = grid({ areas: 'A' }, { tokenPrefix: 'x' });");
-	assert.equal(setup().transform(code, '/x/a.ts'), undefined);
+	const out = must(setup().transform(code, '/x/a.ts')).code;
+	assert.ok(out.endsWith("const a = grid({ areas: 'A' }, { tokenPrefix: 'x' });"));
+});
+
+test('a file that can compile a layout when it runs imports the project options', async () => {
+	const p = setup({ tokenPrefix: 'ds', layer: 'components', breakpoints: { md: '600..' } });
+	for (const code of [
+		src('const a = grid(config);'),
+		"import { createGrid } from '@gridconfig/core';\nexport const grid = createGrid({});"
+	]) {
+		const [first] = must(p.transform(code, '/x/a.ts')).code.split('\n');
+		assert.ok(first.endsWith(';import "virtual:gridconfig/options";'), first);
+	}
+	const module = (await p.load('\0virtual:gridconfig/options')) as unknown as string;
+	assert.equal(
+		module,
+		'globalThis[Symbol.for("gridconfig.options")] = {"tokenPrefix":"ds","layer":"components","breakpoints":{"md":"600.."},"debug":false};'
+	);
+	// The module works with the `grid` of core: a layout that compiles now gets the options.
+	const key = Symbol.for('gridconfig.options');
+	const store = globalThis as { [key: symbol]: unknown };
+	new Function(module)();
+	try {
+		const { grid } = await import('@gridconfig/core');
+		const layout = grid({ name: 'r', areas: 'A', gap: '{space.2}', md: { gap: 4 } } as never);
+		assert.equal(layout.layer, 'components');
+		assert.match(layout.css, /var\(--ds-space-2\)/);
+		assert.match(layout.css, /@container r \(min-width: 600px\)/);
+	} finally {
+		delete store[key];
+	}
+});
+
+test('compiles the calls of a grid from a module in `modules`', async () => {
+	const plugin = layoutPlugin({ modules: ['./src/lib/grid.ts', '$lib/other'] }) as unknown as {
+		configResolved(config: { command: string; root: string }): void;
+		transform: (this: unknown, code: string, id: string) => Promise<Result> | Result;
+	};
+	plugin.configResolved({ command: 'build', root: '/app' });
+	const ctx = {
+		warn: () => {},
+		resolve: async (source: string) => {
+			if (source === '$lib/grid' || source === '/app/src/lib/grid.ts')
+				return { id: '/app/src/lib/grid.ts' };
+			if (source === '$lib/other') return { id: '/app/src/lib/other.ts' };
+			return { id: `/app/src/${source}` };
+		}
+	};
+	const mine = "import { grid as g } from '$lib/grid';\nconst a = g({ name: 'm', areas: 'A' });";
+	const out = must(await plugin.transform.call(ctx, mine, '/app/src/a.ts')).code;
+	assert.match(out, /const a = \(\{"name":"m"/);
+	// The file does not compile a layout when it runs, so it does not import the options.
+	assert.equal(
+		out.split('\n')[0],
+		`import { grid as g } from '$lib/grid';;import "virtual:gridconfig/base.gridconfig.css";import "virtual:gridconfig/layout.m.css";`
+	);
+	// A `grid` from a different module is not ours.
+	const theirs = "import { grid } from './charts';\nconst a = grid({ name: 'n', areas: 'A' });";
+	assert.equal(await plugin.transform.call(ctx, theirs, '/app/src/b.ts'), undefined);
 });
 
 test('adds debug data when the dev server runs, and not in a build', () => {

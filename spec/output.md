@@ -173,6 +173,7 @@ The output uses only standard CSS container queries and grid features. It has no
 ```ts
 grid`…`                                         // a static template; returns a compiled layout
 grid(input: LayoutInput, options?): CompiledLayout
+createGrid(options): typeof grid                 // a `grid` with options of its own
 parseLayout(source: string, options?): Layout     // YAML text
 parseLayoutObject(input: LayoutInput, options?): Layout
 compileLayout(source: string | Layout, options?): { name: string; css: string; layer: string | null; areas: string[]; warnings: Warning[]; bundled?: true }
@@ -180,9 +181,18 @@ baseCss: string                       // the shared base rules in the default la
 baseCssFor(layer: string | null): string  // the shared base rules in a given layer
 ```
 
-`options`: `tokenPrefix`, `tokenVar`, `defaultName`, `layer`, `debug`, `breakpoints`. The tag form takes no options.
+`options`: `tokenPrefix`, `tokenVar`, `defaultName`, `layer`, `debug`, `breakpoints`. The tag form takes no options of its own.
 
-`breakpoints` is a map from a name to a query, for example `{ md: '600..' }`. Refer to [Named breakpoints](./format.md#named-breakpoints). In TypeScript, the object form types the names from its own `breakpoints` key as keys.
+**Options of a project.** All the layouts of a project must compile with the same `breakpoints`, `tokenPrefix`, and `layer`, at build time and when the code runs. There are two ways to do this, and a project can use both.
+
+- A build plugin gives its options to the page. `grid` and `createGrid` use them as defaults for each layout that compiles when the code runs. The plugin gives `tokenPrefix`, `layer`, and `breakpoints`, and `debug` in development. It cannot give `tokenVar`, because `tokenVar` is a function. The options are in `globalThis[Symbol.for('gridconfig.options')]`.
+- `createGrid(options)` makes a `grid` function with the options. Use it where there is no build plugin, for example in a test runner, and for `tokenVar`. Export the function from one module of the project, and import `grid` from that module.
+
+The order is: the options of the plugin, then the options of `createGrid`, then the options of one call (`grid({…}, options)`). A later item replaces an earlier one.
+
+The `modules` option of the build plugin is a list of the modules that export a `grid` from `createGrid`, for example `['./src/lib/grid.ts']`. The plugin then compiles the static calls of that `grid` at build time. It compiles them with the options of the plugin. Thus the plugin and `createGrid` must get the same options: keep them in one file that both import.
+
+`breakpoints` is a map from a name to a query, for example `{ md: '600..' }`. Refer to [Named breakpoints](./format.md#named-breakpoints). In TypeScript, the object form types the names from its own `breakpoints` key as keys. A `grid` from `createGrid` also types the names from the options of `createGrid`.
 
 `debug: true` adds data for development tools. Refer to [Inspector](../packages/devtools/README.md). Use it in development only, because it makes the CSS larger.
 

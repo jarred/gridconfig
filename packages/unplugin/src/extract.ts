@@ -38,6 +38,33 @@ export function localNames(code: string): Set<string> {
 	return names;
 }
 
+export type Import = {
+	/** The module that the statement imports from, as it is written. */
+	source: string;
+	/** The index after the statement. */
+	end: number;
+	/** The imported names, and the local name of each. */
+	names: { imported: string; local: string }[];
+};
+
+/** The named imports of values in the code. Type imports are not included. */
+export function namedImports(code: string): Import[] {
+	const out: Import[] = [];
+	const imports = /import\s+(type\s+)?\{([^}]*)\}\s*from\s*(['"])([^'"\n]+)\3;?/g;
+	for (const match of code.matchAll(imports)) {
+		if (match[1]) continue;
+		const names: Import['names'] = [];
+		for (const part of match[2].split(',')) {
+			const spec = part.trim();
+			if (!spec || spec.startsWith('type ')) continue;
+			const m = /^([A-Za-z_$][\w$]*)(?:\s+as\s+([A-Za-z_$][\w$]*))?$/.exec(spec);
+			if (m) names.push({ imported: m[1], local: m[2] ?? m[1] });
+		}
+		out.push({ source: match[4], end: match.index + match[0].length, names });
+	}
+	return out;
+}
+
 export function lineOf(code: string, index: number): number {
 	let line = 1;
 	for (let i = 0; i < index; i++) if (code.charCodeAt(i) === 10) line++;

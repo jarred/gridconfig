@@ -2,7 +2,8 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { compileLayout } from '../src/compile.ts';
 import { LayoutError } from '../src/errors.ts';
-import { grid } from '../src/grid.ts';
+import { PROJECT_OPTIONS } from '../src/attributes.ts';
+import { createGrid, grid } from '../src/grid.ts';
 import { parseLayoutObject } from '../src/model.ts';
 import { parseLayout } from '../src/parse.ts';
 import type { LayoutInput } from '../src/types.ts';
@@ -126,4 +127,64 @@ test('a layout file is one YAML document without tags', () => {
 test('JSON is a valid layout file', () => {
 	const json = JSON.stringify({ name: 'j', areas: 'A', 100: { areas: 'A A\nB B' } });
 	assert.equal(compileLayout(json).name, 'j');
+});
+
+test('createGrid gives its options to both forms', () => {
+	const mine = createGrid({ tokenPrefix: 'ds', layer: false, breakpoints: { md: '600..' } });
+	const tagged = mine`
+		name: t
+		gap: '{space.2}'
+		areas: A
+		md:
+		  areas: A B
+	`;
+	const object = mine({ name: 't', gap: '{space.2}', areas: 'A', md: { areas: 'A B' } });
+	assert.equal(tagged.css, object.css);
+	assert.equal(tagged.layer, null);
+	assert.match(tagged.css, /--grid-gap: var\(--ds-space-2\);/);
+	assert.match(tagged.css, /@container t \(min-width: 600px\)/);
+	// The options of one call go on top.
+	assert.match(mine({ areas: 'A', gap: '{a}' }, { tokenPrefix: 'x' }).css, /var\(--x-a\)/);
+});
+
+test('the project options are the defaults of grid and of createGrid', () => {
+	const key = Symbol.for(PROJECT_OPTIONS);
+	const store = globalThis as { [key: symbol]: unknown };
+	store[key] = { tokenPrefix: 'p', layer: 'components' };
+	try {
+		const plain = grid({ areas: 'A', gap: '{a}' });
+		assert.equal(plain.layer, 'components');
+		assert.match(plain.css, /var\(--p-a\)/);
+		assert.match(
+			grid`
+			areas: A
+			gap: '{a}'
+		`.css,
+			/var\(--p-a\)/
+		);
+		const mine = createGrid({ tokenPrefix: 'm' })({ areas: 'A', gap: '{a}' });
+		assert.equal(mine.layer, 'components');
+		assert.match(mine.css, /var\(--m-a\)/);
+	} finally {
+		delete store[key];
+	}
+	assert.equal(grid({ areas: 'A' }).layer, 'gridconfig');
+});
+
+test('the hashed name follows the options that change the CSS', () => {
+	const input = { areas: 'A', gap: '{a}' };
+	const plain = grid(input).name;
+	assert.equal(grid(input, { layer: true, breakpoints: {}, debug: true }).name, plain);
+	const names = new Set([
+		plain,
+		grid(input, { tokenPrefix: 'x' }).name,
+		grid(input, { tokenPrefix: 'y' }).name,
+		grid(input, { layer: false }).name,
+		grid(input, { breakpoints: { md: '600..' } }).name
+	]);
+	assert.equal(names.size, 5);
+	assert.equal(
+		createGrid({ tokenPrefix: 'x' })(input).name,
+		grid(input, { tokenPrefix: 'x' }).name
+	);
 });

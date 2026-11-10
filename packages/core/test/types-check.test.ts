@@ -1,5 +1,5 @@
 // Type tests for the object form. `tsc` checks this file; the functions never run.
-import { grid } from '../src/index.ts';
+import { createGrid, grid } from '../src/index.ts';
 
 export function typed() {
 	grid({
@@ -14,4 +14,11 @@ export function typed() {
 	grid({ areas: 'A', breakpoints: { md: '600..' }, lg: { gap: 1 } });
 	// @ts-expect-error a step needs settings.
 	grid({ areas: 'A', '600x400': 1 });
+
+	// The names from the options of `createGrid` are keys of each layout.
+	const mine = createGrid({ breakpoints: { md: '600..', lg: 1000 } });
+	mine({ areas: 'A', md: { gap: 1 }, 'lg landscape': { gap: 2 } });
+	mine({ areas: 'A', breakpoints: { huge: '1400..' }, lg: { gap: 1 }, huge: { gap: 2 } });
+	// @ts-expect-error `huge` is not a breakpoint of the options or of this layout.
+	mine({ areas: 'A', huge: { gap: 1 } });
 }
