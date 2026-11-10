@@ -13,7 +13,7 @@ export { LayoutError } from './errors.ts';
 export type { Range } from './errors.ts';
 export { createGrid, grid } from './grid.ts';
 export type { Grid, ObjectGrid } from './grid.ts';
-export { parseLayoutObject } from './model.ts';
+export { defaultNameFor, parseLayoutObject } from './model.ts';
 export { parseLayout } from './parse.ts';
 export type {
 	CompileOptions,

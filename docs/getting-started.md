@@ -48,7 +48,7 @@ areas: |
 - `400:` is a **step**. It applies when the container is 400 px wide or wider.
 - `cols: 120 1fr` sets the columns. A bare number is px.
 
-The layout is named after the file (`profile`). Each layout on a page needs a different name.
+The layout is named after the file (`profile`). A file with the name `layout.grid`, `index.grid` or `grid.grid` is named after its folder, so each component folder can have its own `layout.grid`. Each layout on a page needs a different name. If two files give the same name, set `name` in one of them.
 
 ## Use it
 

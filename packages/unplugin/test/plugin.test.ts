@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { mkdtemp, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { test } from 'node:test';
@@ -281,4 +281,17 @@ test('compiles the static calls of the grid of @gridconfig/core/object', () => {
 	const out = must(setup().transform(code, '/x/a.ts')).code;
 	assert.match(out, /const a = \(\{"name":"ob"/);
 	assert.ok(out.split('\n')[0].includes('import "virtual:gridconfig/layout.ob.css";'));
+});
+
+test('a generic file name gives the name of the folder', async () => {
+	const dir = await mkdtemp(join(tmpdir(), 'gc-'));
+	const p = setup();
+	const names: string[] = [];
+	for (const folder of ['Card', 'Hero']) {
+		await mkdir(join(dir, folder));
+		await writeFile(join(dir, folder, 'layout.grid'), 'areas: A\n');
+		names.push(run(await p.load(join(dir, folder, 'layout.grid'))).name);
+	}
+	assert.deepEqual(names, ['Card', 'Hero']);
+	assert.equal(run(p.transform('areas: A\n', '/x/nav/index.yaml?grid')).name, 'nav');
 });

@@ -20,7 +20,7 @@ export { DEFAULT_LAYER } from './layer.ts';
 export { LayoutError } from './errors.ts';
 export type { Range } from './errors.ts';
 export type { ObjectGrid } from './grid-base.ts';
-export { parseLayoutObject } from './model.ts';
+export { defaultNameFor, parseLayoutObject } from './model.ts';
 export type {
 	CompileOptions,
 	CompiledLayout,

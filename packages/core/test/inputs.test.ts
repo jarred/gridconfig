@@ -4,7 +4,7 @@ import { compileLayout } from '../src/compile.ts';
 import { LayoutError } from '../src/errors.ts';
 import { PROJECT_OPTIONS } from '../src/attributes.ts';
 import { createGrid, grid } from '../src/grid.ts';
-import { parseLayoutObject } from '../src/model.ts';
+import { defaultNameFor, parseLayoutObject } from '../src/model.ts';
 import { parseLayout } from '../src/parse.ts';
 import type { LayoutInput } from '../src/types.ts';
 
@@ -187,4 +187,25 @@ test('the hashed name follows the options that change the CSS', () => {
 		createGrid({ tokenPrefix: 'x' })(input).name,
 		grid(input, { tokenPrefix: 'x' }).name
 	);
+});
+
+test('the default name of a file, and of a generic file name', () => {
+	const cases: [string, string][] = [
+		['/app/src/hero.grid', 'hero'],
+		['hero.grid', 'hero'],
+		['/app/src/Card/layout.grid', 'Card'],
+		['/app/src/Hero/Layout.grid', 'Hero'],
+		['C:\\app\\src\\Card\\index.yaml', 'Card'],
+		['/app/src/nav/grid.yml', 'nav'],
+		['/app/src/1-hero.card.grid', '1-hero.card'],
+		// No folder, or a folder that cannot be a name: the file name stays.
+		['layout.grid', 'layout'],
+		['/app/(..)/layout.grid', 'layout'],
+		['/app/src/layouts.grid', 'layouts']
+	];
+	for (const [file, expected] of cases) assert.equal(defaultNameFor(file), expected, file);
+	const named = (file: string) =>
+		compileLayout('areas: A', { defaultName: defaultNameFor(file) }).name;
+	assert.equal(named('/a/1-hero.card.grid'), '_1-hero-card');
+	assert.equal(named('/a/my card/index.grid'), 'my-card');
 });

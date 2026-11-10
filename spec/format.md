@@ -42,7 +42,7 @@ The top level is the **base step**. It also has these keys.
 
 The default `name` has two sources, in this order:
 
-1. The file name without its extension. A tool gives it to the compiler as `defaultName`. The compiler changes each character that is not valid to `-`. If the result starts with a digit, the compiler adds `_` at the start. Thus `1-hero.card.grid` becomes `_1-hero-card`.
+1. The file name without its extension. If that is `layout`, `index`, or `grid`, in any letter case, the name of the folder of the file replaces it. Thus `Card/layout.grid` and `Hero/layout.grid` get the names `Card` and `Hero`. A tool gives the result to the compiler as `defaultName`. `defaultNameFor(path)` in core calculates it. The compiler changes each character that is not valid to `-`. If the result starts with a digit, the compiler adds `_` at the start. Thus `1-hero.card.grid` becomes `_1-hero-card`.
 2. A hash of the content, written `gc-` and seven characters. The same content always gets the same name, in each of the three forms. The options `tokenPrefix`, `layer`, and `breakpoints` are a part of the hash when they are set, because they change the CSS. Thus one layout with two sets of options gets two names.
 
 A name must not be a word that CSS reserves for container names: `none`, `and`, `or`, `not`, `default`, `inherit`, `initial`, `unset`, `revert`, or `revert-layer`. A `name` that is one of these words is an error. If a file name gives one of these words, the compiler adds `_` at the start. Thus `none.grid` becomes `_none`.

@@ -183,6 +183,7 @@ grid(input: LayoutInput, options?): CompiledLayout
 createGrid(options): typeof grid                 // a `grid` with options of its own
 parseLayout(source: string, options?): Layout     // YAML text
 parseLayoutObject(input: LayoutInput, options?): Layout
+defaultNameFor(path: string): string              // the `defaultName` of a layout file
 compileLayout(source: string | Layout, options?): { name: string; css: string; layer: string | null; areas: string[]; warnings: Warning[]; bundled?: true }
 baseCss: string                       // the shared base rules in the default layer
 baseCssFor(layer: string | null): string  // the shared base rules in a given layer

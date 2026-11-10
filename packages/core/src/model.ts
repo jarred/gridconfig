@@ -276,6 +276,22 @@ function toIdentifier(text: string): string | undefined {
 	return /^[A-Za-z_]/.test(id) && !RESERVED_NAMES.has(id.toLowerCase()) ? id : `_${id}`;
 }
 
+/** File names that say nothing about a layout. A file with one of them gets the name of its folder. */
+const GENERIC_STEMS = new Set(['layout', 'index', 'grid']);
+
+/**
+ * The `defaultName` of a layout file: the file name without its extension. A generic file name
+ * (`layout`, `index` or `grid`) gives the name of the folder, so that `Card/layout.grid` and
+ * `Hero/layout.grid` are `Card` and `Hero`. A tool gives the result to the compiler, which makes
+ * it a valid name.
+ */
+export function defaultNameFor(file: string): string {
+	const parts = file.split(/[\\/]+/).filter(Boolean);
+	const stem = (parts.pop() ?? '').replace(/\.[^.]*$/, '');
+	const folder = parts.pop();
+	return GENERIC_STEMS.has(stem.toLowerCase()) && folder && toIdentifier(folder) ? folder : stem;
+}
+
 const RESERVED_BREAKPOINTS = new Set(['base', ...TOP_LEVEL]);
 
 function addBreakpoints(

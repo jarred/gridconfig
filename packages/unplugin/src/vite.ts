@@ -1,11 +1,12 @@
 import { readFile } from 'node:fs/promises';
-import { basename, extname, isAbsolute, resolve as resolvePath } from 'node:path';
+import { isAbsolute, resolve as resolvePath } from 'node:path';
 import type { Plugin, ViteDevServer } from 'vite';
 import {
 	LayoutError,
 	PROJECT_OPTIONS,
 	baseCssFor,
 	compileLayout,
+	defaultNameFor,
 	parseLayoutObject
 } from '@gridconfig/core';
 import type { CompileOptions, CompiledLayout, LayoutInput } from '@gridconfig/core';
@@ -130,7 +131,7 @@ export function layoutPlugin(pluginOptions: PluginOptions = {}): Plugin {
 	function compileFile(ctx: Context, source: string, file: string): CompiledLayout {
 		try {
 			const compiled = compileLayout(source, {
-				defaultName: basename(file, extname(file)),
+				defaultName: defaultNameFor(file),
 				...compileOptions()
 			});
 			for (const w of compiled.warnings) ctx.warn(`${file}: ${w.message}`);
