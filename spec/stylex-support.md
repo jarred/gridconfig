@@ -144,7 +144,7 @@ In this form the DOM contract changes. The elements get class names, not `data-g
 The generation step must run before the StyleX Babel plugin. Two ways exist:
 
 - **CLI.** The CLI writes `*.grid.stylex.ts` files. The person commits them or adds them to the build. This is the simplest way.
-- **Bundler plugin.** `@gridconfig/unplugin` turns `hero.grid?stylex` into a virtual module. It must run before the StyleX plugin, and the StyleX plugin must accept the virtual module name. We do not know if this is possible.
+- **Bundler plugin.** `@gridconfig/vite` turns `hero.grid?stylex` into a virtual module. It must run before the StyleX plugin, and the StyleX plugin must accept the virtual module name. We do not know if this is possible.
 
 ### Problem 2: tokens have hashed names
 

@@ -53,9 +53,9 @@ importers:
       '@gridconfig/svelte':
         specifier: workspace:*
         version: link:../../packages/svelte
-      '@gridconfig/unplugin':
+      '@gridconfig/vite':
         specifier: workspace:*
-        version: link:../../packages/unplugin
+        version: link:../../packages/vite
     devDependencies:
       '@sveltejs/adapter-auto':
         specifier: ^8.0.0
@@ -171,7 +171,7 @@ importers:
         specifier: ^6.0.3
         version: 6.0.3
 
-  packages/unplugin:
+  packages/vite:
     dependencies:
       '@gridconfig/core':
         specifier: workspace:*

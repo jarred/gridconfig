@@ -7,7 +7,7 @@ What is built, and what is planned. The format is in the [spec](./spec/spec.md).
 - The parser and the compiler: cascade semantics, value grammar, validation, hiding, flow, warnings, and structured errors.
 - The query keys: ranges with a maximum, ratios, orientation, AND, OR, named breakpoints, the step order, and the one-winner rule.
 - The three forms: YAML text, objects, and the `grid` function. The default `name`, the removal of shared indentation, and the checks for plain data, tags, and multiple documents.
-- The Vite plugin (`packages/unplugin`). It loads `.grid` files and `.yaml?grid` imports. It replaces each static `grid` template and object with the compiled result. It only looks at files that import `grid` from `@gridconfig/core`. It reports an error when two files give the same layout name.
+- The Vite plugin (`packages/vite`, `@gridconfig/vite`). It loads `.grid` files and `.yaml?grid` imports. It replaces each static `grid` template and object with the compiled result. It only looks at files that import `grid` from `@gridconfig/core`. It reports an error when two files give the same layout name.
 - The Vite plugin delivers the CSS of each layout that it compiles as CSS modules. Refer to [Delivery](./spec/output.md#delivery).
 - The Svelte `Grid` component (`packages/svelte`) and the React `Grid` component (`packages/react`, React 19). They use the `data-grid-*` attributes. For a layout that compiled when the code ran, they put its CSS on the page one time (`mountStyles` in core), and replace it when the layout changes.
 - A core entry without the YAML parser (`@gridconfig/core/object`), for code that writes layouts as objects. `grid` and `createGrid` take an object only there.

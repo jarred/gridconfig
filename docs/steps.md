@@ -107,7 +107,7 @@ wide short:
 A name can be part of a key (`wide short`). The `breakpoints` option of the plugin gives names to every layout in a project:
 
 ```ts
-layoutPlugin({ breakpoints: { md: '600..', lg: '1000..' } });
+gridconfig({ breakpoints: { md: '600..', lg: '1000..' } });
 ```
 
 A layout that compiles in the browser gets the same names from the plugin. Refer to [Options for every layout](./getting-started.md#options-for-every-layout).

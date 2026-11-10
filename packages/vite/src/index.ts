@@ -59,7 +59,7 @@ type Context = {
  *   The plugin replaces the call with the compiled result. A call that is not static compiles
  *   when the code runs.
  */
-export function layoutPlugin(pluginOptions: PluginOptions = {}): Plugin {
+export function gridconfig(pluginOptions: PluginOptions = {}): Plugin {
 	const { modules = [], ...options } = pluginOptions;
 	let root = process.cwd();
 	/** The resolved ids of `modules`. */
@@ -216,7 +216,7 @@ export function layoutPlugin(pluginOptions: PluginOptions = {}): Plugin {
 	}
 
 	return {
-		name: 'gridconfig:layout',
+		name: 'gridconfig',
 		enforce: 'pre',
 
 		configResolved(config) {
@@ -289,3 +289,5 @@ export function layoutPlugin(pluginOptions: PluginOptions = {}): Plugin {
 		}
 	};
 }
+
+export default gridconfig;

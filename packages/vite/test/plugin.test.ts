@@ -3,14 +3,14 @@ import { mkdir, mkdtemp, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { test } from 'node:test';
-import { layoutPlugin } from '../src/vite.ts';
+import { gridconfig } from '../src/index.ts';
 
 type Result = { code: string } | undefined;
 type Load = (this: unknown, id: string) => Promise<Result>;
 type Transform = (this: unknown, code: string, id: string) => Result;
 
 function setup(options = {}) {
-	const plugin = layoutPlugin(options) as unknown as { load: Load; transform: Transform };
+	const plugin = gridconfig(options) as unknown as { load: Load; transform: Transform };
 	const warnings: string[] = [];
 	const ctx = {
 		warn: (m: string) => warnings.push(m),
@@ -234,7 +234,7 @@ test('a file that can compile a layout when it runs imports the project options'
 });
 
 test('compiles the calls of a grid from a module in `modules`', async () => {
-	const plugin = layoutPlugin({ modules: ['./src/lib/grid.ts', '$lib/other'] }) as unknown as {
+	const plugin = gridconfig({ modules: ['./src/lib/grid.ts', '$lib/other'] }) as unknown as {
 		configResolved(config: { command: string; root: string }): void;
 		transform: (this: unknown, code: string, id: string) => Promise<Result> | Result;
 	};
@@ -262,7 +262,7 @@ test('compiles the calls of a grid from a module in `modules`', async () => {
 });
 
 test('adds debug data when the dev server runs, and not in a build', () => {
-	const plugin = layoutPlugin() as unknown as {
+	const plugin = gridconfig() as unknown as {
 		configResolved(config: { command: string }): void;
 		transform: Transform;
 	};

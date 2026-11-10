@@ -1,11 +1,11 @@
 {
-	"name": "@gridconfig/unplugin",
+	"name": "@gridconfig/vite",
 	"version": "0.0.0",
-	"description": "Bundler plugins that compile GridConfig layout files.",
+	"description": "The Vite plugin for GridConfig: compiles layout files and static grid calls at build time.",
 	"license": "MIT",
 	"type": "module",
 	"exports": {
-		"./vite": "./src/vite.ts",
+		".": "./src/index.ts",
 		"./client": {
 			"types": "./client.d.ts"
 		}
@@ -17,9 +17,9 @@
 	"publishConfig": {
 		"access": "public",
 		"exports": {
-			"./vite": {
-				"types": "./dist/vite.d.ts",
-				"default": "./dist/vite.js"
+			".": {
+				"types": "./dist/index.d.ts",
+				"default": "./dist/index.js"
 			},
 			"./client": {
 				"types": "./client.d.ts"

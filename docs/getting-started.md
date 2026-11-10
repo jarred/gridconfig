@@ -3,7 +3,7 @@
 ## Install
 
 ```sh
-pnpm add @gridconfig/core @gridconfig/unplugin
+pnpm add @gridconfig/core @gridconfig/vite
 pnpm add @gridconfig/svelte   # or @gridconfig/react
 ```
 
@@ -12,17 +12,17 @@ Add the Vite plugin. It compiles layouts at build time and gives their CSS to Vi
 ```ts
 // vite.config.ts
 import { defineConfig } from 'vite';
-import { layoutPlugin } from '@gridconfig/unplugin/vite';
+import { gridconfig } from '@gridconfig/vite';
 
 export default defineConfig({
-	plugins: [layoutPlugin() /* , sveltekit() or react() */]
+	plugins: [gridconfig() /* , sveltekit() or react() */]
 });
 ```
 
 For TypeScript, add the types for `.grid` imports, for example in `src/app.d.ts` or `src/vite-env.d.ts`:
 
 ```ts
-/// <reference types="@gridconfig/unplugin/client" />
+/// <reference types="@gridconfig/vite/client" />
 ```
 
 ## Your first layout
@@ -133,7 +133,7 @@ If your code compiles only objects in the browser, import `grid` from `@gridconf
 The plugin takes the options that apply to every layout: named breakpoints, a prefix for tokens, and the cascade layer.
 
 ```ts
-layoutPlugin({ breakpoints: { md: '600..' }, tokenPrefix: 'ds', layer: 'components' });
+gridconfig({ breakpoints: { md: '600..' }, tokenPrefix: 'ds', layer: 'components' });
 ```
 
 A layout that compiles in the browser gets these options from the plugin too. You do not need to do anything.
@@ -154,7 +154,7 @@ Import `grid` from this file in place of `@gridconfig/core`. To compile its stat
 // vite.config.ts
 import { options } from './src/lib/grid.ts';
 
-layoutPlugin({ ...options, modules: ['./src/lib/grid.ts'] });
+gridconfig({ ...options, modules: ['./src/lib/grid.ts'] });
 ```
 
 ## The inspector
