@@ -32,6 +32,6 @@ Other documents:
 
 - [Decisions and open questions](./decisions.md): why the spec is as it is, and what is still open.
 - [The guide](../docs/README.md): how to use GridConfig, with examples. It is not normative.
-- Two notes explore how GridConfig can work with other tools. They are not part of the spec: [Tailwind](./tailwind-plugin.md) and [StyleX](./stylex-support.md).
+- Three notes explore how GridConfig can work with other tools. They are not part of the spec: [Tailwind](./tailwind-plugin.md), [StyleX](./stylex-support.md), and [Taffy](./taffy-support.md).
 
 The spec does not describe framework usage (Svelte, React, Vue, Astro, Web Components). Each adapter has its own documentation for it.
