@@ -122,3 +122,44 @@ test('skips a file that gives the name to a different variable', () => {
 	assert.equal(findCalls(map, names).length, 1);
 	assert.equal(findCalls("const { a } = grid({ areas: 'A' });", names).length, 1);
 });
+
+test('ignores calls in an HTML comment', () => {
+	const code = [
+		"<!-- <Grid layout={grid({ areas: 'A' })} /> -->",
+		"<Grid layout={grid({ areas: 'B' })} />",
+		"<!--\n  grid({ areas: 'C' })\n-->"
+	].join('\n');
+	const calls = findCalls(code, names);
+	assert.deepEqual(
+		calls.map((c) => code.slice(c.start, c.end)),
+		["grid({ areas: 'B' })"]
+	);
+});
+
+test('in Markdown, ignores calls in a fenced code block', () => {
+	const code = [
+		"export const live = grid({ areas: 'LIVE' });",
+		'',
+		'```ts',
+		"const a = grid({ areas: 'A' });",
+		'const b = grid`areas: B`;',
+		'```',
+		'',
+		'~~~~',
+		"grid({ areas: 'C' })",
+		'```',
+		"grid({ areas: 'D' })",
+		'~~~~',
+		'',
+		"Inline `grid({ areas: 'E' })` is text too.",
+		'',
+		"<Grid layout={grid({ areas: 'AFTER' })} />"
+	].join('\n');
+	const found = (markdown: boolean) =>
+		findCalls(code, names, { markdown }).map((c) => code.slice(c.start, c.end));
+	assert.deepEqual(found(true), ["grid({ areas: 'LIVE' })", "grid({ areas: 'AFTER' })"]);
+	// The fences have no meaning in other files.
+	assert.ok(found(false).length > 2);
+	// A block that is not closed goes to the end of the file.
+	assert.deepEqual(findCalls("```\ngrid({ areas: 'A' })", names, { markdown: true }), []);
+});

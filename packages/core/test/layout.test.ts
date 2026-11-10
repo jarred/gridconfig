@@ -499,3 +499,9 @@ test('an error in an indented layout has the column of the source as it is writt
 	const plain = fails('name: c\nareas: A\ngap: 1 +\n', /operator/i);
 	assert.deepEqual(plain.range?.start, { line: 3, col: 6 });
 });
+
+test('a layer name cannot be a word that CSS reserves', () => {
+	for (const layer of ['initial', 'base.Revert', 'default'])
+		assert.throws(() => compileLayout('name: l\nareas: A', { layer }), /is reserved in CSS/);
+	assert.equal(compileLayout('name: l\nareas: A', { layer: 'base.grid' }).layer, 'base.grid');
+});

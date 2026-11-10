@@ -7,7 +7,8 @@
  * The scanner skips it, and the call compiles when the code runs. The one exception is a
  * template with `${}`, which can never work, so the scanner reports it.
  *
- * The scanner does not read text in a comment or in a string. It also skips a file that gives
+ * The scanner does not read text in a comment or in a string, or in a code block of a Markdown
+ * file. It also skips a file that gives
  * the name `grid` to a different variable or parameter, because it cannot know which calls use
  * the import. Those calls compile when the code runs.
  */
@@ -192,8 +193,11 @@ function scanTemplate(src: string, i: number): { end: number; interpolated: bool
  * Marks each character that is in a comment or in a string. Code in the `${}` of a template is
  * not marked. A quoted string stops at the end of its line, so an apostrophe in the markup of a
  * component hides only the remainder of that line.
+ *
+ * An HTML comment in the markup of a component is also marked. With `markdown`, so is a fenced
+ * code block: an example in a document is text, not a call.
  */
-export function inertMask(code: string): Uint8Array {
+export function inertMask(code: string, markdown = false): Uint8Array {
 	const mask = new Uint8Array(code.length);
 	/** One entry for each open template: the depth of {} in its current `${}`, or -1 in its text. */
 	const templates: number[] = [];
@@ -215,6 +219,19 @@ export function inertMask(code: string): Uint8Array {
 				templates[top] = 0;
 				fill(i + 2);
 			} else fill(i + 1);
+		} else if (markdown && top < 0 && (i === 0 || code[i - 1] === '\n') && fenceAt(code, i)) {
+			// The block ends at a line that starts with the same fence, or at the end of the file.
+			const fence = fenceAt(code, i)!;
+			const close = new RegExp(
+				`^ {0,3}${fence[0] === '`' ? '`' : '~'}{${fence.length},}[ \\t]*$`,
+				'm'
+			);
+			const body = code.indexOf('\n', i) + 1;
+			const end = body > 0 ? close.exec(code.slice(body)) : null;
+			fill(end ? body + end.index + end[0].length : code.length);
+		} else if (code.startsWith('<!--', i)) {
+			const end = code.indexOf('-->', i + 4);
+			fill(end < 0 ? code.length : end + 3);
 		} else if (c === '/' && code[i + 1] === '/') {
 			const end = code.indexOf('\n', i);
 			fill(end < 0 ? code.length : end);
@@ -242,6 +259,12 @@ export function inertMask(code: string): Uint8Array {
 	return mask;
 }
 
+/** The fence that opens a code block at the start of a line: three or more ` or ~. */
+function fenceAt(code: string, i: number): string | null {
+	const match = /^ {0,3}(`{3,}|~{3,})/.exec(code.slice(i, i + 40));
+	return match ? match[1] : null;
+}
+
 /** True when the code gives `name` to a variable, a function or a parameter of its own. */
 export function isRedeclared(code: string, name: string): boolean {
 	const n = name.replace(/\$/g, '\\$');
@@ -258,9 +281,13 @@ export function isRedeclared(code: string, name: string): boolean {
 	].some((pattern) => new RegExp(pattern).test(code));
 }
 
-export function findCalls(code: string, names: Set<string>): Call[] {
+export function findCalls(
+	code: string,
+	names: Set<string>,
+	options: { markdown?: boolean } = {}
+): Call[] {
 	const calls: Call[] = [];
-	const inert = inertMask(code);
+	const inert = inertMask(code, options.markdown);
 
 	for (const name of names) {
 		if (isRedeclared(code, name)) continue;

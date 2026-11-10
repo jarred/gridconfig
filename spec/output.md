@@ -206,6 +206,6 @@ The `modules` option of the build plugin is a list of the modules that export a 
 
 `debug: true` adds data for development tools. Refer to [Inspector](../packages/devtools/README.md). Use it in development only, because it makes the CSS larger.
 
-`layer` is a name, `true` (the default name `gridconfig`), or `false` (no layer). A name can have dots for a nested layer. An invalid name is an error.
+`layer` is a name, `true` (the default name `gridconfig`), or `false` (no layer). A name can have dots for a nested layer. An invalid name is an error. So is a name that CSS reserves, for example `initial` or `revert`.
 
 `css` is only the per-layout part. The page also needs the base rules from `baseCssFor(layer)`. `bundled` is `true` when a build plugin delivers the CSS. Then `css` is empty. Refer to [Delivery](#delivery). `layer` is the layer that the compiler used, or `null`. `areas` is a list of each area name. Thus generated code can give typed access.

@@ -171,7 +171,7 @@ export function gridconfig(pluginOptions: PluginOptions = {}): Plugin {
 		const runtime = core.filter((i) =>
 			i.names.some((n) => n.imported === 'grid' || n.imported === 'createGrid')
 		);
-		const calls = local.size ? findCalls(code, local) : [];
+		const calls = local.size ? findCalls(code, local, { markdown: /\.mdx?$/.test(file) }) : [];
 		if (!calls.length && !runtime.length) return;
 
 		let out = '';

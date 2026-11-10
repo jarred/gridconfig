@@ -27,7 +27,7 @@ A `.yaml` or `.yml` file with the same content is also a layout. Tools handle `.
 
 A template must always be static. An object can be static or dynamic. A build plugin compiles a template or an object at build time when each value in it is written as a literal in the code. If an object has a variable, a spread, or a call, the object compiles when the code runs.
 
-A build plugin does not change text in a comment or in a string. If a file gives the name `grid` to a different variable or parameter, the plugin cannot know which calls use the import. Then the plugin does not compile the calls in that file, and they compile when the code runs. Use an alias for the import to prevent this.
+A build plugin does not change text in a comment or in a string. In a Markdown file, it also does not change text in a fenced code block. If a file gives the name `grid` to a different variable or parameter, the plugin cannot know which calls use the import. Then the plugin does not compile the calls in that file, and they compile when the code runs. Use an alias for the import to prevent this.
 
 An area map is a multi-line string in all three forms. A list of rows is not permitted.
 

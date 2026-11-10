@@ -1,6 +1,7 @@
 /** The cascade layer that compiled layouts use unless an option says otherwise. */
 export const DEFAULT_LAYER = 'gridconfig';
 
+const RESERVED = new Set(['default', 'inherit', 'initial', 'unset', 'revert', 'revert-layer']);
 const LAYER_NAME = /^[A-Za-z_][\w-]*(?:\.[A-Za-z_][\w-]*)*$/;
 
 /** Turns the `layer` option into a layer name, or null for no layer. */
@@ -8,6 +9,10 @@ export function resolveLayer(layer: boolean | string | undefined): string | null
 	if (layer === false) return null;
 	if (layer === undefined || layer === true) return DEFAULT_LAYER;
 	if (!LAYER_NAME.test(layer)) throw new Error(`Invalid layer name "${layer}"`);
+	// CSS does not permit these words as the name of a layer.
+	for (const part of layer.split('.'))
+		if (RESERVED.has(part.toLowerCase()))
+			throw new Error(`Invalid layer name "${layer}": "${part}" is reserved in CSS`);
 	return layer;
 }
 
