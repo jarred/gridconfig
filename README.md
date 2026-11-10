@@ -52,16 +52,16 @@ With the Vite plugin, static layouts compile at build time, and their CSS is bun
 
 ## Repository structure
 
-| Path                   | Package                             | What it is                                                                                                     |
-| ---------------------- | ----------------------------------- | -------------------------------------------------------------------------------------------------------------- |
-| `spec/`                |                                     | The spec, the test fixtures (`spec/fixtures`), and two notes on Tailwind and StyleX (explorations, not plans). |
-| `packages/core`        | `@gridconfig/core`                  | Parser, compiler, value grammar, `grid`, types. `./runtime` has the parts that need no YAML parser.            |
-| `packages/unplugin`    | `@gridconfig/unplugin`              | Bundler plugins. Vite for now: loads `.grid` files and compiles static `grid` calls.                           |
-| `packages/svelte`      | `@gridconfig/svelte`                | `Grid` component for Svelte 5                                                                                  |
-| `packages/react`       | `@gridconfig/react`                 | `Grid` component for React 19                                                                                  |
-| `packages/devtools`    | `@gridconfig/devtools`              | Inspector overlay for the browser: areas, authored tracks, steps, resize and checks of the markup.             |
-| `packages/conformance` | `@gridconfig/conformance` (private) | Loads the fixtures in Chromium and checks the layout the browser makes.                                        |
-| `apps/site`            | `@gridconfig/site`                  | The gridconfig.dev site: docs and playground (currently a demo page)                                           |
+| Path                   | Package                             | What it is                                                                                                                                                                         |
+| ---------------------- | ----------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `spec/`                |                                     | The spec, the test fixtures (`spec/fixtures`), and two notes on Tailwind and StyleX (explorations, not plans).                                                                     |
+| `packages/core`        | `@gridconfig/core`                  | Parser, compiler, value grammar, `grid`, types. `./object` is core for layouts written as objects, without the YAML parser. `./runtime` has the small parts that an adapter needs. |
+| `packages/unplugin`    | `@gridconfig/unplugin`              | Bundler plugins. Vite for now: loads `.grid` files and compiles static `grid` calls.                                                                                               |
+| `packages/svelte`      | `@gridconfig/svelte`                | `Grid` component for Svelte 5                                                                                                                                                      |
+| `packages/react`       | `@gridconfig/react`                 | `Grid` component for React 19                                                                                                                                                      |
+| `packages/devtools`    | `@gridconfig/devtools`              | Inspector overlay for the browser: areas, authored tracks, steps, resize and checks of the markup.                                                                                 |
+| `packages/conformance` | `@gridconfig/conformance` (private) | Loads the fixtures in Chromium and checks the layout the browser makes.                                                                                                            |
+| `apps/site`            | `@gridconfig/site`                  | The gridconfig.dev site: docs and playground (currently a demo page)                                                                                                               |
 
 Planned: `cli`, `vue`, `astro`, `element` (Web Components), an editor extension for `.grid` files, and `examples/`.
 

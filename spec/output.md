@@ -183,6 +183,8 @@ baseCssFor(layer: string | null): string  // the shared base rules in a given la
 
 `options`: `tokenPrefix`, `tokenVar`, `defaultName`, `layer`, `debug`, `breakpoints`. The tag form takes no options of its own.
 
+**Entries.** `@gridconfig/core` has all of the API. `@gridconfig/core/object` is the same API without the YAML parser, for code that writes layouts as objects. Its `grid` and `createGrid` take an object only, it has no `parseLayout`, and its `compileLayout` takes a parsed layout only. A build plugin compiles the static calls of its `grid` in the same way. `@gridconfig/core/runtime` has only the parts that an adapter and a development tool need: the attribute names, the base rules, and the functions that match a step.
+
 **Options of a project.** All the layouts of a project must compile with the same `breakpoints`, `tokenPrefix`, and `layer`, at build time and when the code runs. There are two ways to do this, and a project can use both.
 
 - A build plugin gives its options to the page. `grid` and `createGrid` use them as defaults for each layout that compiles when the code runs. The plugin gives `tokenPrefix`, `layer`, and `breakpoints`, and `debug` in development. It cannot give `tokenVar`, because `tokenVar` is a function. The options are in `globalThis[Symbol.for('gridconfig.options')]`.

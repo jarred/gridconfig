@@ -274,3 +274,11 @@ test('adds debug data when the dev server runs, and not in a build', () => {
 	assert.equal(run('build').debug, undefined);
 	assert.equal(run('serve').debug.name, 'd');
 });
+
+test('compiles the static calls of the grid of @gridconfig/core/object', () => {
+	const code =
+		"import { grid } from '@gridconfig/core/object';\nconst a = grid({ name: 'ob', areas: 'A' });";
+	const out = must(setup().transform(code, '/x/a.ts')).code;
+	assert.match(out, /const a = \(\{"name":"ob"/);
+	assert.ok(out.split('\n')[0].includes('import "virtual:gridconfig/layout.ob.css";'));
+});

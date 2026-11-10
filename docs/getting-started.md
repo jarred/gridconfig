@@ -126,6 +126,8 @@ const same = grid({ areas: 'A', 600: { areas: 'A B' } });
 
 With the Vite plugin, a static `grid` call compiles at build time, as a `.grid` file does. Without the plugin, or when the object is built from variables, it compiles in the browser and `Grid` injects its CSS.
 
+If your code compiles only objects in the browser, import `grid` from `@gridconfig/core/object`. It is the same function without the template form, and it does not ship the YAML parser to the browser.
+
 ## Options for every layout
 
 The plugin takes the options that apply to every layout: named breakpoints, a prefix for tokens, and the cascade layer.

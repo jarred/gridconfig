@@ -22,6 +22,8 @@ const baseId = (layer: string | null) => `${VIRTUAL}base.${layer ?? '-'}.css`;
 const layoutId = (name: string) => `${VIRTUAL}layout.${name}.css`;
 
 const CORE = '@gridconfig/core';
+/** The entries of core that export `grid`. */
+const CORE_ENTRIES = new Set([CORE, `${CORE}/object`]);
 /** A module that sets the options of the plugin as the project options of the page. */
 const OPTIONS_ID = `${VIRTUAL}options`;
 
@@ -265,9 +267,11 @@ export function layoutPlugin(pluginOptions: PluginOptions = {}): Plugin {
 			if (!code.includes(CORE) && !(modules.length && /\bgrid\b/.test(code))) return;
 
 			const imports = namedImports(code);
-			const core = imports.filter((i) => i.source === CORE);
+			const core = imports.filter((i) => CORE_ENTRIES.has(i.source));
 			const others = modules.length
-				? imports.filter((i) => i.source !== CORE && i.names.some((n) => n.imported === 'grid'))
+				? imports.filter(
+						(i) => !CORE_ENTRIES.has(i.source) && i.names.some((n) => n.imported === 'grid')
+					)
 				: [];
 			if (!others.length) return rewrite(this, code, file, core, core);
 

@@ -6,6 +6,7 @@
 	"type": "module",
 	"exports": {
 		".": "./src/index.ts",
+		"./object": "./src/object.ts",
 		"./runtime": "./src/runtime.ts"
 	},
 	"files": [
@@ -17,6 +18,10 @@
 			".": {
 				"types": "./dist/index.d.ts",
 				"default": "./dist/index.js"
+			},
+			"./object": {
+				"types": "./dist/object.d.ts",
+				"default": "./dist/object.js"
 			},
 			"./runtime": {
 				"types": "./dist/runtime.d.ts",

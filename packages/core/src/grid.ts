@@ -1,32 +1,9 @@
-import { PROJECT_OPTIONS } from './attributes.ts';
-import { compileLayout } from './compile.ts';
-import { LayoutError } from './errors.ts';
-import { parseLayoutObject } from './model.ts';
+import { makeGrid } from './grid-base.ts';
+import type { BreakpointNames, Grid } from './grid-base.ts';
 import { parseLayout } from './parse.ts';
-import type { CompileOptions, CompiledLayout, LayoutInput } from './types.ts';
+import type { CompileOptions } from './types.ts';
 
-function isTemplate(value: unknown): value is TemplateStringsArray {
-	return Array.isArray(value) && 'raw' in value;
-}
-
-/** The `grid` function: a tag for a static template, and a function for an object. */
-export type Grid<P extends string = never> = {
-	(strings: TemplateStringsArray, ...values: unknown[]): CompiledLayout;
-	<const B extends string = never>(
-		input: LayoutInput<B, P>,
-		options?: CompileOptions
-	): CompiledLayout;
-};
-
-/**
- * The options that a build plugin gives to the page. They are the defaults of each layout that
- * compiles when the code runs. Thus that layout uses the same breakpoints, token prefix and
- * layer as the layouts that the plugin compiles.
- */
-function projectOptions(): CompileOptions {
-	const store = globalThis as { [key: symbol]: CompileOptions | undefined };
-	return store[Symbol.for(PROJECT_OPTIONS)] ?? {};
-}
+export type { Grid, ObjectGrid } from './grid-base.ts';
 
 /**
  * Makes a `grid` function with options of its own, for example the breakpoints of a project.
@@ -45,20 +22,8 @@ function projectOptions(): CompileOptions {
  */
 export function createGrid<const O extends CompileOptions>(
 	defaults: O = {} as O
-): Grid<Extract<keyof O['breakpoints'], string>> {
-	return (first: TemplateStringsArray | object, ...rest: unknown[]): CompiledLayout => {
-		const template = isTemplate(first);
-		if (template && rest.length)
-			throw new LayoutError(
-				'A grid template cannot contain ${} expressions: layouts must be static'
-			);
-		const own = template ? undefined : (rest[0] as CompileOptions | undefined);
-		const options = { ...projectOptions(), ...defaults, ...own };
-		return compileLayout(
-			template ? parseLayout(first.raw.join(''), options) : parseLayoutObject(first, options),
-			options
-		);
-	};
+): Grid<BreakpointNames<O>> {
+	return makeGrid(defaults, parseLayout) as Grid<BreakpointNames<O>>;
 }
 
 /**

@@ -10,6 +10,7 @@ What is built, and what is planned. The format is in the [spec](./spec/spec.md).
 - The Vite plugin (`packages/unplugin`). It loads `.grid` files and `.yaml?grid` imports. It replaces each static `grid` template and object with the compiled result. It only looks at files that import `grid` from `@gridconfig/core`. It reports an error when two files give the same layout name.
 - The Vite plugin delivers the CSS of each layout that it compiles as CSS modules. Refer to [Delivery](./spec/output.md#delivery).
 - The Svelte `Grid` component (`packages/svelte`) and the React `Grid` component (`packages/react`, React 19). They use the `data-grid-*` attributes, and inject CSS only for a layout that compiled when the code ran.
+- A core entry without the YAML parser (`@gridconfig/core/object`), for code that writes layouts as objects. `grid` and `createGrid` take an object only there.
 - The inspector (`packages/devtools`). Refer to [Inspector](./packages/devtools/README.md). Browser tests cover the drawing, the select, the handles, and the checks of the markup.
 - Browser tests (`packages/conformance`). Each fixture in `spec/fixtures` is a `.grid` file and a list of expected results at many container sizes. The tests load the compiled CSS in Chromium and compare the used tracks, the gaps, the position of each area, and the computed flow properties of each area. Other tests record how the CSS interacts with page CSS, cascade layers, and resets.
 
@@ -18,9 +19,8 @@ What is built, and what is planned. The format is in the [spec](./spec/spec.md).
 1. Typed area access, the JSON Schema, `areaColor`, and the CLI.
 2. Plugins for bundlers other than Vite.
 3. The editor extension.
-4. A core entry point without the YAML parser, for code that uses only objects.
-5. The shadow-DOM selector strategy for Web Components.
-6. More browser fixtures: nested layouts, and browsers other than Chromium.
+4. The shadow-DOM selector strategy for Web Components.
+5. More browser fixtures: nested layouts, and browsers other than Chromium.
 
 ## Tooling (planned)
 
