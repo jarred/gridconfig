@@ -34,10 +34,14 @@ function countTracks(list: string): number | null {
  * width. Rows are equal parts of the height when the container has a height (`size`). With
  * `inline-size`, the height comes from the content, and `1fr` rows would all get the height of
  * the highest row. Thus each row is `auto`: it gets the height of its content.
+ *
+ * An equal part is `minmax(0, 1fr)`, not `1fr`. The minimum of `1fr` is the size of the content,
+ * so a long word or a wide image would make its track larger than the others.
  */
+const EQUAL = 'minmax(0, 1fr)';
 function infer(areas: string[][], axis: Axis, container: Layout['container']) {
-	if (axis === 'cols') return `repeat(${areas[0].length}, 1fr)`;
-	return `repeat(${areas.length}, ${container === 'size' ? '1fr' : 'auto'})`;
+	if (axis === 'cols') return `repeat(${areas[0].length}, ${EQUAL})`;
+	return `repeat(${areas.length}, ${container === 'size' ? EQUAL : 'auto'})`;
 }
 
 function negated(step: Step): string {

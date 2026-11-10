@@ -192,9 +192,10 @@ The area map is a multi-line string. Each line is a row.
 - Spaces in `()`, `{}`, or `[]` do not split tokens. Thus `minmax(100px, 1fr)` is one track, and `[main-start content-start]` is one set of line names. Line names are not tracks, and the compiler does not count them.
 - A track list cannot have operators. Use `calc()` for one track.
 - A step can set `areas` and not set `cols` or `rows`. Then the compiler calculates the missing item from the area map, and writes it in the output of that step:
-  - The columns are `repeat(N, 1fr)`.
-  - With `container: size`, the rows are `repeat(N, 1fr)`. The container has a height, and the rows are equal parts of it.
+  - The columns are `repeat(N, minmax(0, 1fr))`: equal parts of the width.
+  - With `container: size`, the rows are `repeat(N, minmax(0, 1fr))`. The container has a height, and the rows are equal parts of it.
   - With `container: inline-size`, the rows are `repeat(N, auto)`. The height comes from the content, and each row gets the height of its content. A `1fr` row in a grid with no definite height gets the height of the highest row. Thus `1fr` would make all the rows as high as the highest one.
+  - An equal part is `minmax(0, 1fr)`, not `1fr`. The minimum of a `1fr` track is the size of its content. Thus a long word or a wide image would make its track larger than the others. With `minmax(0, 1fr)`, the tracks stay equal, and content that is too large overflows its cell. A `1fr` that a person writes in `cols` or `rows` does not change.
 - If the compiler knows the number of tracks, the number must be the same as in the area map. The compiler does not count `auto-fill` and `auto-fit`. Thus it does not check them.
 
 ## Values

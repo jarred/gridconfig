@@ -73,7 +73,7 @@ areas: A
 	// 200x200 omits `cols`, so it is inferred and emitted again
 	assert.match(
 		css,
-		/@container hero \(min-width: 200px\) and \(min-height: 200px\) \{\n {2}\[data-grid-layout="hero"\] \{\n {4}--grid-gap: var\(--space-2\);\n {4}grid-template-columns: repeat\(2, 1fr\);\n {4}grid-template-rows: 1fr 40px;\n {4}grid-template-areas: 'A A' '\. B';/
+		/@container hero \(min-width: 200px\) and \(min-height: 200px\) \{\n {2}\[data-grid-layout="hero"\] \{\n {4}--grid-gap: var\(--space-2\);\n {4}grid-template-columns: repeat\(2, minmax\(0, 1fr\)\);\n {4}grid-template-rows: 1fr 40px;\n {4}grid-template-areas: 'A A' '\. B';/
 	);
 	assert.match(
 		css,
@@ -319,10 +319,10 @@ test('debug gives the steps in cascade order, with inferred values', () => {
 		debug.steps.map((s) => s.key),
 		[null, '100x100', '200x100']
 	);
-	assert.equal(debug.steps[0].cols, 'repeat(1, 1fr)');
+	assert.equal(debug.steps[0].cols, 'repeat(1, minmax(0, 1fr))');
 	assert.equal(debug.steps[0].gap, '0');
 	assert.equal(debug.steps[1].gap, '4px');
-	assert.equal(debug.steps[1].cols, 'repeat(2, 1fr)');
+	assert.equal(debug.steps[1].cols, 'repeat(2, minmax(0, 1fr))');
 	assert.deepEqual(debug.steps[1].areas, [['A', 'B']]);
 	assert.deepEqual(debug.steps[2].when, [{ w: { min: 200 }, h: { min: 100 } }]);
 	assert.equal(debug.steps[0].when, undefined);
@@ -443,20 +443,20 @@ test('line names are not tracks', () => {
 	fails('name: l\ncols: "[a b 200 1fr"\nareas: A B', /Unbalanced/);
 });
 
-test('calculated rows are auto with inline-size, and 1fr with size', () => {
+test('calculated tracks: equal columns, auto rows with inline-size, equal rows with size', () => {
 	const stack = 'areas: |\n  A\n  B\n  C\n400:\n  areas: |\n    A B\n    A C\n';
 	const inline = compileLayout(`name: i\n${stack}`).css;
 	assert.match(
 		inline,
-		/grid-template-columns: repeat\(1, 1fr\);\n\s*grid-template-rows: repeat\(3, auto\);/
+		/grid-template-columns: repeat\(1, minmax\(0, 1fr\)\);\n\s*grid-template-rows: repeat\(3, auto\);/
 	);
 	assert.match(
 		inline,
-		/grid-template-columns: repeat\(2, 1fr\);\n\s*grid-template-rows: repeat\(2, auto\);/
+		/grid-template-columns: repeat\(2, minmax\(0, 1fr\)\);\n\s*grid-template-rows: repeat\(2, auto\);/
 	);
 	const sized = compileLayout(`name: s\ncontainer: size\n${stack}`).css;
-	assert.match(sized, /grid-template-rows: repeat\(3, 1fr\);/);
-	assert.match(sized, /grid-template-rows: repeat\(2, 1fr\);/);
+	assert.match(sized, /grid-template-rows: repeat\(3, minmax\(0, 1fr\)\);/);
+	assert.match(sized, /grid-template-rows: repeat\(2, minmax\(0, 1fr\)\);/);
 	// A step that sets `rows` keeps them.
 	assert.match(
 		compileLayout(`name: r\nrows: 1fr*3\n${stack}`).css,

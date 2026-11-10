@@ -71,8 +71,8 @@ This is example output for the `hero` example in the [spec overview](./spec.md).
 	[data-grid-layout='hero'] {
 		--grid-gap: 0;
 		--grid-padding: 0;
-		grid-template-columns: repeat(1, 1fr);
-		grid-template-rows: repeat(1, 1fr);
+		grid-template-columns: repeat(1, minmax(0, 1fr));
+		grid-template-rows: repeat(1, minmax(0, 1fr));
 		grid-template-areas: 'A';
 		--grid-step: base;
 	}
@@ -86,8 +86,8 @@ This is example output for the `hero` example in the [spec overview](./spec.md).
 	@container hero (min-width: 100px) and (min-height: 100px) {
 		[data-grid-layout='hero'] {
 			--grid-gap: 4px;
-			grid-template-columns: repeat(2, 1fr);
-			grid-template-rows: repeat(2, 1fr);
+			grid-template-columns: repeat(2, minmax(0, 1fr));
+			grid-template-rows: repeat(2, minmax(0, 1fr));
 			grid-template-areas: 'A A' 'B B';
 			--grid-step: 100x100;
 		}
@@ -96,7 +96,7 @@ This is example output for the `hero` example in the [spec overview](./spec.md).
 	@container hero (min-width: 200px) and (min-height: 200px) {
 		[data-grid-layout='hero'] {
 			--grid-gap: var(--space-2);
-			grid-template-columns: repeat(2, 1fr);
+			grid-template-columns: repeat(2, minmax(0, 1fr));
 			grid-template-rows: 1fr 40px;
 			grid-template-areas: 'A A' '. B';
 			--grid-step: 200x200;

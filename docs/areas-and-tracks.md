@@ -39,7 +39,7 @@ areas: |
   ....DDDD
 ```
 
-This map has 8 columns and 5 rows. Each column is `1fr` unless you set `cols`.
+This map has 8 columns and 5 rows. The columns are equal parts of the width unless you set `cols`.
 
 ## Hidden areas
 
@@ -61,7 +61,7 @@ areas: |
 
 ## Columns and rows
 
-Without `cols` or `rows`, the area map gives the count. Each column is `1fr`. Each row is as high as its content. With `container: size`, the layout has a fixed height, and each row is `1fr` of it. Set `cols` and `rows` when you need other sizes:
+Without `cols` or `rows`, the area map gives the count. The columns are equal parts of the width. Each row is as high as its content. With `container: size`, the layout has a fixed height, and the rows are equal parts of it. An equal part does not grow with its content: content that is too wide overflows its cell. Set `cols` and `rows` when you need other sizes, or when the content must set the size of a track:
 
 ```yaml
 cols: 200 1fr
@@ -83,7 +83,7 @@ areas: |
 
 The number of tracks must match the area map. The compiler checks this, also across steps.
 
-A step that sets `areas` and not `cols` gets `1fr` columns for its new map. Columns from a smaller step do not carry over to a map of a different size. A step that sets only `cols` keeps the map that is active.
+A step that sets `areas` and not `cols` gets equal columns for its new map. Columns from a smaller step do not carry over to a map of a different size. A step that sets only `cols` keeps the map that is active.
 
 ## Gap and padding
 
