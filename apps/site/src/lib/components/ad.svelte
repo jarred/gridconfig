@@ -37,32 +37,27 @@
 		size = 'mpu',
 		width,
 		height,
-		logoText = 'gridconfig',
 		headline = 'Dynamic Layouts',
 		copy = 'Harness the power of CSS Grids and container queries.',
 		cta = 'Learn more',
-		href = 'https://gridconfig.dev',
-		image,
-		alt = ''
+		href = 'https://gridconfig.dev'
 	}: {
 		size?: AdSize;
 		/** Overrides the width of `size`. */
 		width?: number;
 		/** Overrides the height of `size`. */
 		height?: number;
-		logo?: string;
 		headline?: string;
 		copy?: string;
 		cta?: string;
 		href?: string;
-		image?: string;
-		alt?: string;
 	} = $props();
 
 	const w = $derived(width ?? adSizes[size][0]);
 	const h = $derived(height ?? adSizes[size][1]);
 </script>
 
+<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -- the link goes to a different site -->
 <a class="ad" {href} style:width="{w}px" style:height="{h}px" aria-label="{headline}. {cta}">
 	<Grid {layout} debug={false}>
 		<div data-grid-area="I" class="image">
