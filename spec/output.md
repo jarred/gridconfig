@@ -19,7 +19,7 @@ Part of the [GridConfig spec](./spec.md). This part is normative. It describes t
 - The host is the query container, because a grid cannot query its own size.
 - Children must be **direct children** of the grid element. Each child gives its cell with `data-grid-area`.
 - The layout does not place a child that has no `data-grid-area`.
-- Layouts can nest. A nested host is in a cell. The shared base rules give it `width: 100%; height: 100%`.
+- Layouts can nest. A nested host is in a cell. The shared base rules give it `width: 100%; height: 100%`. The host can be the area element: it then has `data-grid-host` and `data-grid-area`. An adapter gives this as an `area` setting of its grid component.
 
 ## CSS contract
 

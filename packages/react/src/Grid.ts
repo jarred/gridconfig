@@ -6,6 +6,11 @@ import type { CompiledLayout } from '@gridconfig/core';
 
 export type GridProps = {
 	layout: CompiledLayout;
+	/**
+	 * The area of this grid in the layout of its parent. It goes on the host element as
+	 * `data-grid-area`, so a nested grid needs no element around it.
+	 */
+	area?: string;
 	/** Opens the inspector on this grid when the page loads. Only has an effect in development. */
 	debug?: boolean;
 	children?: ReactNode;
@@ -43,7 +48,7 @@ function useStyles(layout: CompiledLayout) {
 }
 
 /** The host is the query container, because a grid cannot query its own size. Props go to the grid. */
-export function Grid({ layout, debug = false, children, ...rest }: GridProps) {
+export function Grid({ layout, area, debug = false, children, ...rest }: GridProps) {
 	useStyles(layout);
 	// The inspector is for development. A production build removes this code.
 	useEffect(() => {
@@ -56,7 +61,11 @@ export function Grid({ layout, debug = false, children, ...rest }: GridProps) {
 		typeof document === 'undefined' ? serverStyles(layout) : null,
 		createElement(
 			'div',
-			{ 'data-grid-host': layout.name, 'data-grid-debug': DEV && debug ? '' : undefined },
+			{
+				'data-grid-host': layout.name,
+				'data-grid-area': area,
+				'data-grid-debug': DEV && debug ? '' : undefined
+			},
 			createElement('div', { ...rest, 'data-grid-layout': layout.name }, children)
 		)
 	);

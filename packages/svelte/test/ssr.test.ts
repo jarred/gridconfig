@@ -38,3 +38,9 @@ test('a bundled layout writes no CSS', () => {
 	const bundled = { ...layout, css: '', bundled: true as const };
 	assert.doesNotMatch(render(Grid, { props: { layout: bundled } }).head, /<style/);
 });
+
+test('the area prop names the area of a nested grid on its host', () => {
+	const { body } = render(Grid, { props: { layout, area: 'main' } });
+	assert.match(body, /<div data-grid-host="card" data-grid-area="main">/);
+	assert.doesNotMatch(render(Grid, { props: { layout } }).body, /data-grid-area/);
+});

@@ -78,12 +78,12 @@ An area can hold a `Grid` with its own layout. The nested layout measures its ar
 
 ```svelte
 <Grid layout={page}>
-	<div data-grid-area="main">
-		<Grid layout={card}>…</Grid>
-	</div>
+	<Grid layout={card} area="main">…</Grid>
 </Grid>
 ```
 
-The nested `Grid` fills the area element. Props on `Grid` go to its grid element, so put `data-grid-area` on a wrapper, as above.
+The `area` prop of `Grid` gives the nested grid its area in the layout of the parent. Do not use `data-grid-area` on a `Grid` for this: the other props of `Grid` go to its inner grid element, and the area must be on the outer one.
+
+The nested `Grid` fills its area. If the area must hold other content too, put the `Grid` in an element with `data-grid-area`.
 
 Next: [Examples](./examples.md).

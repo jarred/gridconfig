@@ -86,7 +86,7 @@ export function Profile({ user }) {
 }
 ```
 
-Other props of `Grid` (`class`, `id`, event handlers) go to the grid element.
+Other props of `Grid` (`class`, `id`, event handlers) go to the grid element. The `area` prop is for a [nested layout](./styling.md#nested-layouts).
 
 `Grid` renders two elements. The outer one is the container that the steps measure. The inner one is the grid. A grid cannot measure itself, so it needs the outer element.
 

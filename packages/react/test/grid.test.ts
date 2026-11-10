@@ -59,3 +59,17 @@ test('two layouts give one element each, and share the base', () => {
 	]);
 	assert.equal(html.match(/<style/g)?.length, 3);
 });
+
+test('the area prop names the area of a nested grid on its host', () => {
+	const bundled = { ...layout, css: '', bundled: true as const };
+	const inner = { ...bundled, name: 'inner' };
+	const html = renderToString(
+		createElement(Grid, { layout: bundled }, createElement(Grid, { layout: inner, area: 'A' }))
+	);
+	assert.match(
+		html,
+		/<div data-grid-layout="card"><div data-grid-host="inner" data-grid-area="A"><div data-grid-layout="inner">/
+	);
+	// Without the prop, the host has no area.
+	assert.doesNotMatch(renderToString(createElement(Grid, { layout: bundled })), /data-grid-area/);
+});

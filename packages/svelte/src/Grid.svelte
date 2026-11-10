@@ -8,11 +8,17 @@
 
 	let {
 		layout,
+		area,
 		debug = false,
 		children,
 		...rest
 	}: {
 		layout: CompiledLayout;
+		/**
+		 * The area of this grid in the layout of its parent. It goes on the host element as
+		 * `data-grid-area`, so a nested grid needs no element around it.
+		 */
+		area?: string;
 		/** Opens the inspector on this grid when the page loads. Only has an effect in development. */
 		debug?: boolean;
 		children?: Snippet;
@@ -40,7 +46,11 @@
 </svelte:head>
 
 <!-- The grid can't be its own query container, so the host element is the container. -->
-<div data-grid-host={layout.name} data-grid-debug={DEV && debug ? '' : undefined}>
+<div
+	data-grid-host={layout.name}
+	data-grid-area={area}
+	data-grid-debug={DEV && debug ? '' : undefined}
+>
 	<div {...rest} data-grid-layout={layout.name}>
 		{@render children?.()}
 	</div>
