@@ -1,4 +1,4 @@
-export { STEP_PROPERTY, attributes } from './attributes.ts';
+export { GAP_PROPERTY, PADDING_PROPERTY, STEP_PROPERTY, attributes } from './attributes.ts';
 export { baseCss, baseCssFor } from './base.ts';
 export { compileLayout } from './compile.ts';
 export { DEBUG_PROPERTY } from './debug.ts';

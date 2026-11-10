@@ -1,3 +1,4 @@
+import { GAP_PROPERTY, PADDING_PROPERTY } from './attributes.ts';
 import { LayoutError } from './errors.ts';
 import { parseFlow } from './flow.ts';
 import type { Range } from './errors.ts';
@@ -30,8 +31,58 @@ const RESERVED_AREAS = new Set([
 	'inherit',
 	'initial',
 	'unset',
-	'revert'
+	'revert',
+	'revert-layer'
 ]);
+/** Words that CSS does not permit as a container name. The layout name is the container name. */
+const RESERVED_NAMES = new Set([
+	'none',
+	'and',
+	'or',
+	'not',
+	'default',
+	'inherit',
+	'initial',
+	'unset',
+	'revert',
+	'revert-layer'
+]);
+
+/** A value that uses the custom property that it sets is a cycle, and CSS makes it invalid. */
+function noSelfReference(css: string, property: string, setting: string, path: Path) {
+	if (new RegExp(`var\\(\\s*${property}\\s*[,)]`).test(css))
+		throw new LayoutError(
+			`\`${setting}\` cannot use ${property}: the layout sets ${property} from this value`,
+			path
+		);
+}
+
+/**
+ * `css` is raw declarations. The compiler does not parse them, but they must stay inside the rule
+ * of the grid element: each {, string and comment must be closed, and no } can close the rule.
+ */
+function checkCss(css: string, path: Path) {
+	if (/<\/style/i.test(css)) throw new LayoutError('`css` must not contain "</style"', path);
+	let depth = 0;
+	for (let i = 0; i < css.length; i++) {
+		const ch = css[i];
+		if (ch === '\\') i++;
+		else if (ch === '"' || ch === "'") {
+			for (i++; i < css.length && css[i] !== ch; i++) {
+				if (css[i] === '\\') i++;
+				else if (css[i] === '\n') break;
+			}
+			if (css[i] !== ch) throw new LayoutError('`css` has a string that is not closed', path);
+		} else if (ch === '/' && css[i + 1] === '*') {
+			const end = css.indexOf('*/', i + 2);
+			if (end < 0) throw new LayoutError('`css` has a comment that is not closed', path);
+			i = end + 1;
+		} else if (ch === '{') depth++;
+		else if (ch === '}' && --depth < 0)
+			throw new LayoutError('`css` has a "}" with no "{" before it', path);
+	}
+	if (depth > 0) throw new LayoutError('`css` has a "{" that is not closed', path);
+}
 
 /** `100 1fr` -> 100px 1fr; `1fr*3` -> repeat(3, 1fr). The area map gives the track count. */
 function tracks(value: unknown, options: CompileOptions, path: Path): string {
@@ -130,13 +181,20 @@ function parseStep(
 	}
 	if (raw.cols != null) step.cols = tracks(raw.cols, options, at('cols'));
 	if (raw.rows != null) step.rows = tracks(raw.rows, options, at('rows'));
-	if (raw.gap != null) step.gap = compileValue(raw.gap, options, at('gap'));
-	if (raw.padding != null) step.padding = compileValue(raw.padding, options, at('padding'));
+	if (raw.gap != null) {
+		step.gap = compileValue(raw.gap, options, at('gap'));
+		noSelfReference(step.gap, GAP_PROPERTY, 'gap', at('gap'));
+	}
+	if (raw.padding != null) {
+		step.padding = compileValue(raw.padding, options, at('padding'));
+		noSelfReference(step.padding, PADDING_PROPERTY, 'padding', at('padding'));
+	}
 	if (raw.areas != null) step.areas = parseAreas(raw.areas, at('areas'));
 	if (raw.css != null) {
-		step.css = String(raw.css).trim();
-		if (/<\/style/i.test(step.css))
-			throw new LayoutError('`css` must not contain "</style"', at('css'));
+		if (typeof raw.css !== 'string')
+			throw new LayoutError('`css` must be a string of declarations', at('css'));
+		step.css = raw.css.trim();
+		checkCss(step.css, at('css'));
 	}
 	if (raw.flow != null) step.flow = parseFlow(raw.flow, options, at('flow'));
 	return step;
@@ -198,7 +256,7 @@ function hash(text: string): string {
 function toIdentifier(text: string): string | undefined {
 	const id = text.replace(/[^\w-]+/g, '-').replace(/^-+|-+$/g, '');
 	if (!id) return undefined;
-	return /^[A-Za-z_]/.test(id) ? id : `_${id}`;
+	return /^[A-Za-z_]/.test(id) && !RESERVED_NAMES.has(id.toLowerCase()) ? id : `_${id}`;
 }
 
 const RESERVED_BREAKPOINTS = new Set(['base', ...TOP_LEVEL]);
@@ -267,6 +325,10 @@ export function parseLayoutObject(
 				`gc-${hash(stable(obj))}`;
 		} else if (typeof name !== 'string' || !IDENT.test(name))
 			throw new LayoutError('`name` must be a valid identifier', ['name']);
+		else if (RESERVED_NAMES.has(name.toLowerCase()))
+			throw new LayoutError(`"${name}" is reserved in CSS and cannot be the name of a layout`, [
+				'name'
+			]);
 
 		const container = obj.container ?? 'inline-size';
 		if (container !== 'size' && container !== 'inline-size')

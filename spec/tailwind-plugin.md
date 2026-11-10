@@ -47,7 +47,7 @@ The DOM uses three attributes: `data-grid-host`, `data-grid-layout`, and `data-g
 
 For normal declarations, unlayered CSS wins over layered CSS. This is true even when the layered rule has higher specificity.
 
-Example: a person writes `<div data-grid-layout="hero" class="gap-4">`. The utility `gap-4` is in the `utilities` layer. If the GridConfig rule `gap: var(--gap)` has no layer, it wins. The utility has no effect and gives no error.
+Example: a person writes `<div data-grid-layout="hero" class="gap-4">`. The utility `gap-4` is in the `utilities` layer. If the GridConfig rule `gap: var(--grid-gap)` has no layer, it wins. The utility has no effect and gives no error.
 
 The fix is the `layer` compile option. The compiler puts the base and the per-layout CSS in a named layer. The default name is `gridconfig`.
 

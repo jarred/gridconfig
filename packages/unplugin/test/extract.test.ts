@@ -89,3 +89,36 @@ test('supports an alias', () => {
 	const calls = findCalls('g`areas: A` + g({ areas: "B" })', new Set(['g']));
 	assert.equal(calls.length, 2);
 });
+
+test('ignores calls in comments and strings', () => {
+	const code = [
+		"// grid({ areas: 'A' })",
+		'/* grid`areas: A` */',
+		`const help = "call grid({ areas: 'A' }) to make one";`,
+		"const text = `write grid({ areas: 'A' }) ${grid({ areas: 'IN' })} here`;",
+		"const url = 'http://example.com'; const real = grid({ areas: 'R' });",
+		"<p>don't</p>",
+		'const t = grid`areas: T`;'
+	].join('\n');
+	const calls = findCalls(code, names);
+	assert.deepEqual(
+		calls.map((c) => code.slice(c.start, c.end)),
+		["grid({ areas: 'IN' })", "grid({ areas: 'R' })", 'grid`areas: T`']
+	);
+});
+
+test('skips a file that gives the name to a different variable', () => {
+	const cases = [
+		"function f(grid) { return grid({ areas: 'B' }); }",
+		"const f = (a, grid) => grid({ areas: 'B' });",
+		"const f = grid => grid({ areas: 'B' });",
+		"const { grid } = tools; grid({ areas: 'B' });",
+		"let { layout: grid } = $props(); grid({ areas: 'B' });",
+		"let grid; grid({ areas: 'B' });"
+	];
+	for (const code of cases) assert.deepEqual(findCalls(code, names), [], code);
+	// A parameter with a different name is not a new `grid`.
+	const map = "const all = items.map((x) => grid({ areas: 'A' }));";
+	assert.equal(findCalls(map, names).length, 1);
+	assert.equal(findCalls("const { a } = grid({ areas: 'A' });", names).length, 1);
+});

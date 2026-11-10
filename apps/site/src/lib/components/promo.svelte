@@ -28,7 +28,7 @@
 
 	h1,
 	p {
-		padding: var(--gap);
+		padding: var(--grid-gap);
 	}
 
 	p {

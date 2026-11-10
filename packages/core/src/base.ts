@@ -1,4 +1,4 @@
-import { attributes } from './attributes.ts';
+import { GAP_PROPERTY, PADDING_PROPERTY, attributes } from './attributes.ts';
 import { DEFAULT_LAYER, inLayer } from './layer.ts';
 
 const rules = `:where([${attributes.host}]) { width: 100%; height: 100%; }
@@ -7,8 +7,8 @@ const rules = `:where([${attributes.host}]) { width: 100%; height: 100%; }
   box-sizing: border-box;
   width: 100%;
   height: 100%;
-  gap: var(--gap);
-  padding: var(--padding);
+  gap: var(${GAP_PROPERTY});
+  padding: var(${PADDING_PROPERTY});
 }`;
 
 /**

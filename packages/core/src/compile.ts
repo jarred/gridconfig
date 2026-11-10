@@ -1,4 +1,4 @@
-import { STEP_PROPERTY, attributes } from './attributes.ts';
+import { GAP_PROPERTY, PADDING_PROPERTY, STEP_PROPERTY, attributes } from './attributes.ts';
 import { DEBUG_PROPERTY } from './debug.ts';
 import { LayoutError } from './errors.ts';
 import { flowDeclarations } from './flow.ts';
@@ -48,8 +48,8 @@ function block(selector: string, body: string[], indent = ''): string {
 
 function declarations(e: Emitted, step: Step): string[] {
 	const d: string[] = [];
-	if (e.gap !== undefined) d.push(`--gap: ${e.gap};`);
-	if (e.padding !== undefined) d.push(`--padding: ${e.padding};`);
+	if (e.gap !== undefined) d.push(`${GAP_PROPERTY}: ${e.gap};`);
+	if (e.padding !== undefined) d.push(`${PADDING_PROPERTY}: ${e.padding};`);
 	if (e.cols) d.push(`grid-template-columns: ${e.cols};`);
 	if (e.rows) d.push(`grid-template-rows: ${e.rows};`);
 	if (e.areas)
@@ -257,10 +257,14 @@ function build(layout: Layout, options: CompileOptions): CompiledLayout {
 		: undefined;
 	css[0] = hostRule(debug);
 
-	const rules = [inLayer(layer, css.join('\n')), ...hide];
+	const output = [inLayer(layer, css.join('\n')), ...hide].join('\n');
+	// The parser checks each value. This is the last guard for all of the output: an adapter can
+	// put the CSS in a <style> element, and the text must not end that element.
+	if (/<\/style/i.test(output))
+		throw new LayoutError('The compiled CSS must not contain "</style"', []);
 	return {
 		name,
-		css: rules.join('\n'),
+		css: output,
 		layer,
 		areas: [...names],
 		warnings,

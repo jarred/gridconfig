@@ -86,12 +86,12 @@ A minimum is included; a maximum is not. At each size, each setting comes from t
 
 ## In CSS
 
-| Use                                   | For                                    |
-| ------------------------------------- | -------------------------------------- |
-| `@container style(--grid-step: wide)` | style content for the active step      |
-| `var(--gap)`, `var(--padding)`        | the gap and padding of the layout      |
-| `cqw`, `cqh`, `cqmin`                 | sizes relative to the container        |
-| `@layer …, gridconfig, …;`            | the place of the layout in your layers |
+| Use                                      | For                                    |
+| ---------------------------------------- | -------------------------------------- |
+| `@container style(--grid-step: wide)`    | style content for the active step      |
+| `var(--grid-gap)`, `var(--grid-padding)` | the gap and padding of the layout      |
+| `cqw`, `cqh`, `cqmin`                    | sizes relative to the container        |
+| `@layer …, gridconfig, …;`               | the place of the layout in your layers |
 
 ## Markup
 

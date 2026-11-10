@@ -154,7 +154,7 @@ export type QueryKey =
 
 /** The settings that the base and every query step accept. */
 export type StepInput = {
-	/** A number of equal tracks, or a track list. */
+	/** A track list, for example `200 1fr` or `1fr*3`. A bare number is one track in px. */
 	cols?: number | string;
 	rows?: number | string;
 	/** A value: see the value grammar in the spec. */

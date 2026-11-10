@@ -10,3 +10,10 @@ export const attributes = {
  * query key such as "450x200". Content can target a step with `@container style(--grid-step: 450x200)`.
  */
 export const STEP_PROPERTY = '--grid-step';
+
+/**
+ * The custom properties that hold the gap and the padding of the layout on the grid element.
+ * Content can use them, for example `padding: var(--grid-gap)`.
+ */
+export const GAP_PROPERTY = '--grid-gap';
+export const PADDING_PROPERTY = '--grid-padding';

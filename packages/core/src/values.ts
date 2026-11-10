@@ -8,24 +8,28 @@ export const NUMBER = /^-?\d+(?:\.\d+)?$/;
 const CUSTOM_PROP = /^--[\w-]+$/;
 const TOKEN_PATH = /^[A-Za-z0-9_.-]+$/;
 
-/** Splits on whitespace that is not inside () or {}. Throws on unbalanced brackets. */
+/** Splits on whitespace that is not inside (), {} or []. Throws on unbalanced brackets. */
 export function splitTerms(value: string, path: Path = []): string[] {
 	const terms: string[] = [];
 	let parens = 0;
 	let braces = 0;
+	let squares = 0;
 	let current = '';
 	for (const ch of value.trim()) {
 		if (ch === '(') parens++;
 		else if (ch === ')') parens--;
 		else if (ch === '{') braces++;
 		else if (ch === '}') braces--;
-		if (parens < 0 || braces < 0) throw new LayoutError(`Unbalanced "${ch}" in "${value}"`, path);
-		if (/\s/.test(ch) && parens === 0 && braces === 0) {
+		else if (ch === '[') squares++;
+		else if (ch === ']') squares--;
+		if (parens < 0 || braces < 0 || squares < 0)
+			throw new LayoutError(`Unbalanced "${ch}" in "${value}"`, path);
+		if (/\s/.test(ch) && parens === 0 && braces === 0 && squares === 0) {
 			if (current) terms.push(current);
 			current = '';
 		} else current += ch;
 	}
-	if (parens !== 0 || braces !== 0)
+	if (parens !== 0 || braces !== 0 || squares !== 0)
 		throw new LayoutError(`Unbalanced brackets in "${value}"`, path);
 	if (current) terms.push(current);
 	return terms;
@@ -44,6 +48,22 @@ function tokenValue(tokenPath: string, options: CompileOptions, path: Path): str
 	return `var(--${prefix}${tokenPath.replaceAll('.', '-')})`;
 }
 
+/**
+ * A value goes into a declaration as it is. These characters can end the declaration, the rule
+ * or a <style> element, or start a string or a comment that hides the CSS after it.
+ */
+const UNSAFE = /[;{}<>"'\\]|\/\*/;
+
+function checked(css: string, term: string, path: Path): string {
+	const found = UNSAFE.exec(css);
+	if (found)
+		throw new LayoutError(
+			`"${term}" cannot be in a value: ${JSON.stringify(found[0])} is not permitted`,
+			path
+		);
+	return css;
+}
+
 /** Converts one term: numbers to px (or left unitless), `--x` to var(), `{token}` to var(). */
 export function convertTerm(
 	term: string,
@@ -53,8 +73,10 @@ export function convertTerm(
 ): string {
 	if (NUMBER.test(term)) return unitless ? term : px(term);
 	if (CUSTOM_PROP.test(term)) return `var(${term})`;
-	return term.replace(/\{([^{}]*)\}/g, (_, inner: string) =>
-		tokenValue(inner.trim(), options, path)
+	return checked(
+		term.replace(/\{([^{}]*)\}/g, (_, inner: string) => tokenValue(inner.trim(), options, path)),
+		term,
+		path
 	);
 }
 

@@ -95,11 +95,11 @@ areas: A B
 
 A bare number is px. `16 24` is two values, as in CSS. Each layout starts at `0` for both, and a nested layout does not get the values of its parent.
 
-The grid element also has `--gap` and `--padding` as custom properties, so the content can use them:
+The grid element also has `--grid-gap` and `--grid-padding` as custom properties, so the content can use them:
 
 ```css
 .card-body {
-	padding: var(--gap);
+	padding: var(--grid-gap);
 }
 ```
 
@@ -112,7 +112,7 @@ The grid element also has `--gap` and `--padding` as custom properties, so the c
 | `8`                           | `8px`                              |
 | `--space`                     | `var(--space)`                     |
 | `'{space.2}'`                 | `var(--space-2)`                   |
-| `--gap * 2`                   | `calc(var(--gap) * 2)`             |
+| `--space * 2`                 | `calc(var(--space) * 2)`           |
 | `'{space.2} + 4'`             | `calc(var(--space-2) + 4px)`       |
 | `clamp(4px, {space.2}, 16px)` | `clamp(4px, var(--space-2), 16px)` |
 | `4cqw`, `1rem`                | no change                          |

@@ -68,11 +68,11 @@ areas: A
 	assert.deepEqual(areas, ['A', 'B']);
 	assert.deepEqual(warnings, []);
 	assert.match(css, /\[data-grid-host="hero"\] \{ container: hero \/ size; \}/);
-	assert.match(css, /\[data-grid-layout="hero"\] \{\n {2}--gap: 0;\n {2}--padding: 0;/);
+	assert.match(css, /\[data-grid-layout="hero"\] \{\n {2}--grid-gap: 0;\n {2}--grid-padding: 0;/);
 	// 200x200 omits `cols`, so it is inferred and emitted again
 	assert.match(
 		css,
-		/@container hero \(min-width: 200px\) and \(min-height: 200px\) \{\n {2}\[data-grid-layout="hero"\] \{\n {4}--gap: var\(--space-2\);\n {4}grid-template-columns: repeat\(2, 1fr\);\n {4}grid-template-rows: 1fr 40px;\n {4}grid-template-areas: 'A A' '\. B';/
+		/@container hero \(min-width: 200px\) and \(min-height: 200px\) \{\n {2}\[data-grid-layout="hero"\] \{\n {4}--grid-gap: var\(--space-2\);\n {4}grid-template-columns: repeat\(2, 1fr\);\n {4}grid-template-rows: 1fr 40px;\n {4}grid-template-areas: 'A A' '\. B';/
 	);
 	assert.match(
 		css,
@@ -379,4 +379,65 @@ test('a step that sets nothing else still gets a block for --grid-step', () => {
 		css,
 		/@container e \(min-width: 500px\) \{\n {2}\[data-grid-layout="e"\] \{\n {4}--grid-step: 500;/
 	);
+});
+
+test('gap and padding are in --grid-gap and --grid-padding, and cannot refer to themselves', () => {
+	const { css } = compileLayout('name: g\ngap: --gap * 2\npadding: --grid-gap\nareas: A');
+	assert.match(css, /--grid-gap: calc\(var\(--gap\) \* 2\);/);
+	assert.match(css, /--grid-padding: var\(--grid-gap\);/);
+	fails('name: g\ngap: --grid-gap\nareas: A', /`gap` cannot use --grid-gap/);
+	fails('name: g\nareas: A\n600:\n  gap: --grid-gap * 2', /`gap` cannot use --grid-gap/);
+	fails(
+		'name: g\npadding: 4 var( --grid-padding , 8px)\nareas: A',
+		/`padding` cannot use --grid-padding/
+	);
+});
+
+test('a value cannot leave its declaration', () => {
+	const bad = [
+		'gap: "</style><script>alert(1)</script>"',
+		'gap: "0;position:fixed"',
+		'padding: "0 /* x"',
+		`cols: "url('x') 1fr"`,
+		'rows: "1fr\\\\"',
+		'flow:\n  A: row gap 0;x',
+		'flow:\n  A:\n    gap: "0;x"'
+	];
+	for (const setting of bad) fails(`name: v\nareas: A\n${setting}`, /cannot be in a value/);
+	assert.throws(
+		() => compileLayout('name: v\ngap: "{a.b}"\nareas: A', { tokenVar: () => '</style>' }),
+		/cannot be in a value/
+	);
+});
+
+test('css must be a string that stays in its rule', () => {
+	fails('name: c\nareas: A\ncss:\n  color: red', /`css` must be a string/);
+	fails('name: c\nareas: A\ncss: "color: red } body { display: none"', /"}" with no "{"/);
+	fails('name: c\nareas: A\ncss: "&:hover { color: red"', /"{" that is not closed/);
+	fails('name: c\nareas: A\ncss: "content: \'x"', /string that is not closed/);
+	fails('name: c\nareas: A\ncss: "color: red /* x"', /comment that is not closed/);
+	const { css } = compileLayout(
+		`name: c\nareas: A\ncss: "content: '}'; /* } */ &:hover { color: red }"`
+	);
+	assert.ok(css.includes(`content: '}'; /* } */ &:hover { color: red };`));
+});
+
+test('names that CSS reserves', () => {
+	fails('name: none\nareas: A', /"none" is reserved in CSS/);
+	fails('name: Default\nareas: A', /reserved in CSS/);
+	assert.equal(compileLayout('areas: A', { defaultName: 'none' }).name, '_none');
+	assert.equal(compileLayout('areas: A', { defaultName: 'not' }).name, '_not');
+	assert.equal(compileLayout('areas: A', { defaultName: 'nothing' }).name, 'nothing');
+	fails('name: r\nareas: revert-layer', /"revert-layer" is reserved/);
+});
+
+test('line names are not tracks', () => {
+	const { css } = compileLayout(
+		'name: l\ncols: "[full-start side-start] 200 [side-end main-start] 1fr [main-end full-end]"\nareas: A B'
+	);
+	assert.match(
+		css,
+		/grid-template-columns: \[full-start side-start\] 200px \[side-end main-start\] 1fr \[main-end full-end\];/
+	);
+	fails('name: l\ncols: "[a b 200 1fr"\nareas: A B', /Unbalanced/);
 });

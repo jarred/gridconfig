@@ -44,8 +44,8 @@ The order of layers comes from the first time that the page uses each name. A pa
 		box-sizing: border-box;
 		width: 100%;
 		height: 100%;
-		gap: var(--gap);
-		padding: var(--padding);
+		gap: var(--grid-gap);
+		padding: var(--grid-padding);
 	}
 }
 ```
@@ -58,7 +58,7 @@ The order of layers comes from the first time that the page uses each name. A pa
 - The hide rules. These are outside the layer.
 - The flow rules, if the layout has flow. Refer to [Flow output](#flow-output).
 
-The container name is the `name` of the layout. If the base step does not set `--gap` and `--padding`, they are `0`.
+The container name is the `name` of the layout. If the base step does not set `--grid-gap` and `--grid-padding`, they are `0`.
 
 This is example output for the `hero` example in the [spec overview](./spec.md). The format of the output is not a part of the contract:
 
@@ -69,8 +69,8 @@ This is example output for the `hero` example in the [spec overview](./spec.md).
 	}
 
 	[data-grid-layout='hero'] {
-		--gap: 0;
-		--padding: 0;
+		--grid-gap: 0;
+		--grid-padding: 0;
 		grid-template-columns: repeat(1, 1fr);
 		grid-template-rows: repeat(1, 1fr);
 		grid-template-areas: 'A';
@@ -85,7 +85,7 @@ This is example output for the `hero` example in the [spec overview](./spec.md).
 
 	@container hero (min-width: 100px) and (min-height: 100px) {
 		[data-grid-layout='hero'] {
-			--gap: 4px;
+			--grid-gap: 4px;
 			grid-template-columns: repeat(2, 1fr);
 			grid-template-rows: repeat(2, 1fr);
 			grid-template-areas: 'A A' 'B B';
@@ -95,7 +95,7 @@ This is example output for the `hero` example in the [spec overview](./spec.md).
 
 	@container hero (min-width: 200px) and (min-height: 200px) {
 		[data-grid-layout='hero'] {
-			--gap: var(--space-2);
+			--grid-gap: var(--space-2);
 			grid-template-columns: repeat(2, 1fr);
 			grid-template-rows: 1fr 40px;
 			grid-template-areas: 'A A' '. B';

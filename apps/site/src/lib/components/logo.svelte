@@ -164,8 +164,8 @@
 	/* The size of one cell, computed against the container of each layout. */
 	.logo :global([data-grid-layout]) {
 		--cell: min(
-			(100cqw - 2 * var(--padding)) / var(--cols),
-			(100cqh - 2 * var(--padding)) / var(--rows)
+			(100cqw - 2 * var(--grid-padding)) / var(--cols),
+			(100cqh - 2 * var(--grid-padding)) / var(--rows)
 		);
 	}
 

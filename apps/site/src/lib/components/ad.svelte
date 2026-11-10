@@ -93,7 +93,7 @@
 
 	h2,
 	div:not(.image):not([data-grid-area='L']) {
-		padding: var(--gap);
+		padding: var(--grid-gap);
 	}
 
 	.logo {

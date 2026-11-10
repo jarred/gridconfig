@@ -26,6 +26,8 @@ A `.yaml` or `.yml` file with the same content is also a layout. Tools handle `.
 
 A template must always be static. An object can be static or dynamic. A build plugin compiles a template or an object at build time when each value in it is written as a literal in the code. If an object has a variable, a spread, or a call, the object compiles when the code runs.
 
+A build plugin does not change text in a comment or in a string. If a file gives the name `grid` to a different variable or parameter, the plugin cannot know which calls use the import. Then the plugin does not compile the calls in that file, and they compile when the code runs. Use an alias for the import to prevent this.
+
 An area map is a multi-line string in all three forms. A list of rows is not permitted.
 
 ## Top level
@@ -42,6 +44,8 @@ The default `name` has two sources, in this order:
 
 1. The file name without its extension. A tool gives it to the compiler as `defaultName`. The compiler changes each character that is not valid to `-`. If the result starts with a digit, the compiler adds `_` at the start. Thus `1-hero.card.grid` becomes `_1-hero-card`.
 2. A hash of the content, written `gc-` and seven characters. The same content always gets the same name, in each of the three forms.
+
+A name must not be a word that CSS reserves for container names: `none`, `and`, `or`, `not`, `default`, `inherit`, `initial`, `unset`, `revert`, or `revert-layer`. A `name` that is one of these words is an error. If a file name gives one of these words, the compiler adds `_` at the start. Thus `none.grid` becomes `_none`.
 
 Two layouts on one page must not have the same name. A tool must report an error or add a hash when two file names are the same.
 
@@ -143,17 +147,21 @@ The compiler finds these errors:
 
 All settings are optional in a query step.
 
-| Key       | Description                                                                                                  |
-| --------- | ------------------------------------------------------------------------------------------------------------ |
-| `areas`   | The area map (below).                                                                                        |
-| `cols`    | The column tracks (below).                                                                                   |
-| `rows`    | The row tracks (below).                                                                                      |
-| `gap`     | A [value](#values). It sets `--gap` on the grid element. The grid applies `--gap` as `gap`.                  |
-| `padding` | A [value](#values). It sets `--padding` on the grid element. The grid applies `--padding` as `padding`.      |
-| `css`     | Raw declarations. The compiler adds them to the grid element in this step. It does not parse or change them. |
-| `flow`    | The layout inside each area. A map from an area name to a flow. Refer to [Flow](#flow).                      |
+| Key       | Description                                                                                                                                          |
+| --------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `areas`   | The area map (below).                                                                                                                                |
+| `cols`    | The column tracks (below).                                                                                                                           |
+| `rows`    | The row tracks (below).                                                                                                                              |
+| `gap`     | A [value](#values). It sets `--grid-gap` on the grid element. The grid applies `--grid-gap` as `gap`.                                                |
+| `padding` | A [value](#values). It sets `--grid-padding` on the grid element. The grid applies `--grid-padding` as `padding`.                                    |
+| `css`     | Raw declarations, as a string. The compiler adds them to the grid element in this step. It does not parse or change them. Refer to the limits below. |
+| `flow`    | The layout inside each area. A map from an area name to a flow. Refer to [Flow](#flow).                                                              |
 
-`--gap` and `--padding` are custom properties on the grid element. Thus children can use them (`padding: var(--gap)`). Each layout sets both to `0` on its grid element. Thus a nested layout does not get the values of its parent.
+`--grid-gap` and `--grid-padding` are custom properties on the grid element. Thus children can use them (`padding: var(--grid-gap)`). Each layout sets both to `0` on its grid element. Thus a nested layout does not get the values of its parent.
+
+`gap` cannot use `--grid-gap`, and `padding` cannot use `--grid-padding`. The layout sets the property from the value. Thus the value would refer to itself, and CSS makes such a value invalid. This is an error.
+
+The compiler does not parse `css`, but the declarations must stay in the rule of the grid element. Thus each `{`, each string, and each comment in `css` must be closed, and a `}` must have a `{` before it.
 
 ## Area map
 
@@ -162,7 +170,7 @@ The area map is a multi-line string. Each line is a row.
 - `.` is an empty cell. A series of only dots counts as one empty cell.
 - A map is a **character map** when each line has only capital letters and dots, and no spaces. Then each character is a cell (`AAB`). Each other map is a **word map**: spaces separate the cells, and a name can have more than one character (`hdr hdr nav`).
 - Thus a word map can have one column (`image`, `title`, `text` on three lines). A column of names in capitals (`HEADER`, `MAIN`) is a character map. The error for it says how the compiler read the map.
-- A name matches `[A-Za-z_][\w-]*`. A name must not be `auto`, `span`, `default`, `inherit`, `initial`, `unset`, or `revert`.
+- A name matches `[A-Za-z_][\w-]*`. A name must not be `auto`, `span`, `default`, `inherit`, `initial`, `unset`, `revert`, or `revert-layer`.
 - All rows must have the same number of cells.
 - Each named area must make a filled rectangle.
 
@@ -180,7 +188,7 @@ The area map is a multi-line string. Each line is a row.
 - A bare number is px, as in each other value. The area map gives the number of tracks. Thus a layout does not give a track count.
 - In the shorthand `SIZE*N`, `N` is a positive integer, and `SIZE` obeys the [value grammar](#values). But `SIZE` cannot have spaces or operators. For more columns of a minimum size, write `minmax(200px, 1fr)*3`.
 - `NxSIZE` (for example `3x200px`) is an error. `x` is only for the query keys.
-- Spaces in `()` or `{}` do not split tokens. Thus `minmax(100px, 1fr)` is one track.
+- Spaces in `()`, `{}`, or `[]` do not split tokens. Thus `minmax(100px, 1fr)` is one track, and `[main-start content-start]` is one set of line names. Line names are not tracks, and the compiler does not count them.
 - A track list cannot have operators. Use `calc()` for one track.
 - A step can set `areas` and not set `cols` or `rows`. Then the compiler calculates the missing item from the area map as `repeat(N, 1fr)`. The compiler writes it in the output of that step.
 - If the compiler knows the number of tracks, the number must be the same as in the area map. The compiler does not count `auto-fill` and `auto-fit`. Thus it does not check them.
@@ -189,7 +197,9 @@ The area map is a multi-line string. Each line is a row.
 
 The settings `gap` and `padding`, and the track sizes in `cols` and `rows`, use the same grammar.
 
-A value is a list of **terms**. Whitespace separates the terms. Whitespace in `()` or `{}` does not separate terms.
+A value is a list of **terms**. Whitespace separates the terms. Whitespace in `()`, `{}`, or `[]` does not separate terms.
+
+A term goes into the CSS with no change, or with the changes in the table. Thus a term cannot have a character that can end its declaration or start a string or a comment: `;`, `{`, `}`, `<`, `>`, `"`, `'`, `\`, or `/*`. The compiler checks each term after it replaces the tokens. Thus the result of `tokenVar` obeys the same rule.
 
 | Term                              | Meaning                                                            | Output                 |
 | --------------------------------- | ------------------------------------------------------------------ | ---------------------- |
@@ -215,10 +225,10 @@ If a value has no operator term, each term is separate. Thus a list of two value
 | ------------------------- | ------------------------------------ |
 | `8`                       | `8px`                                |
 | `4 8`                     | `4px 8px`                            |
-| `--gap`                   | `var(--gap)`                         |
+| `--space`                 | `var(--space)`                       |
 | `{space.2}`               | `var(--space-2)`                     |
 | `{space.2} 16`            | `var(--space-2) 16px`                |
-| `--gap * 2`               | `calc(var(--gap) * 2)`               |
+| `--space * 2`             | `calc(var(--space) * 2)`             |
 | `{space.2} + 4`           | `calc(var(--space-2) + 4px)`         |
 | `var(--x, 8px)`           | `var(--x, 8px)`                      |
 | `clamp(4, {space.2}, 16)` | no change, but the token is replaced |
@@ -328,7 +338,7 @@ The main axis follows the direction. With `row`, the main axis is the inline axi
 
 **Gap.** The word `gap` takes exactly one term. The term obeys the [value rules](#values). A term in `()` can have spaces, for example `calc(var(--a) * 2)`. An operator term or a second term is an error. For an expression or a list, use the flow object.
 
-Each area inherits `--gap` from its grid element. Thus `gap --gap` gives the area the same gap as the grid.
+Each area inherits `--grid-gap` from its grid element. Thus `gap --grid-gap` gives the area the same gap as the grid.
 
 A flow string starts with a word, not with `{`. Thus YAML does not need quotes, also when the string has a token (`column gap {space.2}`).
 
@@ -400,7 +410,7 @@ Flow applies to the direct children of an area. A child can be a `data-grid-host
 
 The parser and the compiler throw an error for each of these:
 
-- An invalid `name`.
+- An invalid `name`, or a `name` that CSS reserves for container names.
 - A file with more than one YAML document, or with a tag.
 - An object layout that has a value that is not plain data.
 - A `grid` template that has a `${}` expression.
@@ -416,8 +426,11 @@ The parser and the compiler throw an error for each of these:
 - An empty area map, rows of different lengths, an invalid or reserved area name, or an area that is not a rectangle.
 - A track count that is not the same as the area map that the compiler checks it against.
 - A track in the form `NxSIZE`, for example `3x200px`. The error gives the `minmax()` replacement.
-- A malformed value: unbalanced `()` or `{}`, an empty token `{}`, or an operator at the start, at the end, or twice in a row.
-- A `css` value that has `</style`. It can break out of an injected `<style>` element.
+- A malformed value: unbalanced `()`, `{}`, or `[]`, an empty token `{}`, or an operator at the start, at the end, or twice in a row.
+- A value with a character that is not permitted (`;`, `{`, `}`, `<`, `>`, a quote, `\`, or `/*`).
+- A `gap` that uses `--grid-gap`, or a `padding` that uses `--grid-padding`.
+- A `css` value that is not a string, or that has `</style`. It can break out of an injected `<style>` element.
+- A `css` value with a `{`, a string, or a comment that is not closed, or with a `}` that has no `{` before it.
 - A `flow` value that is not a map, or a flow key that is not an area name in an area map.
 - A flow string with an unknown word, a word in the wrong role, more than one main or cross word, or a direction that is not the first word. The error lists the words that are valid in that position.
 - A flow string with `gap` or `wrap` two times, `gap` with no term, or `gap` with more than one term or an operator.

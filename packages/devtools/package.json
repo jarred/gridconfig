@@ -29,7 +29,7 @@
 		"./dist/auto.js"
 	],
 	"scripts": {
-		"build": "tsc -p tsconfig.build.json",
+		"build": "tsc -p tsconfig.build.json && node scripts/inline-css.js",
 		"prepublishOnly": "pnpm build",
 		"test": "node --test \"test/**/*.test.ts\"",
 		"check": "tsc -p tsconfig.json"

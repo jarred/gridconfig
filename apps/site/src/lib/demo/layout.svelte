@@ -15,7 +15,7 @@
 	h1 {
 		background-color: rgba(255, 0, 0, 0.2);
 		font-size: 10cqh;
-		padding: var(--padding);
+		padding: var(--grid-padding);
 		text-box-trim: trim-both;
 		line-height: 1em;
 	}

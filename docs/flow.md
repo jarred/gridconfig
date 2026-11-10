@@ -43,7 +43,7 @@ Each part is optional. `direction`, `main` and `cross` come in this order.
 | `column center start`  | A column, centred vertically. The children are on the left. |
 | `row wrap gap 8`       | A row that wraps, with an 8 px gap.                         |
 | `column gap {space.2}` | A column with the gap of a token. No quotes are necessary.  |
-| `row gap --gap`        | The same gap as the grid.                                   |
+| `row gap --grid-gap`   | The same gap as the grid.                                   |
 
 Start and end follow the writing direction, so a flow is correct in a right-to-left page too.
 

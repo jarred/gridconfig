@@ -6,6 +6,10 @@
  * A call that is not static (a variable, a spread, a function call) is not an error here.
  * The scanner skips it, and the call compiles when the code runs. The one exception is a
  * template with `${}`, which can never work, so the scanner reports it.
+ *
+ * The scanner does not read text in a comment or in a string. It also skips a file that gives
+ * the name `grid` to a different variable or parameter, because it cannot know which calls use
+ * the import. Those calls compile when the code runs.
  */
 
 export type Call =
@@ -157,15 +161,88 @@ function scanTemplate(src: string, i: number): { end: number; interpolated: bool
 	return null;
 }
 
+/**
+ * Marks each character that is in a comment or in a string. Code in the `${}` of a template is
+ * not marked. A quoted string stops at the end of its line, so an apostrophe in the markup of a
+ * component hides only the remainder of that line.
+ */
+export function inertMask(code: string): Uint8Array {
+	const mask = new Uint8Array(code.length);
+	/** One entry for each open template: the depth of {} in its current `${}`, or -1 in its text. */
+	const templates: number[] = [];
+	let i = 0;
+	const fill = (to: number) => {
+		mask.fill(1, i, to);
+		i = to;
+	};
+	while (i < code.length) {
+		const c = code[i];
+		const top = templates.length - 1;
+		if (top >= 0 && templates[top] < 0) {
+			// The text of a template.
+			if (c === '\\') fill(i + 2);
+			else if (c === '`') {
+				templates.pop();
+				fill(i + 1);
+			} else if (c === '$' && code[i + 1] === '{') {
+				templates[top] = 0;
+				fill(i + 2);
+			} else fill(i + 1);
+		} else if (c === '/' && code[i + 1] === '/') {
+			const end = code.indexOf('\n', i);
+			fill(end < 0 ? code.length : end);
+		} else if (c === '/' && code[i + 1] === '*') {
+			const end = code.indexOf('*/', i + 2);
+			fill(end < 0 ? code.length : end + 2);
+		} else if (c === '"' || c === "'") {
+			let j = i + 1;
+			while (j < code.length && code[j] !== c && code[j] !== '\n') j += code[j] === '\\' ? 2 : 1;
+			fill(Math.min(j + 1, code.length));
+		} else if (c === '`') {
+			templates.push(-1);
+			fill(i + 1);
+		} else {
+			if (top >= 0) {
+				if (c === '{') templates[top]++;
+				else if (c === '}' && templates[top]-- === 0) {
+					templates[top] = -1;
+					mask[i] = 1;
+				}
+			}
+			i++;
+		}
+	}
+	return mask;
+}
+
+/** True when the code gives `name` to a variable, a function or a parameter of its own. */
+export function isRedeclared(code: string, name: string): boolean {
+	const n = name.replace(/\$/g, '\\$');
+	const word = `(?<![\\w$.])${n}(?![\\w$])`;
+	return [
+		// const grid = …, function grid() {}, class grid {}
+		`(?:const|let|var|function\\*?|class)\\s+${n}(?![\\w$])`,
+		// const { grid } = …, const [grid] = …, const { a: grid } = …
+		`(?:const|let|var)\\s*[{[][^=;]*${word}\\s*(?:[,}\\]=])`,
+		// function f(a, grid) {}, (grid) => …, catch (grid)
+		`(?:function\\*?\\s*[\\w$]*|catch)\\s*\\([^()]*${word}[^()]*\\)`,
+		`\\([^()]*${word}[^()]*\\)\\s*(?::[^=]+)?=>`,
+		`${word}\\s*=>`
+	].some((pattern) => new RegExp(pattern).test(code));
+}
+
 export function findCalls(code: string, names: Set<string>): Call[] {
 	const calls: Call[] = [];
+	const inert = inertMask(code);
 
 	for (const name of names) {
+		if (isRedeclared(code, name)) continue;
 		const escaped = name.replace(/\$/g, '\\$');
 		const pattern = new RegExp(`(?<![\\w$.])${escaped}(?![\\w$])\\s*([\`(])`, 'g');
 		for (const match of code.matchAll(pattern)) {
 			const start = match.index;
 			const open = start + match[0].length - 1;
+			if (inert[start]) continue;
 			if (calls.some((c) => start >= c.start && start < c.end)) continue;
 
 			if (match[1] === '`') {
