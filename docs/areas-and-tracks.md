@@ -61,7 +61,7 @@ areas: |
 
 ## Columns and rows
 
-Without `cols` or `rows`, each track is `1fr`, and the area map gives the count. Set them when you need other sizes:
+Without `cols` or `rows`, the area map gives the count. Each column is `1fr`. Each row is as high as its content. With `container: size`, the layout has a fixed height, and each row is `1fr` of it. Set `cols` and `rows` when you need other sizes:
 
 ```yaml
 cols: 200 1fr

@@ -441,3 +441,24 @@ test('line names are not tracks', () => {
 	);
 	fails('name: l\ncols: "[a b 200 1fr"\nareas: A B', /Unbalanced/);
 });
+
+test('calculated rows are auto with inline-size, and 1fr with size', () => {
+	const stack = 'areas: |\n  A\n  B\n  C\n400:\n  areas: |\n    A B\n    A C\n';
+	const inline = compileLayout(`name: i\n${stack}`).css;
+	assert.match(
+		inline,
+		/grid-template-columns: repeat\(1, 1fr\);\n\s*grid-template-rows: repeat\(3, auto\);/
+	);
+	assert.match(
+		inline,
+		/grid-template-columns: repeat\(2, 1fr\);\n\s*grid-template-rows: repeat\(2, auto\);/
+	);
+	const sized = compileLayout(`name: s\ncontainer: size\n${stack}`).css;
+	assert.match(sized, /grid-template-rows: repeat\(3, 1fr\);/);
+	assert.match(sized, /grid-template-rows: repeat\(2, 1fr\);/);
+	// A step that sets `rows` keeps them.
+	assert.match(
+		compileLayout(`name: r\nrows: 1fr*3\n${stack}`).css,
+		/grid-template-rows: repeat\(3, 1fr\);/
+	);
+});

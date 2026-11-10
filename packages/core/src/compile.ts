@@ -34,8 +34,15 @@ function countTracks(list: string): number | null {
 	return n;
 }
 
-function infer(areas: string[][], axis: Axis) {
-	return `repeat(${axis === 'cols' ? areas[0].length : areas.length}, 1fr)`;
+/**
+ * The tracks of an axis that a step with `areas` does not set. Columns are equal parts of the
+ * width. Rows are equal parts of the height when the container has a height (`size`). With
+ * `inline-size`, the height comes from the content, and `1fr` rows would all get the height of
+ * the highest row. Thus each row is `auto`: it gets the height of its content.
+ */
+function infer(areas: string[][], axis: Axis, container: Layout['container']) {
+	if (axis === 'cols') return `repeat(${areas[0].length}, 1fr)`;
+	return `repeat(${areas.length}, ${container === 'size' ? '1fr' : 'auto'})`;
 }
 
 function negated(step: Step): string {
@@ -150,8 +157,8 @@ function build(layout: Layout, options: CompileOptions): CompiledLayout {
 
 	const emit: Emitted[] = steps.map((s, i) => ({
 		areas: s.areas,
-		cols: s.cols ?? (s.areas ? infer(s.areas, 'cols') : undefined),
-		rows: s.rows ?? (s.areas ? infer(s.areas, 'rows') : undefined),
+		cols: s.cols ?? (s.areas ? infer(s.areas, 'cols', layout.container) : undefined),
+		rows: s.rows ?? (s.areas ? infer(s.areas, 'rows', layout.container) : undefined),
 		// The base resets both so a nested layout never picks up its parent's values.
 		gap: s.gap ?? (i === 0 ? '0' : undefined),
 		padding: s.padding ?? (i === 0 ? '0' : undefined)
