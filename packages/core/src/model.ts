@@ -107,6 +107,11 @@ function tracks(value: unknown, options: CompileOptions, path: Path): string {
 					path
 				);
 			const rep = /^(.+)\*(\d+)$/.exec(term);
+			if (rep && Number(rep[2]) === 0)
+				throw new LayoutError(
+					`"${term}" has a count of 0. The count in SIZE*N must be 1 or more`,
+					path
+				);
 			if (rep) return `repeat(${rep[2]}, ${convertTerm(rep[1], false, options, path)})`;
 			return convertTerm(term, false, options, path);
 		})
@@ -172,6 +177,9 @@ function parseStep(
 ): Step {
 	const at = (setting: string): Path => (key === undefined ? [setting] : [key, setting]);
 	const step: Step = {};
+	// `gap:` with nothing after it is null in YAML. It is a mistake, not a setting that is absent.
+	for (const k of SETTINGS)
+		if (raw[k] === null) throw new LayoutError(`\`${k}\` has no value`, at(k));
 	if (key !== undefined) {
 		step.key = key;
 		for (const k of Object.keys(raw)) {
@@ -350,12 +358,14 @@ export function parseLayoutObject(
 			throw new LayoutError('A layout must be an object (a YAML mapping)');
 		assertPlain(raw, []);
 		const obj = raw as Record<string, unknown>;
+		for (const k of ['name', 'container', 'breakpoints'])
+			if (obj[k] === null) throw new LayoutError(`\`${k}\` has no value`, [k]);
 
 		let name = obj.name;
 		if (name === undefined || name === null) {
 			name =
 				(options.defaultName !== undefined ? toIdentifier(options.defaultName) : undefined) ??
-				`gc-${hash(stable(obj) + optionsKey(options))}`;
+				`grid-${hash(stable(obj) + optionsKey(options))}`;
 		} else if (typeof name !== 'string' || !IDENT.test(name))
 			throw new LayoutError('`name` must be a valid identifier', ['name']);
 		else if (RESERVED_NAMES.has(name.toLowerCase()))

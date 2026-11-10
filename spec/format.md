@@ -16,6 +16,7 @@ A layout is plain data. There are three ways to write it. All three give the sam
 
 - The file has one document.
 - The file has no tags (for example `!!str`).
+- The file has no anchors (`&name`) and no aliases (`*name`). Write a value again where it is necessary.
 - A leading tab counts as two spaces, because YAML does not permit tabs as indentation.
 
 A `.yaml` or `.yml` file with the same content is also a layout. Tools handle `.grid` first, and `.yaml` and `.yml` second. JSON is also valid, because JSON is valid YAML 1.2.
@@ -43,7 +44,7 @@ The top level is the **base step**. It also has these keys.
 The default `name` has two sources, in this order:
 
 1. The file name without its extension. If that is `layout`, `index`, or `grid`, in any letter case, the name of the folder of the file replaces it. Thus `Card/layout.grid` and `Hero/layout.grid` get the names `Card` and `Hero`. A tool gives the result to the compiler as `defaultName`. `defaultNameFor(path)` in core calculates it. The compiler changes each character that is not valid to `-`. If the result starts with a digit, the compiler adds `_` at the start. Thus `1-hero.card.grid` becomes `_1-hero-card`.
-2. A hash of the content, written `gc-` and seven characters. The same content always gets the same name, in each of the three forms. The options `tokenPrefix`, `layer`, and `breakpoints` are a part of the hash when they are set, because they change the CSS. Thus one layout with two sets of options gets two names.
+2. A hash of the content, written `grid-` and seven characters. The same content always gets the same name, in each of the three forms. The options `tokenPrefix`, `layer`, and `breakpoints` are a part of the hash when they are set, because they change the CSS. Thus one layout with two sets of options gets two names.
 
 A name must not be a word that CSS reserves for container names: `none`, `and`, `or`, `not`, `default`, `inherit`, `initial`, `unset`, `revert`, or `revert-layer`. A `name` that is one of these words is an error. If a file name gives one of these words, the compiler adds `_` at the start. Thus `none.grid` becomes `_none`.
 
@@ -414,7 +415,8 @@ Flow applies to the direct children of an area. A child can be a `data-grid-host
 The parser and the compiler throw an error for each of these:
 
 - An invalid `name`, or a `name` that CSS reserves for container names.
-- A file with more than one YAML document, or with a tag.
+- A file with more than one YAML document, or with a tag, an anchor, or an alias.
+- A setting, a `name`, a `container`, or a `breakpoints` key that has no value (`gap:` with nothing after it).
 - An object layout that has a value that is not plain data.
 - A `grid` template that has a `${}` expression.
 - A base step that has no `areas`.
@@ -429,6 +431,7 @@ The parser and the compiler throw an error for each of these:
 - An empty area map, rows of different lengths, an invalid or reserved area name, or an area that is not a rectangle.
 - A track count that is not the same as the area map that the compiler checks it against.
 - A track in the form `NxSIZE`, for example `3x200px`. The error gives the `minmax()` replacement.
+- A track in the form `SIZE*N` with a count of 0.
 - A malformed value: unbalanced `()`, `{}`, or `[]`, an empty token `{}`, or an operator at the start, at the end, or twice in a row.
 - A value with a character that is not permitted (`;`, `{`, `}`, `<`, `>`, a quote, `\`, or `/*`).
 - A `gap` that uses `--grid-gap`, or a `padding` that uses `--grid-padding`.
@@ -447,4 +450,4 @@ The compiler gives a warning, and does not fail, for this:
 
 An error has a structured location: `{ message, path, range? }`. The `path` is the key path in the document (for example `["200x200", "areas"]`).
 
-The `range` is the start and the end of the line and column. The parser makes a document-level YAML parse. Thus ranges are available. Editor diagnostics will use them. A layout in an object has a `path` but no `range`.
+The `range` is the start and the end of the line and column. The positions are in the source as it is written, also when the layout is indented in a template. The parser makes a document-level YAML parse. Thus ranges are available. Editor diagnostics will use them. A layout in an object has a `path` but no `range`.

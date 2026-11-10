@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { mkdir, mkdtemp, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, rename, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { test } from 'node:test';
@@ -294,4 +294,31 @@ test('a generic file name gives the name of the folder', async () => {
 	}
 	assert.deepEqual(names, ['Card', 'Hero']);
 	assert.equal(run(p.transform('areas: A\n', '/x/nav/index.yaml?grid')).name, 'nav');
+});
+
+test('an error in a template has the column of the file', () => {
+	type Located = Error & { loc?: { line: number; column: number } };
+	const at = (code: string, line: number, column: number) =>
+		assert.throws(
+			() => setup().transform(src(code), '/x/a.ts'),
+			(e: Located) => {
+				assert.match(e.message, /operator/i);
+				assert.deepEqual({ line: e.loc?.line, column: e.loc?.column }, { line, column });
+				return true;
+			}
+		);
+	// The value starts after four spaces and `gap: `. Columns start at 0.
+	at('const hero = grid`\n    areas: A\n    gap: 1 +\n`;', 4, 9);
+	// On the first line of a template, the column counts the code before the backtick.
+	at('const a = grid`gap: 1 +`;', 2, 20);
+});
+
+test('the name of a file that is gone is free again', async () => {
+	const dir = await mkdtemp(join(tmpdir(), 'gc-'));
+	const p = setup();
+	await writeFile(join(dir, 'old.grid'), 'name: same\nareas: A\n');
+	await p.load(join(dir, 'old.grid'));
+	// A rename: the old file is gone, and the new file has the same layout.
+	await rename(join(dir, 'old.grid'), join(dir, 'new.grid'));
+	assert.equal(run(await p.load(join(dir, 'new.grid'))).name, 'same');
 });

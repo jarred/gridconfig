@@ -1,5 +1,5 @@
 // The inspector: one overlay for every GridConfig layout on the page. It reads only the DOM
-// contract (data-grid-* attributes), computed styles and the optional `--gc-debug` data. Thus it
+// contract (data-grid-* attributes), computed styles and the optional `--grid-debug` data. Thus it
 // works the same in each framework.
 import { DEBUG_PROPERTY, attributes } from '@gridconfig/core/runtime';
 import type { DebugInfo } from '@gridconfig/core';

@@ -49,7 +49,7 @@ test('name is optional: file stem, then content hash', () => {
 	assert.equal(parseLayout('name: given\nareas: A', { defaultName: 'stem' }).name, 'given');
 
 	const hashed = parseLayout(noName).name;
-	assert.match(hashed, /^gc-[0-9a-z]{7}$/);
+	assert.match(hashed, /^grid-[0-9a-z]{7}$/);
 	assert.equal(parseLayout(noName).name, hashed, 'deterministic');
 	assert.notEqual(parseLayout(noName + '200:\n  gap: 1\n').name, hashed);
 	// The same content gets the same name in both syntaxes.

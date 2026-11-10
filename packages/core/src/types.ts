@@ -125,7 +125,7 @@ export type CompileOptions = {
 	layer?: boolean | string;
 	/**
 	 * Adds data for development tools. The data is in `debug`, and the CSS also carries it in the
-	 * custom property `--gc-debug` on the host. Use it in development only: it makes the CSS larger.
+	 * custom property `--grid-debug` on the host. Use it in development only: it makes the CSS larger.
 	 */
 	debug?: boolean;
 	/**

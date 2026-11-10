@@ -22,7 +22,7 @@ The host keeps the padding, border, color, and overflow that the page gives it. 
 
 Esc or the button puts the host back. A click on the scrim does nothing, so a click cannot close the view by accident. If the page replaces the host, for example after a file change, the new host with the same name pops out again.
 
-**Debug data.** With `debug: true`, the compiler puts the steps in `CompiledLayout.debug`. The format has version 2. Each query step has a `when`: a list of alternatives, each with the ranges of the step. Core exports `matches` and `samplePoints` from `@gridconfig/core/runtime` to use it. A step that sets flow has a `flow` map, with each entry as a flow object or `"none"`. The compiler also writes the steps in the custom property `--gc-debug` on the host. The value is a CSS string that holds JSON. Thus the data goes with the CSS in each route, also in a plain stylesheet.
+**Debug data.** With `debug: true`, the compiler puts the steps in `CompiledLayout.debug`. The format has version 2. Each query step has a `when`: a list of alternatives, each with the ranges of the step. Core exports `matches` and `samplePoints` from `@gridconfig/core/runtime` to use it. A step that sets flow has a `flow` map, with each entry as a flow object or `"none"`. The compiler also writes the steps in the custom property `--grid-debug` on the host. The value is a CSS string that holds JSON. Thus the data goes with the CSS in each route, also in a plain stylesheet.
 
 Without the data, the overlay still draws from the computed styles. It then shows used sizes and no steps. The Vite plugin sets `debug: true` when the dev server runs.
 

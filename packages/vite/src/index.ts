@@ -1,3 +1,4 @@
+import { existsSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import { isAbsolute, resolve as resolvePath } from 'node:path';
 import type { Plugin, ViteDevServer } from 'vite';
@@ -121,7 +122,11 @@ export function gridconfig(pluginOptions: PluginOptions = {}): Plugin {
 			message: e.message,
 			id: file,
 			loc: start
-				? { file, line: start.line + lineOffset, column: start.col - 1 + column }
+				? {
+						file,
+						line: start.line + lineOffset,
+						column: start.col - 1 + (start.line === 1 ? column : 0)
+					}
 				: lineOffset
 					? { file, line: 1 + lineOffset, column }
 					: undefined
@@ -136,11 +141,17 @@ export function gridconfig(pluginOptions: PluginOptions = {}): Plugin {
 			});
 			for (const w of compiled.warnings) ctx.warn(`${file}: ${w.message}`);
 
-			for (const [other, name] of names)
-				if (other !== file && name === compiled.name)
-					throw new LayoutError(
-						`The name "${compiled.name}" is also used by ${other}. Set a different \`name\` in one of the two files.`
-					);
+			for (const [other, name] of names) {
+				if (other === file || name !== compiled.name) continue;
+				// A file that is gone, for example after a rename, does not use its name any more.
+				if (!existsSync(other)) {
+					names.delete(other);
+					continue;
+				}
+				throw new LayoutError(
+					`The name "${compiled.name}" is also used by ${other}. Set a \`name\` in one of the two files.`
+				);
+			}
 			names.set(file, compiled.name);
 			return compiled;
 		} catch (e) {
@@ -194,8 +205,10 @@ export function gridconfig(pluginOptions: PluginOptions = {}): Plugin {
 								compileOptions()
 							);
 			} catch (e) {
-				// Lines inside a template start at the line of its opening backtick.
-				return report(ctx, e, file, startLine - 1);
+				// Lines inside a template start at the line of its opening backtick. The first line of
+				// the template starts after the backtick, so its columns start there too.
+				const text = call.kind === 'template' ? call.end - 1 - call.source.length : call.start;
+				return report(ctx, e, file, startLine - 1, text - (code.lastIndexOf('\n', text - 1) + 1));
 			}
 			for (const w of compiled.warnings) ctx.warn(`${file}:${startLine}: ${w.message}`);
 

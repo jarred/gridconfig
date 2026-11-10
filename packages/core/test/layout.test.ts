@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { compileLayout } from '../src/compile.ts';
+import { parseLayoutObject } from '../src/model.ts';
 import { LayoutError } from '../src/errors.ts';
 import { compileValue } from '../src/values.ts';
 
@@ -306,7 +307,7 @@ areas: |
 test('debug is off by default', () => {
 	const out = compileLayout(DEBUG_SRC);
 	assert.equal(out.debug, undefined);
-	assert.doesNotMatch(out.css, /--gc-debug/);
+	assert.doesNotMatch(out.css, /--grid-debug/);
 });
 
 test('debug gives the steps in cascade order, with inferred values', () => {
@@ -331,7 +332,7 @@ test('debug gives the steps in cascade order, with inferred values', () => {
 
 test('the css carries the debug data as a CSS string that decodes to the same JSON', () => {
 	const { css, debug } = compileLayout(DEBUG_SRC, { debug: true });
-	const m = /--gc-debug: ("(?:[^"\\]|\\.)*");/.exec(css);
+	const m = /--grid-debug: ("(?:[^"\\]|\\.)*");/.exec(css);
 	assert.ok(m);
 	// A CSS string and a JSON string use the same escapes for \ and ".
 	assert.deepEqual(JSON.parse(JSON.parse(m[1])), debug);
@@ -340,7 +341,7 @@ test('the css carries the debug data as a CSS string that decodes to the same JS
 test('debug does not change the other css', () => {
 	const plain = compileLayout(DEBUG_SRC, { layer: false }).css;
 	const withDebug = compileLayout(DEBUG_SRC, { layer: false, debug: true }).css;
-	assert.equal(withDebug.replace(/ --gc-debug: "(?:[^"\\]|\\.)*";/, ''), plain);
+	assert.equal(withDebug.replace(/ --grid-debug: "(?:[^"\\]|\\.)*";/, ''), plain);
 });
 
 test('every step sets --grid-step to its key, and the base sets "base"', () => {
@@ -461,4 +462,40 @@ test('calculated rows are auto with inline-size, and 1fr with size', () => {
 		compileLayout(`name: r\nrows: 1fr*3\n${stack}`).css,
 		/grid-template-rows: repeat\(3, 1fr\);/
 	);
+});
+
+test('a setting with no value is an error', () => {
+	fails('name: n\nareas: A\n600:\n  gap:\n', /`gap` has no value/);
+	fails('name: n\nareas: A\npadding:\n', /`padding` has no value/);
+	fails('name:\nareas: A\n', /`name` has no value/);
+	fails('name: n\ncontainer: ~\nareas: A\n', /`container` has no value/);
+	fails('name: n\nareas: A\nflow:\n  A:\n    gap: ~\n', /Expected a number or a string/);
+	// In an object, `undefined` is a setting that is absent.
+	assert.equal(
+		compileLayout(parseLayoutObject({ name: 'n', areas: 'A', gap: undefined })).name,
+		'n'
+	);
+});
+
+test('the count of the SIZE*N shorthand is 1 or more', () => {
+	fails('name: z\ncols: 1fr*0\nareas: A', /"1fr\*0" has a count of 0/);
+});
+
+test('anchors and aliases are not supported', () => {
+	const anchor = fails('name: a\nareas: &map A\n', /Anchors are not supported \("&map"\)/);
+	assert.equal(anchor.range?.start.line, 2);
+	fails('name: a\nareas: &map A\n600:\n  areas: *map\n', /not supported/);
+	const alias = fails('name: a\ngap: 4\n600:\n  gap: *g\n', /Aliases are not supported \("\*g"\)/);
+	assert.equal(alias.range?.start.line, 4);
+});
+
+test('an error in an indented layout has the column of the source as it is written', () => {
+	// The parser removes the indentation that all lines share. The range still counts it.
+	const spaces = fails('    name: c\n    areas: A\n    600:\n      gap: 1 +\n', /operator/i);
+	assert.deepEqual(spaces.range?.start, { line: 4, col: 12 });
+	// A leading tab counts as two spaces for YAML, and as one character for the column.
+	const tabs = fails('\t\tname: c\n\t\tareas: A\n\t\tgap: 1 +\n', /operator/i);
+	assert.deepEqual(tabs.range?.start, { line: 3, col: 8 });
+	const plain = fails('name: c\nareas: A\ngap: 1 +\n', /operator/i);
+	assert.deepEqual(plain.range?.start, { line: 3, col: 6 });
 });

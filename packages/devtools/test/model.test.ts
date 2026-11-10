@@ -118,7 +118,7 @@ test('computed values', () => {
 });
 
 test('parseDebug reads the custom property that the compiler wrote', () => {
-	const raw = /--gc-debug:\s*("(?:[^"\\]|\\.)*");/.exec(compiled.css)![1];
+	const raw = /--grid-debug:\s*("(?:[^"\\]|\\.)*");/.exec(compiled.css)![1];
 	assert.deepEqual(parseDebug(` ${raw}`, 'card'), info);
 	assert.equal(parseDebug(raw, 'other'), null);
 	assert.equal(parseDebug('', 'card'), null);

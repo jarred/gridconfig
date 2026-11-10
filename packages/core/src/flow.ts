@@ -119,7 +119,7 @@ function parseObject(raw: Record<string, unknown>, options: CompileOptions, path
 		} else if (k === 'wrap') {
 			if (typeof v !== 'boolean') throw new LayoutError('"wrap" must be true or false', at);
 			flow.wrap = v;
-		} else if (v !== null) flow.gap = compileValue(v, options, at);
+		} else flow.gap = compileValue(v, options, at);
 	}
 	return flow;
 }

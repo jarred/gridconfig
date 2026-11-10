@@ -174,7 +174,7 @@ export function trackStarts(sizes: number[], gap: number): number[] {
 	return out;
 }
 
-/** Reads the value of the `--gc-debug` custom property: a CSS string that holds JSON. */
+/** Reads the value of the `--grid-debug` custom property: a CSS string that holds JSON. */
 export function parseDebug(raw: string, hostName: string): DebugInfo | null {
 	const text = raw.trim();
 	if (!text.startsWith('"')) return null;
