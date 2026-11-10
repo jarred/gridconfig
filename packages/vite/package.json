@@ -33,7 +33,8 @@
 		"test": "node --test \"test/**/*.test.ts\""
 	},
 	"dependencies": {
-		"@gridconfig/core": "workspace:*"
+		"@gridconfig/core": "workspace:*",
+		"magic-string": "^0.30.21"
 	},
 	"peerDependencies": {
 		"vite": ">=6.0.0"

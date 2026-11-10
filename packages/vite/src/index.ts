@@ -1,6 +1,7 @@
 import { existsSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import { isAbsolute, resolve as resolvePath } from 'node:path';
+import MagicString from 'magic-string';
 import type { Plugin, ViteDevServer } from 'vite';
 import {
 	LayoutError,
@@ -174,8 +175,6 @@ export function gridconfig(pluginOptions: PluginOptions = {}): Plugin {
 		const calls = local.size ? findCalls(code, local, { markdown: /\.mdx?$/.test(file) }) : [];
 		if (!calls.length && !runtime.length) return;
 
-		let out = '';
-		let cursor = 0;
 		const imports: string[] = runtime.length ? [OPTIONS_ID] : [];
 		// The new imports go on the line of the first import that gives `grid`, so that they stay
 		// inside a <script> and the lines after it do not move.
@@ -220,12 +219,14 @@ export function gridconfig(pluginOptions: PluginOptions = {}): Plugin {
 			edits.push({ start: call.start, end: call.end, text: () => text });
 		}
 
-		for (const edit of edits.sort((a, b) => a.start - b.start)) {
-			out += code.slice(cursor, edit.start) + edit.text();
-			cursor = edit.end;
+		// A source map, so that the positions in the file after a compiled call stay correct in the
+		// tools of the browser and in error messages.
+		const out = new MagicString(code);
+		for (const edit of edits) {
+			if (edit.start === edit.end) out.appendLeft(edit.start, edit.text());
+			else out.overwrite(edit.start, edit.end, edit.text());
 		}
-		out += code.slice(cursor);
-		return { code: out, map: null };
+		return { code: out.toString(), map: out.generateMap({ hires: 'boundary', source: file }) };
 	}
 
 	return {

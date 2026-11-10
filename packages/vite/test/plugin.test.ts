@@ -322,3 +322,16 @@ test('the name of a file that is gone is free again', async () => {
 	await rename(join(dir, 'old.grid'), join(dir, 'new.grid'));
 	assert.equal(run(await p.load(join(dir, 'new.grid'))).name, 'same');
 });
+
+test('a file with a compiled call has a source map', () => {
+	const code = src("const a = grid({ name: 'sm', areas: 'A' });\nconst after = 1;");
+	const out = setup().transform(code, '/x/a.ts') as unknown as {
+		code: string;
+		map: { sources: string[]; mappings: string };
+	};
+	assert.deepEqual(out.map.sources, ['/x/a.ts']);
+	// One group of mappings for each line of the file, and the line after the call is in the map.
+	const lines = out.map.mappings.split(';');
+	assert.equal(lines.length, code.split('\n').length);
+	assert.ok(lines.at(-1)!.length > 0);
+});

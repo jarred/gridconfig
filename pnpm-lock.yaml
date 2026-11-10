@@ -179,6 +179,9 @@ importers:
       '@gridconfig/core':
         specifier: workspace:*
         version: link:../core
+      magic-string:
+        specifier: ^0.30.21
+        version: 0.30.21
     devDependencies:
       typescript:
         specifier: ^6.0.3
