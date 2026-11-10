@@ -19,7 +19,8 @@
 		"access": "public"
 	},
 	"scripts": {
-		"check": "svelte-check --tsconfig ./tsconfig.json"
+		"check": "svelte-check --tsconfig ./tsconfig.json",
+		"test": "node --test \"test/**/*.test.ts\" && node --conditions=browser --conditions=production --test test/hydrate.dom.ts"
 	},
 	"dependencies": {
 		"@gridconfig/core": "workspace:*",

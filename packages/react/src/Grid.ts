@@ -1,7 +1,7 @@
-import { createElement, Fragment, useEffect } from 'react';
+import { createElement, Fragment, useEffect, useInsertionEffect } from 'react';
 import type { HTMLAttributes, ReactNode } from 'react';
 import { DEV } from 'esm-env';
-import { baseCssFor } from '@gridconfig/core/runtime';
+import { mountStyles, sheetsOf } from '@gridconfig/core/runtime';
 import type { CompiledLayout } from '@gridconfig/core';
 
 export type GridProps = {
@@ -11,29 +11,40 @@ export type GridProps = {
 	children?: ReactNode;
 } & HTMLAttributes<HTMLDivElement>;
 
-/** A short hash, so that a layout that changes at runtime gets a new stylesheet. */
-function hash(text: string): string {
-	let h = 5381;
-	for (let i = 0; i < text.length; i++) h = (h * 33) ^ text.charCodeAt(i);
-	return (h >>> 0).toString(36);
+/** The precedence, and the `href`, that React gets for a sheet. One sheet has one <style> element. */
+const resource = (id: string) => `gridconfig:${id}`;
+
+/**
+ * On the server, a layout compiled at runtime gives its CSS to React: a `<style>` with `href` and
+ * `precedence` goes in the output one time, however many grids use the layout. A layout from the
+ * build plugin imports its CSS, so it gives nothing.
+ */
+function serverStyles(layout: CompiledLayout): ReactNode {
+	return sheetsOf(layout).map(({ id, css }) =>
+		createElement('style', { key: id, href: resource(id), precedence: resource(id) }, css)
+	);
 }
 
 /**
- * A layout from the build plugin imports its CSS. A layout compiled at runtime gives its CSS to
- * React: a `<style>` with `href` and `precedence` goes in the head one time for each page, also in SSR.
+ * In the browser, the CSS of a layout compiled at runtime is on the page one time, for all the
+ * grids that use it. When the layout changes, its CSS changes. The elements from the server are
+ * not necessary after that, and an old one would keep the steps of an old layout, so they go.
  */
-function styles(layout: CompiledLayout): ReactNode {
-	if (layout.bundled) return null;
-	const sheet = (href: string, css: string) =>
-		createElement('style', { key: href, href, precedence: 'gridconfig' }, css);
-	return [
-		sheet(`gridconfig-base-${layout.layer ?? '-'}`, baseCssFor(layout.layer)),
-		sheet(`gridconfig-${layout.name}-${hash(layout.css)}`, layout.css)
-	];
+function useStyles(layout: CompiledLayout) {
+	const { name, css, layer, bundled } = layout;
+	useInsertionEffect(() => {
+		const sheet = { name, css, layer, bundled };
+		const release = mountStyles(sheet);
+		for (const { id } of sheetsOf(sheet))
+			for (const old of document.querySelectorAll(`style[data-precedence="${resource(id)}"]`))
+				old.remove();
+		return release;
+	}, [name, css, layer, bundled]);
 }
 
 /** The host is the query container, because a grid cannot query its own size. Props go to the grid. */
 export function Grid({ layout, debug = false, children, ...rest }: GridProps) {
+	useStyles(layout);
 	// The inspector is for development. A production build removes this code.
 	useEffect(() => {
 		if (DEV) void import('@gridconfig/devtools/auto');
@@ -42,7 +53,7 @@ export function Grid({ layout, debug = false, children, ...rest }: GridProps) {
 	return createElement(
 		Fragment,
 		null,
-		styles(layout),
+		typeof document === 'undefined' ? serverStyles(layout) : null,
 		createElement(
 			'div',
 			{ 'data-grid-host': layout.name, 'data-grid-debug': DEV && debug ? '' : undefined },

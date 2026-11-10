@@ -29,11 +29,13 @@ test('a runtime layout gives its CSS and the base to React, one time each', () =
 	const html = renderToString(two);
 	const sheets = hrefs(html);
 	assert.equal(sheets.length, 2, sheets.join());
-	assert.equal(sheets[0], 'gridconfig-base-gridconfig');
-	assert.match(sheets[1], /^gridconfig-card-/);
+	assert.deepEqual(sheets, ['gridconfig:base:gridconfig', 'gridconfig:layout:card']);
 	assert.equal(html.match(/:where\(\[data-grid-layout\]\)/g)?.length, 1);
 	assert.match(html, /container: card \/ inline-size/);
-	assert.match(html, /data-precedence="gridconfig"/);
+	// One precedence for each sheet, so that React makes one <style> element for each sheet. The
+	// browser code can then remove the element of one layout.
+	assert.match(html, /data-precedence="gridconfig:base:gridconfig"/);
+	assert.match(html, /data-precedence="gridconfig:layout:card"/);
 });
 
 test('a bundled layout injects no CSS', () => {
@@ -42,13 +44,18 @@ test('a bundled layout injects no CSS', () => {
 	assert.doesNotMatch(html, /<style/);
 });
 
-test('a layout that changes at runtime gets a new stylesheet', () => {
-	const other = grid({ name: 'card', areas: 'A B', gap: 4 });
+test('two layouts give one element each, and share the base', () => {
+	const other = grid({ name: 'other', areas: 'A B', gap: 4 });
 	const html = renderToString(
 		createElement('div', null, [
 			createElement(Grid, { key: 1, layout }),
 			createElement(Grid, { key: 2, layout: other })
 		])
 	);
-	assert.equal(hrefs(html).filter((h) => h.startsWith('gridconfig-card-')).length, 2);
+	assert.deepEqual(hrefs(html), [
+		'gridconfig:base:gridconfig',
+		'gridconfig:layout:card',
+		'gridconfig:layout:other'
+	]);
+	assert.equal(html.match(/<style/g)?.length, 3);
 });

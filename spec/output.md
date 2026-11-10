@@ -118,7 +118,14 @@ The page needs the shared base one time, and the CSS of each layout one time. Th
 
 **Build plugin.** A layout that compiles at build time imports its CSS as CSS modules. A `.grid` file, a `.yaml?grid` import, and a static `grid` call each import two modules: the shared base in the layer of the layout, and the CSS of the layout. The bundler then delivers the CSS as it delivers other CSS: one time for each page, in a stylesheet, also with server rendering. In development, a change to a layout updates the styles, and the page does not reload. The compiled layout then has `bundled: true` and an empty `css`. An adapter must not inject the CSS of a bundled layout.
 
-**Runtime.** A layout that compiles when the code runs has its CSS in `css`. The adapter injects `baseCssFor(layer)` and `css`, one time for each page if it can. Two layouts on one page cannot have the same name. Thus the adapter can use the name to remove duplicates, but a layout that changes at runtime must get a new stylesheet. The React adapter gives the CSS to React as `<style href precedence>`, and React puts it in the head one time. The Svelte adapter puts the CSS in `<svelte:head>` for each instance.
+**Runtime.** A layout that compiles when the code runs has its CSS in `css`. The page needs `baseCssFor(layer)` and `css`, one time each. `@gridconfig/core/runtime` has two functions for an adapter:
+
+- `sheetsOf(layout)` gives the stylesheets that a layout needs: the base in its layer, and its own CSS. Each has an `id`. A bundled layout needs none.
+- `mountStyles(layout)` puts these stylesheets in the head of the document, and returns a function that releases them. An adapter calls it when a grid goes on the page, and calls the result when the grid goes away. Each stylesheet is on the page one time, in a `<style data-gridconfig="…">` element, for all the grids that use it. The stylesheet of a layout goes away with the last grid that uses it.
+
+Two layouts on one page cannot have the same name. Thus, when a layout comes with a name that is on the page and with different CSS, the layout changed, and `mountStyles` replaces the old CSS. No rule of the old layout stays.
+
+On the server there is no document. The React adapter gives the CSS to React as `<style href precedence>`, and React writes it one time. The Svelte adapter writes the CSS to `<svelte:head>` for each grid, so the HTML from the server has it one time for each grid. In the browser, both adapters call `mountStyles` and remove the elements from the server.
 
 ## Flow output
 

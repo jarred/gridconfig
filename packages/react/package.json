@@ -22,7 +22,7 @@
 	"scripts": {
 		"build": "tsc -p tsconfig.build.json",
 		"prepublishOnly": "pnpm build",
-		"test": "node --test \"test/**/*.test.ts\"",
+		"test": "node --test \"test/**/*.test.ts\" && node --conditions=production --test test/hydrate.dom.ts",
 		"check": "tsc -p tsconfig.json"
 	},
 	"dependencies": {

@@ -70,7 +70,7 @@ Planned: `cli`, `vue`, `astro`, `element` (Web Components), an editor extension 
 ```sh
 pnpm install
 pnpm dev     # the site
-pnpm test    # tests in core, unplugin and devtools (Node's built-in test runner)
+pnpm test    # tests in core, unplugin, devtools, react and svelte (Node's built-in test runner)
 pnpm test:browser  # fixtures, page CSS and the inspector in Chromium (once: pnpm exec playwright install chromium)
 pnpm check   # type-check
 pnpm lint
