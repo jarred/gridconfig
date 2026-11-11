@@ -8,10 +8,12 @@ import { grid } from '@gridconfig/core';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 // The compiled files must be in the package, so that their imports resolve. This folder is ignored.
-const out = join(root, 'node_modules/.cache/gridconfig-test');
+const cache = join(root, 'node_modules/.cache/gridconfig-test');
 
 /** With this variable, the app has `GridStyles` around its grids. */
 export const wrapped = Boolean(process.env.GRID_STYLES);
+// The two forms of the app run as tests at the same time, so each has a folder of its own.
+const out = join(cache, wrapped ? 'styles' : 'plain');
 
 const GRIDS = `{#each layouts as layout, i (i)}
 	<Grid {layout} class="c"><p data-grid-area="A">a</p></Grid>
