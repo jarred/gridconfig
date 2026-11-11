@@ -7,7 +7,7 @@ import { dirname, join } from 'node:path';
 import { test } from 'node:test';
 import { fileURLToPath } from 'node:url';
 import { JSDOM } from 'jsdom';
-import { build, card, changed, other } from './app.ts';
+import { build, card, changed, other, wrapped } from './app.ts';
 
 const here = dirname(fileURLToPath(import.meta.url));
 
@@ -19,8 +19,10 @@ test('hydrates the server output, and keeps one stylesheet for each layout', asy
 			env: { ...process.env, NODE_OPTIONS: '', NODE_NO_WARNINGS: '1' }
 		})
 	) as { head: string; body: string };
-	// On the server, each of the three grids writes the base and the CSS of the layout.
-	assert.equal(server.head.match(/<style data-gridconfig-ssr=/g)?.length, 6);
+	// On the server, each of the three grids writes the base and the CSS of the layout. Inside
+	// `GridStyles`, only the first grid writes them.
+	const fromServer = wrapped ? 2 : 6;
+	assert.equal(server.head.match(/<style data-gridconfig-ssr=/g)?.length, fromServer);
 
 	const dom = new JSDOM(
 		`<!doctype html><html><head>${server.head}</head><body><div id="app">${server.body}</div></body>`,
@@ -46,7 +48,7 @@ test('hydrates the server output, and keeps one stylesheet for each layout', asy
 		[...document.head.querySelectorAll('style')].map(
 			(s) => s.getAttribute('data-gridconfig') ?? 'server'
 		);
-	assert.equal(sheets().filter((s) => s === 'server').length, 6);
+	assert.equal(sheets().filter((s) => s === 'server').length, fromServer);
 
 	const problems: string[] = [];
 	const { warn, error } = console;

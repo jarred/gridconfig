@@ -10,14 +10,20 @@ const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 // The compiled files must be in the package, so that their imports resolve. This folder is ignored.
 const out = join(root, 'node_modules/.cache/gridconfig-test');
 
+/** With this variable, the app has `GridStyles` around its grids. */
+export const wrapped = Boolean(process.env.GRID_STYLES);
+
+const GRIDS = `{#each layouts as layout, i (i)}
+	<Grid {layout} class="c"><p data-grid-area="A">a</p></Grid>
+{/each}`;
+
 const APP = `<script>
 	import Grid from './Grid.MODE.js';
+	import GridStyles from './GridStyles.MODE.js';
 	let { layouts } = $props();
 </script>
 
-{#each layouts as layout, i (i)}
-	<Grid {layout} class="c"><p data-grid-area="A">a</p></Grid>
-{/each}`;
+${wrapped ? `<GridStyles>${GRIDS}</GridStyles>` : GRIDS}`;
 
 export const card = grid({ name: 'card', areas: 'A' });
 export const changed = grid({ name: 'card', areas: 'A', 600: { areas: 'A B' } });
@@ -31,6 +37,9 @@ export function build(mode: 'server' | 'client'): string {
 		writeFileSync(file, compile(source, { generate: mode, filename: `${name}.svelte` }).js.code);
 		return file;
 	};
-	write('Grid', readFileSync(join(root, 'src/Grid.svelte'), 'utf8'));
-	return pathToFileURL(write('App', APP.replace('MODE', mode))).href;
+	const source = (name: string) => readFileSync(join(root, `src/${name}.svelte`), 'utf8');
+	write('Grid', source('Grid'));
+	// The compiled files have other names than the source files.
+	write('GridStyles', source('GridStyles').replace('./Grid.svelte', `./Grid.${mode}.js`));
+	return pathToFileURL(write('App', APP.replaceAll('MODE', mode))).href;
 }

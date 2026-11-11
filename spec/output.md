@@ -125,7 +125,7 @@ The page needs the shared base one time, and the CSS of each layout one time. Th
 
 Two layouts on one page cannot have the same name. Thus, when a layout comes with a name that is on the page and with different CSS, the layout changed, and `mountStyles` replaces the old CSS. No rule of the old layout stays.
 
-On the server there is no document. The React adapter gives the CSS to React as `<style href precedence>`, and React writes it one time. The Svelte adapter writes the CSS to `<svelte:head>` for each grid, so the HTML from the server has it one time for each grid. In the browser, both adapters call `mountStyles` and remove the elements from the server.
+On the server there is no document. The React adapter gives the CSS to React as `<style href precedence>`, and React writes it one time. The Svelte adapter writes the CSS to `<svelte:head>` for each grid, so the HTML from the server has it one time for each grid. Its `GridStyles` component, around the page, makes this one time for each layout. In the browser, both adapters call `mountStyles` and remove the elements from the server.
 
 ## Flow output
 

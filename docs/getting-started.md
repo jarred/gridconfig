@@ -126,6 +126,8 @@ const same = grid({ areas: 'A', 600: { areas: 'A B' } });
 
 With the Vite plugin, a static `grid` call compiles at build time, as a `.grid` file does. Without the plugin, or when the object is built from variables, it compiles in the browser and `Grid` injects its CSS.
 
+With server rendering in Svelte, put `GridStyles` from `@gridconfig/svelte` around the page, for example in the root layout. Then the HTML from the server has the CSS of each such layout one time. Layouts from the Vite plugin do not need it.
+
 If your code compiles only objects in the browser, import `grid` from `@gridconfig/core/object`. It is the same function without the template form, and it does not ship the YAML parser to the browser.
 
 ## Options for every layout

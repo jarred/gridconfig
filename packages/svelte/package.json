@@ -28,7 +28,7 @@
 		"build": "svelte-package -i src -o dist",
 		"prepublishOnly": "pnpm build",
 		"check": "svelte-check --tsconfig ./tsconfig.json",
-		"test": "node --test \"test/**/*.test.ts\" && node --conditions=browser --conditions=production --test test/hydrate.dom.ts"
+		"test": "node --test \"test/**/*.test.ts\" && node --conditions=browser --conditions=production --test test/hydrate.dom.ts test/hydrate-styles.dom.ts"
 	},
 	"dependencies": {
 		"@gridconfig/core": "workspace:*",
