@@ -93,6 +93,16 @@ A minimum is included; a maximum is not. At each size, each setting comes from t
 | `cqw`, `cqh`, `cqmin`                    | sizes relative to the container        |
 | `@layer …, gridconfig, …;`               | the place of the layout in your layers |
 
+## In JavaScript
+
+| Use                                  | For                                       |
+| ------------------------------------ | ----------------------------------------- |
+| `onStepChange(element, fn)`          | run code when the active step changes     |
+| `gridstepchange` event               | the same, as an event on the grid element |
+| `onstepchange` / `onStepChange` prop | the same, on the Svelte and React `Grid`  |
+
+Refer to [React to a step in JavaScript](./styling.md#react-to-a-step-in-javascript).
+
 ## Markup
 
 ```html

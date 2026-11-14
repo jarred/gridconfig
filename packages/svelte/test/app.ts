@@ -16,13 +16,13 @@ export const wrapped = Boolean(process.env.GRID_STYLES);
 const out = join(cache, wrapped ? 'styles' : 'plain');
 
 const GRIDS = `{#each layouts as layout, i (i)}
-	<Grid {layout} class="c"><p data-grid-area="A">a</p></Grid>
+	<Grid {layout} {onstepchange} class="c"><p data-grid-area="A">a</p></Grid>
 {/each}`;
 
 const APP = `<script>
 	import Grid from './Grid.MODE.js';
 	import GridStyles from './GridStyles.MODE.js';
-	let { layouts } = $props();
+	let { layouts, onstepchange } = $props();
 </script>
 
 ${wrapped ? `<GridStyles>${GRIDS}</GridStyles>` : GRIDS}`;

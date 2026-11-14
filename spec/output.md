@@ -173,6 +173,31 @@ A nested layout sets its own value for its subtree. JavaScript can read the valu
 
 Use the style query, and do not copy the size conditions of a step to page CSS. A copy of the conditions tells you that a step matches, but not that it is active.
 
+### The active step in JavaScript
+
+`@gridconfig/core/runtime` has `onStepChange`. It tells code when the active step of a layout changes.
+
+```ts
+onStepChange(target: Element, listener?: (change: StepChange) => void, options?: { immediate?: boolean }): () => void
+
+type StepChange = { step: string; previous: string | null; layout: string; grid: HTMLElement };
+```
+
+- `target` is the grid element, its host, or an element in the grid. The grid of an element is the nearest element around it with `data-grid-layout`. If there is none, the call throws an error.
+- `step` is the value of `--grid-step`: the query key of the active step, or `base`. `previous` is the value before the change. `layout` is the value of `data-grid-layout`.
+- The listener gets a call for each change of the value. A change of the size of the host that does not change the value gives no call.
+- The first value that the function reads is the start value. It gives no call. With `immediate: true`, the listener gets one call at once with the current value, and `previous` is `null`.
+- The call comes after the browser has applied the styles of the new step, and before it paints.
+- While a grid has one listener or more, the grid element also gets the event `gridstepchange` for each change. The event bubbles and is `composed`. Its `detail` is the `StepChange`. A call with no listener is permitted: it only makes the events start.
+- The result is a function that stops the listener. When the last listener of a grid stops, the function stops its observation of the host.
+- If the layout has no CSS on the page yet, `--grid-step` has no value. Then there is no call, and the first value that comes is the start value.
+
+**Method.** The function reads `--grid-step` from the computed style of the grid element. Thus its result is always the same as the result of the CSS, also when page CSS changes the size of the host. It does not calculate the conditions of the steps again. One `ResizeObserver` for each document watches the hosts that have a listener. The observer calls the function after layout, when the computed styles are up to date. The function reads the value of each host that changed size before it calls a listener, because a listener can change styles.
+
+Each adapter gives the same thing as a setting of its grid component (`onstepchange` in Svelte, `onStepChange` in React). The component watches only when the setting has a value, and it stops when the component goes away.
+
+In an environment with no `ResizeObserver`, for example on a server, `onStepChange` does nothing and gives a function that does nothing.
+
 The output uses only standard CSS container queries and grid features. It has no JavaScript and no selectors for a specific framework. Thus a plain stylesheet is sufficient to use it from each framework. The Web Components adapter describes the shadow-DOM variant (selectors that use `:host` and `::slotted()`).
 
 ## Core API
@@ -191,7 +216,7 @@ baseCssFor(layer: string | null): string  // the shared base rules in a given la
 
 `options`: `tokenPrefix`, `tokenVar`, `defaultName`, `layer`, `debug`, `breakpoints`. The tag form takes no options of its own.
 
-**Entries.** `@gridconfig/core` has all of the API. `@gridconfig/core/object` is the same API without the YAML parser, for code that writes layouts as objects. Its `grid` and `createGrid` take an object only, it has no `parseLayout`, and its `compileLayout` takes a parsed layout only. A build plugin compiles the static calls of its `grid` in the same way. `@gridconfig/core/runtime` has only the parts that an adapter and a development tool need: the attribute names, the base rules, and the functions that match a step.
+**Entries.** `@gridconfig/core` has all of the API. `@gridconfig/core/object` is the same API without the YAML parser, for code that writes layouts as objects. Its `grid` and `createGrid` take an object only, it has no `parseLayout`, and its `compileLayout` takes a parsed layout only. A build plugin compiles the static calls of its `grid` in the same way. `@gridconfig/core/runtime` has the parts for the browser that need no compiler: the attribute names, the base rules, the functions that match a step, the stylesheets of a runtime layout, and `onStepChange`.
 
 **Options of a project.** All the layouts of a project must compile with the same `breakpoints`, `tokenPrefix`, and `layer`, at build time and when the code runs. There are two ways to do this, and a project can use both.
 

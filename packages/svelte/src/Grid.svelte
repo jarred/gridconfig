@@ -11,13 +11,15 @@
 	import type { HTMLAttributes } from 'svelte/elements';
 	import { getContext, onMount } from 'svelte';
 	import { BROWSER, DEV } from 'esm-env';
-	import { mountStyles, sheetsOf } from '@gridconfig/core/runtime';
+	import { mountStyles, onStepChange, sheetsOf } from '@gridconfig/core/runtime';
+	import type { StepListener } from '@gridconfig/core/runtime';
 	import type { CompiledLayout } from '@gridconfig/core';
 
 	let {
 		layout,
 		area,
 		debug = false,
+		onstepchange,
 		children,
 		...rest
 	}: {
@@ -29,8 +31,20 @@
 		area?: string;
 		/** Opens the inspector on this grid when the page loads. Only has an effect in development. */
 		debug?: boolean;
+		/**
+		 * Called when the active step of the layout changes, with the new step and the step before
+		 * it. For work that CSS cannot do, for example an animation in JavaScript.
+		 */
+		onstepchange?: StepListener;
 		children?: Snippet;
 	} & HTMLAttributes<HTMLDivElement> = $props();
+
+	let grid = $state<HTMLDivElement>();
+
+	// Only a grid with a listener is watched.
+	$effect(() => {
+		if (grid && onstepchange) return onStepChange(grid, onstepchange);
+	});
 
 	// A layout from the build plugin imports its CSS. A layout compiled at runtime has its CSS on
 	// the page one time, for all the grids that use it. When the layout changes, so does its CSS.
@@ -68,7 +82,7 @@
 	data-grid-area={area}
 	data-grid-debug={DEV && debug ? '' : undefined}
 >
-	<div {...rest} data-grid-layout={layout.name}>
+	<div {...rest} bind:this={grid} data-grid-layout={layout.name}>
 		{@render children?.()}
 	</div>
 </div>
