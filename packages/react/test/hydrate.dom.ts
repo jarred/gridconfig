@@ -8,6 +8,7 @@ import { act, createElement, useState } from 'react';
 import { renderToString } from 'react-dom/server';
 import { grid } from '@gridconfig/core';
 import type { CompiledLayout } from '@gridconfig/core';
+import type { StepChange } from '@gridconfig/core/runtime';
 import { Grid } from '../src/index.ts';
 
 const card = grid({ name: 'card', areas: 'A' });
@@ -15,6 +16,7 @@ const changed = grid({ name: 'card', areas: 'A', 600: { areas: 'A B' } });
 const other = grid({ name: 'other', areas: 'A' });
 
 let setLayouts: (layouts: CompiledLayout[]) => void;
+const stepChanges: StepChange[] = [];
 function App() {
 	const [layouts, set] = useState([card, card, card]);
 	setLayouts = set;
@@ -24,7 +26,7 @@ function App() {
 		layouts.map((layout, i) =>
 			createElement(
 				Grid,
-				{ key: i, layout, className: 'c' },
+				{ key: i, layout, className: 'c', onStepChange: (c: StepChange) => stepChanges.push(c) },
 				createElement('p', { 'data-grid-area': 'A' }, 'a')
 			)
 		)
@@ -45,6 +47,17 @@ test('hydrates the server output, and keeps one stylesheet for each layout', asy
 	for (const key of ['window', 'document', 'navigator', 'Node', 'Element', 'HTMLElement', 'Event'])
 		Object.defineProperty(globalThis, key, { value: dom.window[key], configurable: true });
 	Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
+	// jsdom has no layout. The test calls the observer by hand.
+	const observed = new Set<Element>();
+	let resized: ResizeObserverCallback = () => {};
+	dom.window.ResizeObserver = class {
+		constructor(callback: ResizeObserverCallback) {
+			resized = callback;
+		}
+		observe = (element: Element) => observed.add(element);
+		unobserve = (element: Element) => observed.delete(element);
+		disconnect() {}
+	} as unknown as typeof ResizeObserver;
 	const { document } = dom.window;
 	/** The id of each stylesheet of the registry, or the precedence of an element from the server. */
 	const sheets = () =>
@@ -66,6 +79,23 @@ test('hydrates the server output, and keeps one stylesheet for each layout', asy
 		assert.deepEqual(sheets(), ['base:gridconfig', 'layout:card']);
 		assert.equal(document.querySelectorAll('[data-grid-layout="card"].c').length, 3);
 
+		// `onStepChange` watches the host of each grid, and gets the change of its own grid.
+		assert.equal(observed.size, 3);
+		const grid = document.querySelector<HTMLElement>('[data-grid-layout="card"]')!;
+		const resize = (step: string) => {
+			grid.style.setProperty('--grid-step', step);
+			resized(
+				[{ target: grid.parentElement! } as unknown as ResizeObserverEntry],
+				{} as ResizeObserver
+			);
+		};
+		resize('base');
+		resize('600');
+		assert.deepEqual(
+			stepChanges.map((c) => [c.previous, c.step, c.layout]),
+			[['base', '600', 'card']]
+		);
+
 		// The layout changes and keeps its name: the new CSS replaces the old CSS.
 		await act(async () => setLayouts([changed, changed]));
 		assert.deepEqual(sheets(), ['base:gridconfig', 'layout:card']);
@@ -81,6 +111,8 @@ test('hydrates the server output, and keeps one stylesheet for each layout', asy
 		// The stylesheet of a layout goes with its last grid. The base stays.
 		await act(async () => setLayouts([]));
 		assert.deepEqual(sheets(), ['base:gridconfig']);
+		// A grid that is gone is not watched.
+		assert.equal(observed.size, 0);
 		await act(async () => setLayouts([other]));
 		assert.deepEqual(sheets(), ['base:gridconfig', 'layout:other']);
 

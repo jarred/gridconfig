@@ -36,6 +36,57 @@ h1 {
 
 Container units are also useful for content that scales with the layout: `font-size: 8cqmin` with `container: size`.
 
+## React to a step in JavaScript
+
+Use CSS when you can: a style query needs no JavaScript. Some work needs code, for example an animation that changes the text of an element when the layout changes. For this, `onStepChange` calls a function each time the active step changes.
+
+```ts
+import { onStepChange } from '@gridconfig/core/runtime';
+
+const stop = onStepChange(element, ({ step, previous }) => {
+	// step: the key of the active step, or "base"
+	// previous: the step before it
+	scramble(element);
+});
+
+// When the element goes away:
+stop();
+```
+
+- `element` is the grid element, or an element at any depth in the grid. The nearest grid around it is the one that counts. Thus a component in an area can listen for the steps of its layout, and it needs no reference to the grid.
+- The function gets `step`, `previous`, `layout` (the name of the layout) and `grid` (the grid element).
+- The function runs after the browser has applied the new step, and before it paints. Thus an animation starts in the same frame as the change of the layout.
+- The function runs only when the step changes. A resize in the same step does nothing.
+- The first call comes with the first change. To also get the current step one time at the start, give `{ immediate: true }` as the third argument. Then `previous` is `null`.
+- Use a [named breakpoint](./steps.md#named-breakpoints), so that `step` is a short name such as `wide`.
+
+`onStepChange` works in each framework, and with no framework, because it uses only the DOM. It does not depend on the `Grid` components.
+
+**The `Grid` components.** `Grid` has a prop for the same thing. It listens for the steps of its own layout, and it stops when the component goes away:
+
+```svelte
+<Grid {layout} onstepchange={({ step }) => (current = step)}>…</Grid>
+```
+
+```tsx
+<Grid layout={layout} onStepChange={({ step }) => setCurrent(step)}>
+	…
+</Grid>
+```
+
+**The event.** While a grid has a listener, its grid element also gets a `gridstepchange` event for each change. The event bubbles, and `event.detail` has the same values as above. A grid with no listener gets no event: this keeps the cost at zero for the grids that do not need it. To get the events and no function call, call `onStepChange(element)` with one argument.
+
+```ts
+onStepChange(grid);
+document.addEventListener('gridstepchange', (event) => {
+	console.log(event.detail.layout, event.detail.step);
+});
+```
+
+**Cost.** One `ResizeObserver` watches the hosts of all the grids that have a listener. When a host changes size, the observer reads `--grid-step` one time. It reads at the moment when the styles are already up to date, so the read is cheap. Nothing runs for a grid with no listener.
+
+**To animate a move.** The function runs after the layout has changed. Thus it can start an animation at the new position, but the old position of an element is gone. To animate from the old position, your code must keep the positions from before the change.
+
 ## Cascade layers
 
 The CSS of a layout is in the cascade layer `gridconfig`. Thus:

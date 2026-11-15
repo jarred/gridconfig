@@ -80,6 +80,8 @@ The compiler writes one block of CSS for the base and one `@container` block for
 }
 ```
 
+For work that CSS cannot do, `onStepChange` from `@gridconfig/core/runtime` calls a function when the active step changes, and the grid element gets a `gridstepchange` event. Refer to [the guide](docs/styling.md#react-to-a-step-in-javascript).
+
 The output needs container queries and cascade layers, which all current browsers have. The browser tests run in Chromium only for now.
 
 ## Three ways to write a layout

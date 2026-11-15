@@ -1,7 +1,16 @@
-import { createElement, Fragment, useEffect, useInsertionEffect } from 'react';
-import type { HTMLAttributes, ReactNode } from 'react';
+import {
+	createElement,
+	Fragment,
+	useCallback,
+	useEffect,
+	useInsertionEffect,
+	useRef,
+	useState
+} from 'react';
+import type { HTMLAttributes, ReactNode, Ref } from 'react';
 import { DEV } from 'esm-env';
-import { mountStyles, sheetsOf } from '@gridconfig/core/runtime';
+import { mountStyles, onStepChange as watchStep, sheetsOf } from '@gridconfig/core/runtime';
+import type { StepListener } from '@gridconfig/core/runtime';
 import type { CompiledLayout } from '@gridconfig/core';
 
 export type GridProps = {
@@ -13,6 +22,13 @@ export type GridProps = {
 	area?: string;
 	/** Opens the inspector on this grid when the page loads. Only has an effect in development. */
 	debug?: boolean;
+	/**
+	 * Called when the active step of the layout changes, with the new step and the step before it.
+	 * For work that CSS cannot do, for example an animation in JavaScript.
+	 */
+	onStepChange?: StepListener;
+	/** A ref to the grid element. */
+	ref?: Ref<HTMLDivElement>;
 	children?: ReactNode;
 } & HTMLAttributes<HTMLDivElement>;
 
@@ -48,8 +64,44 @@ function useStyles(layout: CompiledLayout) {
 }
 
 /** The host is the query container, because a grid cannot query its own size. Props go to the grid. */
-export function Grid({ layout, area, debug = false, children, ...rest }: GridProps) {
+export function Grid({
+	layout,
+	area,
+	debug = false,
+	onStepChange,
+	ref,
+	children,
+	...rest
+}: GridProps) {
 	useStyles(layout);
+
+	// The grid element, for the step listener. The ref of the caller still gets the element.
+	const [grid, setGrid] = useState<HTMLDivElement | null>(null);
+	const setRef = useCallback(
+		(element: HTMLDivElement | null) => {
+			setGrid(element);
+			if (typeof ref === 'function') {
+				const cleanup = ref(element);
+				if (typeof cleanup === 'function')
+					return () => {
+						setGrid(null);
+						cleanup();
+					};
+			} else if (ref) ref.current = element;
+		},
+		[ref]
+	);
+	// Only a grid with a listener is watched. A new function on each render does not start the
+	// watch again: the watch calls the function of the last render.
+	const listener = useRef(onStepChange);
+	useEffect(() => {
+		listener.current = onStepChange;
+	});
+	const listens = Boolean(onStepChange);
+	useEffect(() => {
+		if (grid && listens) return watchStep(grid, (change) => listener.current?.(change));
+	}, [grid, listens]);
+
 	// The inspector is for development. A production build removes this code.
 	useEffect(() => {
 		if (DEV) void import('@gridconfig/devtools/auto');
@@ -66,7 +118,7 @@ export function Grid({ layout, area, debug = false, children, ...rest }: GridPro
 				'data-grid-area': area,
 				'data-grid-debug': DEV && debug ? '' : undefined
 			},
-			createElement('div', { ...rest, 'data-grid-layout': layout.name }, children)
+			createElement('div', { ...rest, ref: setRef, 'data-grid-layout': layout.name }, children)
 		)
 	);
 }

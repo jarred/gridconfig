@@ -7,6 +7,7 @@ import { dirname, join } from 'node:path';
 import { test } from 'node:test';
 import { fileURLToPath } from 'node:url';
 import { JSDOM } from 'jsdom';
+import type { StepChange } from '@gridconfig/core/runtime';
 import { build, card, changed, other, wrapped } from './app.ts';
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -43,6 +44,19 @@ test('hydrates the server output, and keeps one stylesheet for each layout', asy
 	])
 		Object.defineProperty(globalThis, key, { value: dom.window[key], configurable: true });
 	const { document } = dom.window;
+	// jsdom has no layout. The test calls the observer by hand.
+	const observed = new Set<Element>();
+	let resized: ResizeObserverCallback = () => {};
+	dom.window.ResizeObserver = class {
+		constructor(callback: ResizeObserverCallback) {
+			resized = callback;
+		}
+		observe = (element: Element) => observed.add(element);
+		unobserve = (element: Element) => observed.delete(element);
+		disconnect() {}
+	} as unknown as typeof ResizeObserver;
+	const stepChanges: StepChange[] = [];
+	const onstepchange = (change: StepChange) => stepChanges.push(change);
 	/** The id of each stylesheet of the registry, or `server` for an element from the server. */
 	const sheets = () =>
 		[...document.head.querySelectorAll('style')].map(
@@ -59,11 +73,28 @@ test('hydrates the server output, and keeps one stylesheet for each layout', asy
 		const { default: App } = await import(build('client'));
 		const target = document.getElementById('app')!;
 
-		const app = hydrate(App, { target, props: { layouts: [card, card, card] } });
+		const app = hydrate(App, { target, props: { layouts: [card, card, card], onstepchange } });
 		flushSync();
 		// The elements from the server are gone, and three grids share two stylesheets.
 		assert.deepEqual(sheets(), ['base:gridconfig', 'layout:card']);
 		assert.equal(document.querySelectorAll('[data-grid-layout="card"].c').length, 3);
+
+		// `onstepchange` watches the host of each grid, and gets the change of its own grid.
+		assert.equal(observed.size, 3);
+		const grid = document.querySelector<HTMLElement>('[data-grid-layout="card"]')!;
+		const resize = (step: string) => {
+			grid.style.setProperty('--grid-step', step);
+			resized(
+				[{ target: grid.parentElement! } as unknown as ResizeObserverEntry],
+				{} as ResizeObserver
+			);
+		};
+		resize('base');
+		resize('600');
+		assert.deepEqual(
+			stepChanges.map((c) => [c.previous, c.step, c.layout]),
+			[['base', '600', 'card']]
+		);
 
 		// A layout that changes and keeps its name: the new CSS replaces the old CSS.
 		const second = mount(App, { target, props: { layouts: [changed, other] } });
@@ -79,6 +110,8 @@ test('hydrates the server output, and keeps one stylesheet for each layout', asy
 		await unmount(app);
 		flushSync();
 		assert.deepEqual(sheets(), ['base:gridconfig']);
+		// A grid that is gone is not watched. The grids of `second` had no listener.
+		assert.equal(observed.size, 0);
 
 		assert.deepEqual(problems, []);
 	} finally {
