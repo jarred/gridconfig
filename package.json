@@ -9,6 +9,7 @@
 		"build": "pnpm -r --if-present build",
 		"test": "pnpm -r --if-present test",
 		"test:browser": "pnpm --filter @gridconfig/conformance test:browser",
+		"test:browsers": "BROWSER=chromium pnpm test:browser && BROWSER=firefox pnpm test:browser && BROWSER=webkit pnpm test:browser",
 		"check": "pnpm -r --if-present check",
 		"lint": "prettier --check . && eslint .",
 		"format": "prettier --write ."

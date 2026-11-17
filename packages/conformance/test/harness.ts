@@ -3,7 +3,7 @@ import { basename, dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { baseCssFor, compileLayout } from '@gridconfig/core';
 import type { CompileOptions, CompiledLayout } from '@gridconfig/core';
-import { chromium } from 'playwright';
+import { chromium, firefox, webkit } from 'playwright';
 import type { Browser, Page } from 'playwright';
 
 export const FIXTURES = join(dirname(fileURLToPath(import.meta.url)), '../../../spec/fixtures');
@@ -66,8 +66,17 @@ export function loadFixtures(options: CompileOptions = {}): Fixture[] {
 		});
 }
 
+const ENGINES = { chromium, firefox, webkit };
+
+/** The engine from `BROWSER` (chromium, firefox or webkit). The default is chromium. */
+export const engine = (process.env.BROWSER || 'chromium') as keyof typeof ENGINES;
+
 export async function launch(): Promise<Browser> {
-	return chromium.launch({ executablePath: process.env.CHROMIUM_PATH || undefined });
+	const type = ENGINES[engine];
+	if (!type) throw new Error(`BROWSER must be chromium, firefox or webkit, not "${engine}"`);
+	return type.launch({
+		executablePath: (engine === 'chromium' && process.env.CHROMIUM_PATH) || undefined
+	});
 }
 
 /** A page with one layout inside a box of a given size. */

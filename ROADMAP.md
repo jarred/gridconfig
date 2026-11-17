@@ -14,7 +14,7 @@ What is built, and what is planned. The format is in the [spec](./spec/spec.md).
 - `onStepChange` in `@gridconfig/core/runtime`: a listener and a `gridstepchange` event for a change of the active step. The `Grid` components have it as a prop.
 - The JSON Schema for the layout (`@gridconfig/core/schema.json`). Editors with the YAML language server use it for completion, hover text and the common errors. A test checks that each layout in the fixtures, the guide and the spec that the compiler accepts also passes the schema.
 - The inspector (`packages/devtools`). Refer to [Inspector](./packages/devtools/README.md). The overlay only reads the page. Browser tests cover the drawing, the active step, the hover, and the checks of the markup.
-- Browser tests (`packages/conformance`). Each fixture in `spec/fixtures` is a `.grid` file and a list of expected results at many container sizes. The tests load the compiled CSS in Chromium and compare the used tracks, the gaps, the position of each area, and the computed flow properties of each area. Other tests record how the CSS interacts with page CSS, cascade layers, and resets.
+- Browser tests (`packages/conformance`). Each fixture in `spec/fixtures` is a `.grid` file and a list of expected results at many container sizes. The tests load the compiled CSS in Chromium, Firefox and WebKit (`BROWSER`, and a CI job for each) and compare the used tracks, the gaps, the position of each area, and the computed flow properties of each area. Other tests record how the CSS interacts with page CSS, cascade layers, and resets.
 
 ## Not built yet
 
@@ -22,7 +22,7 @@ What is built, and what is planned. The format is in the [spec](./spec/spec.md).
 2. Plugins for bundlers other than Vite.
 3. The editor extension.
 4. The shadow-DOM selector strategy for Web Components.
-5. More browser fixtures: nested layouts, and browsers other than Chromium.
+5. More browser fixtures: nested layouts. Style queries for keys with dots, slashes or spaces, in each engine.
 
 ## Tooling (planned)
 

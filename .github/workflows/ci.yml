@@ -34,6 +34,30 @@ jobs:
       # package goes through svelte-package.
       - run: pnpm --filter "./packages/*" build
 
-      - name: Install Chromium
-        run: pnpm --filter @gridconfig/conformance exec playwright install --with-deps chromium
+  # Each fixture must pass in each engine: a layout engine has to prove its CSS in all three.
+  browser:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        browser: [chromium, firefox, webkit]
+    name: browser (${{ matrix.browser }})
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Install ${{ matrix.browser }}
+        run: pnpm --filter @gridconfig/conformance exec playwright install --with-deps ${{ matrix.browser }}
       - run: pnpm test:browser
+        env:
+          BROWSER: ${{ matrix.browser }}

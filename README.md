@@ -82,7 +82,7 @@ The compiler writes one block of CSS for the base and one `@container` block for
 
 For work that CSS cannot do, `onStepChange` from `@gridconfig/core/runtime` calls a function when the active step changes, and the grid element gets a `gridstepchange` event. Refer to [the guide](docs/styling.md#react-to-a-step-in-javascript).
 
-The output needs container queries and cascade layers, which all current browsers have. The browser tests run in Chromium only for now.
+The output needs container queries and cascade layers, which all current browsers have. The browser tests run in Chromium, Firefox and WebKit.
 
 ## Three ways to write a layout
 
@@ -128,7 +128,7 @@ In development, `Grid` loads an inspector that draws the areas, the tracks and t
 | `packages/svelte`      | `@gridconfig/svelte`                | `Grid` for Svelte 5, and `GridStyles` for server rendering of layouts compiled at runtime.                                                                                                               |
 | `packages/react`       | `@gridconfig/react`                 | `Grid` for React 19.                                                                                                                                                                                     |
 | `packages/devtools`    | `@gridconfig/devtools`              | The inspector overlay: areas, authored tracks, the active step, and checks of the markup.                                                                                                                |
-| `packages/conformance` | `@gridconfig/conformance` (private) | Loads the fixtures in Chromium and checks the layout that the browser makes.                                                                                                                             |
+| `packages/conformance` | `@gridconfig/conformance` (private) | Loads the fixtures in a real browser and checks the layout that the browser makes.                                                                                                                       |
 
 Planned: a CLI, adapters for Vue, Astro and Web Components, plugins for other bundlers, and an editor extension for `.grid` files.
 
@@ -139,13 +139,14 @@ The workspace needs Node 22.18 or later and pnpm.
 ```sh
 pnpm install
 pnpm test          # Node tests in core, vite, devtools, react and svelte
-pnpm test:browser  # fixtures, page CSS and the inspector in Chromium
+pnpm test:browser  # fixtures, page CSS and the inspector in Chromium (BROWSER=firefox or webkit for the others)
+pnpm test:browsers # the same in all three
 pnpm check         # type-check
 pnpm lint          # Prettier and ESLint
 pnpm build         # build each package
 ```
 
-Before the first `pnpm test:browser`, install the browser: `pnpm --filter @gridconfig/conformance exec playwright install chromium`.
+Before the first browser test, install the browsers: `pnpm --filter @gridconfig/conformance exec playwright install chromium firefox webkit`. On some Macs, Playwright's Firefox does not start ("Could not find profile folder"). CI runs Firefox on Linux, so a local Firefox run is optional.
 
 If you change the format, change the [spec](spec/spec.md) first, then the compiler and its tests in `packages/core`, then the fixtures in `spec/fixtures`.
 
