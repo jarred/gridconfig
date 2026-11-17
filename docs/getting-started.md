@@ -15,7 +15,7 @@ import { defineConfig } from 'vite';
 import { gridconfig } from '@gridconfig/vite';
 
 export default defineConfig({
-	plugins: [gridconfig() /* , sveltekit() or react() */]
+  plugins: [gridconfig() /* , sveltekit() or react() */]
 });
 ```
 
@@ -58,14 +58,14 @@ Each direct child names its area with `data-grid-area`.
 
 ```svelte
 <script lang="ts">
-	import { Grid } from '@gridconfig/svelte';
-	import layout from './profile.grid';
+  import { Grid } from '@gridconfig/svelte';
+  import layout from './profile.grid';
 </script>
 
 <Grid {layout}>
-	<img data-grid-area="photo" src={user.photo} alt="" />
-	<h2 data-grid-area="name">{user.name}</h2>
-	<p data-grid-area="bio">{user.bio}</p>
+  <img data-grid-area="photo" src={user.photo} alt="" />
+  <h2 data-grid-area="name">{user.name}</h2>
+  <p data-grid-area="bio">{user.bio}</p>
 </Grid>
 ```
 
@@ -76,13 +76,13 @@ import { Grid } from '@gridconfig/react';
 import layout from './profile.grid';
 
 export function Profile({ user }) {
-	return (
-		<Grid layout={layout}>
-			<img data-grid-area="photo" src={user.photo} alt="" />
-			<h2 data-grid-area="name">{user.name}</h2>
-			<p data-grid-area="bio">{user.bio}</p>
-		</Grid>
-	);
+  return (
+    <Grid layout={layout}>
+      <img data-grid-area="photo" src={user.photo} alt="" />
+      <h2 data-grid-area="name">{user.name}</h2>
+      <p data-grid-area="bio">{user.bio}</p>
+    </Grid>
+  );
 }
 ```
 
@@ -171,8 +171,8 @@ In VS Code, install the YAML extension from Red Hat, and add this to the setting
 
 ```json
 {
-	"files.associations": { "*.grid": "yaml" },
-	"yaml.schemas": { "./node_modules/@gridconfig/core/schema.json": "*.grid" }
+  "files.associations": { "*.grid": "yaml" },
+  "yaml.schemas": { "./node_modules/@gridconfig/core/schema.json": "*.grid" }
 }
 ```
 

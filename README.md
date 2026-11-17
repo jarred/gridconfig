@@ -26,15 +26,15 @@ areas: |
 
 ```svelte
 <script>
-	import { Grid } from '@gridconfig/svelte';
-	import layout from './card.grid';
+  import { Grid } from '@gridconfig/svelte';
+  import layout from './card.grid';
 </script>
 
 <Grid {layout}>
-	<img data-grid-area="image" src="…" alt="" />
-	<h3 data-grid-area="title">…</h3>
-	<p data-grid-area="text">…</p>
-	<aside data-grid-area="aside">…</aside>
+  <img data-grid-area="image" src="…" alt="" />
+  <h3 data-grid-area="title">…</h3>
+  <p data-grid-area="text">…</p>
+  <aside data-grid-area="aside">…</aside>
 </Grid>
 ```
 
@@ -70,10 +70,10 @@ The [language reference](docs/language.md) has all of it on one page.
 
 ```html
 <div data-grid-host="card">
-	<div data-grid-layout="card">
-		<img data-grid-area="image" />
-		…
-	</div>
+  <div data-grid-layout="card">
+    <img data-grid-area="image" />
+    …
+  </div>
 </div>
 ```
 
@@ -81,9 +81,9 @@ The compiler writes one block of CSS for the base and one `@container` block for
 
 ```css
 @container style(--grid-step: 900) {
-	h3 {
-		font-size: 2rem;
-	}
+  h3 {
+    font-size: 2rem;
+  }
 }
 ```
 
@@ -117,7 +117,7 @@ import { defineConfig } from 'vite';
 import { gridconfig } from '@gridconfig/vite';
 
 export default defineConfig({
-	plugins: [gridconfig({ breakpoints: { md: '600..' } }) /* , sveltekit() or react() */]
+  plugins: [gridconfig({ breakpoints: { md: '600..' } }) /* , sveltekit() or react() */]
 });
 ```
 

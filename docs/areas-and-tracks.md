@@ -99,7 +99,7 @@ The grid element also has `--grid-gap` and `--grid-padding` as custom properties
 
 ```css
 .card-body {
-	padding: var(--grid-gap);
+  padding: var(--grid-gap);
 }
 ```
 

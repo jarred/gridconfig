@@ -108,11 +108,11 @@ Refer to [React to a step in JavaScript](./styling.md#react-to-a-step-in-javascr
 
 ```html
 <div data-grid-host="card">
-	<!-- the container: Grid makes it -->
-	<div data-grid-layout="card">
-		<!-- the grid -->
-		<img data-grid-area="image" />
-		<!-- each direct child names its area -->
-	</div>
+  <!-- the container: Grid makes it -->
+  <div data-grid-layout="card">
+    <!-- the grid -->
+    <img data-grid-area="image" />
+    <!-- each direct child names its area -->
+  </div>
 </div>
 ```

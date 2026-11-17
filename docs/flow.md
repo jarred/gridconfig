@@ -53,8 +53,8 @@ In code, an object can be easier:
 
 ```ts
 grid({
-	areas: 'title actions',
-	flow: { actions: { direction: 'row', main: 'end', gap: '{space.2} + 4' } }
+  areas: 'title actions',
+  flow: { actions: { direction: 'row', main: 'end', gap: '{space.2} + 4' } }
 });
 ```
 

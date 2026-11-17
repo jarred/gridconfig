@@ -19,13 +19,13 @@ wide:
 
 ```css
 h1 {
-	font-size: 1.5rem;
+  font-size: 1.5rem;
 }
 
 @container style(--grid-step: wide) {
-	h1 {
-		font-size: 3rem;
-	}
+  h1 {
+    font-size: 3rem;
+  }
 }
 ```
 
@@ -44,9 +44,9 @@ Use CSS when possible. A style query does not use JavaScript. Some work must hav
 import { onStepChange } from '@gridconfig/core/runtime';
 
 const stop = onStepChange(element, ({ step, previous }) => {
-	// step: the key of the active step, or "base"
-	// previous: the step before it
-	scramble(element);
+  // step: the key of the active step, or "base"
+  // previous: the step before it
+  scramble(element);
 });
 
 // When the element goes away:
@@ -72,7 +72,7 @@ To read the active step one time, use `readStep(grid)` from the same module. It 
 
 ```tsx
 <Grid layout={layout} onStepChange={({ step }) => setCurrent(step)}>
-	…
+  …
 </Grid>
 ```
 
@@ -81,7 +81,7 @@ To read the active step one time, use `readStep(grid)` from the same module. It 
 ```ts
 onStepChange(grid);
 document.addEventListener('gridstepchange', (event) => {
-	console.log(event.detail.layout, event.detail.step);
+  console.log(event.detail.layout, event.detail.step);
 });
 ```
 
@@ -131,7 +131,7 @@ An area can hold a `Grid` with its own layout. The nested layout measures its ar
 
 ```svelte
 <Grid layout={page}>
-	<Grid layout={card} area="main">…</Grid>
+  <Grid layout={card} area="main">…</Grid>
 </Grid>
 ```
 

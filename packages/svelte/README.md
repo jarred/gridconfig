@@ -8,13 +8,13 @@ npm install @gridconfig/core @gridconfig/vite @gridconfig/svelte
 
 ```svelte
 <script lang="ts">
-	import { Grid } from '@gridconfig/svelte';
-	import layout from './card.grid';
+  import { Grid } from '@gridconfig/svelte';
+  import layout from './card.grid';
 </script>
 
 <Grid {layout}>
-	<img data-grid-area="image" src="…" alt="" />
-	<h3 data-grid-area="title">…</h3>
+  <img data-grid-area="image" src="…" alt="" />
+  <h3 data-grid-area="title">…</h3>
 </Grid>
 ```
 

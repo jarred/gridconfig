@@ -18,9 +18,9 @@ areas: |
 
 ```svelte
 <Grid {layout}>
-	<img data-grid-area="image" src="…" alt="" />
-	<h3 data-grid-area="title">…</h3>
-	<p data-grid-area="text">…</p>
+  <img data-grid-area="image" src="…" alt="" />
+  <h3 data-grid-area="title">…</h3>
+  <p data-grid-area="text">…</p>
 </Grid>
 ```
 

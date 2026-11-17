@@ -12,7 +12,7 @@ import { defineConfig } from 'vite';
 import { gridconfig } from '@gridconfig/vite';
 
 export default defineConfig({
-	plugins: [gridconfig() /* , sveltekit() or react() */]
+  plugins: [gridconfig() /* , sveltekit() or react() */]
 });
 ```
 

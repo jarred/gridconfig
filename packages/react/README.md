@@ -11,10 +11,10 @@ import { Grid } from '@gridconfig/react';
 import layout from './card.grid';
 
 export const Card = () => (
-	<Grid layout={layout}>
-		<img data-grid-area="image" src="…" alt="" />
-		<h3 data-grid-area="title">…</h3>
-	</Grid>
+  <Grid layout={layout}>
+    <img data-grid-area="image" src="…" alt="" />
+    <h3 data-grid-area="title">…</h3>
+  </Grid>
 );
 ```
 
