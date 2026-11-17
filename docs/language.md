@@ -98,6 +98,7 @@ A minimum is included; a maximum is not. At each size, each setting comes from t
 | Use                                  | For                                       |
 | ------------------------------------ | ----------------------------------------- |
 | `onStepChange(element, fn)`          | run code when the active step changes     |
+| `readStep(grid)`                     | the active step now                       |
 | `gridstepchange` event               | the same, as an event on the grid element |
 | `onstepchange` / `onStepChange` prop | the same, on the Svelte and React `Grid`  |
 

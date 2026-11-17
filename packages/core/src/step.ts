@@ -37,13 +37,26 @@ type Watcher = { observer: ResizeObserver; watched: WeakMap<Element, Watched> };
 
 const watchers = new WeakMap<Document, Watcher>();
 
-const read = (grid: HTMLElement) => {
+// WebKit puts an empty comment between two tokens that would join when the value is read again.
+// Thus the key ..300 comes back as "." then an empty comment then ".300". A step name never has
+// a comment, so readStep removes them, and each engine gives the key as it is written.
+const EMPTY_COMMENT = /\/\*\*\//g;
+
+/**
+ * The active step of a grid element: the value of `--grid-step`, as the key is written in the
+ * layout, or `base`. An element that is not in the page, or a layout with no CSS yet, gives ''.
+ */
+export function readStep(grid: Element): string {
 	const view = grid.ownerDocument.defaultView;
-	// An element that is not in the page, or a layout with no CSS yet, has no step.
-	return (
-		(grid.isConnected && view?.getComputedStyle(grid).getPropertyValue(STEP_PROPERTY).trim()) || ''
-	);
-};
+	if (!grid.isConnected || !view) return '';
+	return view
+		.getComputedStyle(grid)
+		.getPropertyValue(STEP_PROPERTY)
+		.replace(EMPTY_COMMENT, '')
+		.trim();
+}
+
+const read = readStep;
 
 function notify(entry: Watched, step: string, previous: string | null) {
 	const { grid } = entry;

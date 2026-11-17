@@ -172,7 +172,11 @@ ${CSS}
 					box.style.height = `${h}px`;
 					const grid = document.querySelector('[data-grid-layout="labels"]')!;
 					return {
-						step: getComputedStyle(grid).getPropertyValue('--grid-step').trim(),
+						// As readStep does: WebKit puts empty comments between some tokens.
+						step: getComputedStyle(grid)
+							.getPropertyValue('--grid-step')
+							.replace(/\/\*\*\//g, '')
+							.trim(),
 						color: getComputedStyle(document.getElementById('probe')!).color
 					};
 				},

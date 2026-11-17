@@ -141,3 +141,48 @@ test('the result of onStepChange stops the calls and the events', async () => {
 	assert.deepEqual(recorded.events, ['150']);
 	await page.close();
 });
+
+test('readStep gives each kind of key as it is written, in each engine', async () => {
+	// WebKit puts empty comments between some tokens when it reads a custom property back.
+	const layout = compileLayout(`
+name: keys
+container: size
+areas: X
+..300:
+  gap: 1
+300..600x..400:
+  gap: 2
+300..600 ..3/4:
+  padding: 1
+`);
+	const page = await browser.newPage();
+	await page.setContent(`<style>
+body { margin: 0; }
+${baseCssFor(layout.layer)}
+${layout.css}
+#box { width: 100px; height: 100px; }
+</style>
+<div id="box" data-grid-host="keys"><div data-grid-layout="keys"><div data-grid-area="X">x</div></div></div>`);
+	await page.addScriptTag({ content: script });
+	for (const [w, h, step] of [
+		[200, 300, '..300'],
+		[400, 300, '300..600x..400'],
+		[400, 600, '300..600 ..3/4'],
+		[700, 700, 'base']
+	] as const) {
+		const read = await page.evaluate(
+			([w, h]) => {
+				const box = document.getElementById('box')!;
+				box.style.width = `${w}px`;
+				box.style.height = `${h}px`;
+				const runtime = (
+					globalThis as unknown as { gridconfigRuntime: { readStep(grid: Element): string } }
+				).gridconfigRuntime;
+				return runtime.readStep(document.querySelector('[data-grid-layout="keys"]')!);
+			},
+			[w, h] as const
+		);
+		assert.equal(read, step, `${w}x${h}`);
+	}
+	await page.close();
+});

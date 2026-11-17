@@ -10,7 +10,7 @@ export { baseCss, baseCssFor } from './base.ts';
 export { DEFAULT_LAYER } from './layer.ts';
 export { DEBUG_PROPERTY } from './debug.ts';
 export { conditionCss, matches, samplePoints } from './query.ts';
-export { STEP_EVENT, onStepChange } from './step.ts';
+export { STEP_EVENT, onStepChange, readStep } from './step.ts';
 export type { StepChange, StepListener } from './step.ts';
 export { STYLE_ATTRIBUTE, mountStyles, sheetsOf } from './styles.ts';
 export type { Sheet } from './styles.ts';

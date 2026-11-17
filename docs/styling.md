@@ -62,6 +62,8 @@ stop();
 
 `onStepChange` works in each framework, and with no framework, because it uses only the DOM. It does not depend on the `Grid` components.
 
+To read the active step one time, use `readStep(grid)` from the same module. It gives the key as you wrote it. Do not read `--grid-step` with `getComputedStyle` yourself: Safari changes some keys, for example `..300` comes back as `./**/.300`.
+
 **The `Grid` components.** `Grid` has a prop for the same thing. It listens for the steps of its own layout, and it stops when the component goes away:
 
 ```svelte

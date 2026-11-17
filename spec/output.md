@@ -169,7 +169,7 @@ Content can use a style query to target a step. The custom property inherits, so
 }
 ```
 
-A nested layout sets its own value for its subtree. JavaScript can read the value with `getComputedStyle(grid).getPropertyValue('--grid-step')`. Style queries for custom properties are in all current browsers (Baseline in 2026). An older browser ignores the rule.
+A nested layout sets its own value for its subtree. JavaScript reads the value with `readStep(grid)` from `@gridconfig/core/runtime`. It gives the key as it is written. `getComputedStyle(grid).getPropertyValue('--grid-step')` gives the same value in Chromium and Firefox, but WebKit puts an empty comment (`/**/`) between two tokens that would join, so `..300` comes back as `./**/.300`. `readStep` removes these comments. Style queries for custom properties are in all current browsers (Baseline in 2026). An older browser ignores the rule.
 
 Use the style query, and do not copy the size conditions of a step to page CSS. A copy of the conditions tells you that a step matches, but not that it is active.
 
@@ -216,7 +216,7 @@ baseCssFor(layer: string | null): string  // the shared base rules in a given la
 
 `options`: `tokenPrefix`, `tokenVar`, `defaultName`, `layer`, `debug`, `breakpoints`. The tag form takes no options of its own.
 
-**Entries.** `@gridconfig/core` has all of the API. `@gridconfig/core/object` is the same API without the YAML parser, for code that writes layouts as objects. Its `grid` and `createGrid` take an object only, it has no `parseLayout`, and its `compileLayout` takes a parsed layout only. A build plugin compiles the static calls of its `grid` in the same way. `@gridconfig/core/runtime` has the parts for the browser that need no compiler: the attribute names, the base rules, the functions that match a step, the stylesheets of a runtime layout, and `onStepChange`.
+**Entries.** `@gridconfig/core` has all of the API. `@gridconfig/core/object` is the same API without the YAML parser, for code that writes layouts as objects. Its `grid` and `createGrid` take an object only, it has no `parseLayout`, and its `compileLayout` takes a parsed layout only. A build plugin compiles the static calls of its `grid` in the same way. `@gridconfig/core/runtime` has the parts for the browser that need no compiler: the attribute names, the base rules, the functions that match a step, the stylesheets of a runtime layout, `onStepChange`, and `readStep`.
 
 **Options of a project.** All the layouts of a project must compile with the same `breakpoints`, `tokenPrefix`, and `layer`, at build time and when the code runs. There are two ways to do this, and a project can use both.
 
