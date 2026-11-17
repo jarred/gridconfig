@@ -1,6 +1,6 @@
 # GridConfig spec
 
-**Status: 1.0.** The format and the output are stable. [Stability](#stability) says what 1.x keeps. The compiler in `packages/core` is the implementation of this spec. The tests are in `packages/core/test`, `packages/vite/test`, and the browser fixtures in [`fixtures`](./fixtures). The [roadmap](../ROADMAP.md) lists the parts that are not built yet.
+**Status: 1.0.** The format and the output are stable. [Stability](#stability) says what 1.x keeps. The compiler in `packages/core` is the implementation of this spec. The tests are in `packages/core/test`, `packages/vite/test`, and the browser fixtures in [`fixtures`](./fixtures). The [roadmap](../ROADMAP.md) lists the parts that we did not build yet.
 
 A layout is a description of a CSS grid. The grid changes shape when the size of its container changes. The compiler makes static CSS (container queries) and a small DOM contract from the layout. The DOM contract does not depend on a framework.
 
@@ -25,8 +25,8 @@ areas: A
 
 The spec has two normative parts:
 
-1. **[The layout format](./format.md)**: the data that a person writes, the three ways to write it, the rules of the steps and the cascade, and the errors.
-2. **[The compiled output](./output.md)**: the CSS and the DOM that each framework adapter must make or use, how the CSS gets to the page, and the core API.
+1. **[The layout format](./format.md)**: the data that a person writes, the ways to write it, the rules of the steps and the cascade, and the errors.
+2. **[The compiled output](./output.md)**: the CSS and the DOM that each adapter must make or use, the delivery of the CSS, and the core API.
 
 Other documents:
 
@@ -40,13 +40,13 @@ The spec does not describe framework usage (Svelte, React, Vue, Astro, Web Compo
 
 GridConfig follows semantic versioning from 1.0. In each 1.x release:
 
-- **A layout that compiles keeps compiling, and keeps its behaviour.** At each container size, the same areas show, in the same cells, with the same tracks, gap, padding and flow, and the same step is active. A new error for a layout that compiled before is a breaking change, so it waits for 2.0.
+- **A layout that compiles will compile in each later 1.x release, with the same behavior.** At each container size, the same areas show in the same cells. They have the same tracks, gap, padding and flow, and the same step is active. A new error for a layout that compiled before is a breaking change. Thus it must wait for 2.0.
 - **The DOM contract stays.** The attributes `data-grid-host`, `data-grid-layout` and `data-grid-area`, and the rule that children of the grid are direct children. Refer to [DOM contract](./output.md#dom-contract).
-- **The CSS contract stays.** The custom properties `--grid-gap`, `--grid-padding` and `--grid-step`, the default layer name `gridconfig`, the base rules from `baseCssFor`, and the layout `name` as the container name. A page can write `@container card (…)` and `@container style(--grid-step: wide)`, and both keep working.
+- **The CSS contract stays.** The custom properties `--grid-gap`, `--grid-padding` and `--grid-step`, the default layer name `gridconfig`, the base rules from `baseCssFor`, and the layout `name` as the container name. A page can write `@container card (…)` and `@container style(--grid-step: wide)`. Both will continue to work.
 - **The core API stays.** The functions and options in [Core API](./output.md#core-api), and the error shape `{ message, path, range? }`.
 
 A minor release can add settings, query terms, options, API and warnings. These do not change a layout that does not use them.
 
-Not covered: the exact text of the CSS (selectors, rule order, whitespace), the wording of errors and warnings, the format of the debug data (the inspector reads it, and it has its own version number), and the inspector itself. The [JSON Schema](../packages/core/schema.json) follows the compiler: it never rejects a layout that the compiler accepts.
+Not covered: the exact text of the CSS (selectors, rule order, whitespace), the text of errors and warnings, the format of the debug data, and the inspector. The inspector reads the debug data, which has its own version number. The [JSON Schema](../packages/core/schema.json) follows the compiler: it never rejects a layout that the compiler accepts.
 
-**Browsers.** The output needs container queries, container style queries for `--grid-step`, and cascade layers. The browser tests run each fixture in Chromium, Firefox and WebKit.
+**Browsers.** The output uses container queries, container style queries for `--grid-step`, and cascade layers. The browser tests run each fixture in Chromium, Firefox and WebKit.

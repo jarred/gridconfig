@@ -17,7 +17,7 @@ A layout is plain data. There are three ways to write it. All three give the sam
 - The file has one document.
 - The file has no tags (for example `!!str`).
 - The file has no anchors (`&name`) and no aliases (`*name`). Write a value again where it is necessary.
-- A leading tab counts as two spaces, because YAML does not permit tabs as indentation.
+- A tab at the start of a line counts as two spaces, because YAML does not permit tabs as indentation.
 
 A `.yaml` or `.yml` file with the same content is also a layout. Tools handle `.grid` first, and `.yaml` and `.yml` second. JSON is also valid, because JSON is valid YAML 1.2.
 
@@ -25,7 +25,7 @@ A `.yaml` or `.yml` file with the same content is also a layout. Tools handle `.
 
 **The object in code.** The function `grid` also takes an object. The object must be plain data: strings, numbers, booleans, arrays, and objects. It cannot have functions, symbols, `NaN`, dates, or class instances. A value of `undefined` counts as absent. Query keys can be numbers (`600: { … }`).
 
-A template must always be static. An object can be static or dynamic. A build plugin compiles a template or an object at build time when each value in it is written as a literal in the code. If an object has a variable, a spread, or a call, the object compiles when the code runs.
+A template must always be static. An object can be static or dynamic. A build plugin compiles a template or an object at build time when the code writes each value in it as a literal. If an object has a variable, a spread, or a call, the object compiles when the code runs.
 
 A build plugin does not change text in a comment or in a string. In a Markdown file, it also does not change text in a fenced code block. If a file gives the name `grid` to a different variable or parameter, the plugin cannot know which calls use the import. Then the plugin does not compile the calls in that file, and they compile when the code runs. Use an alias for the import to prevent this.
 
@@ -35,16 +35,16 @@ An area map is a multi-line string in all three forms. A list of rows is not per
 
 The top level is the **base step**. It also has these keys.
 
-| Key           | Required | Description                                                                                                                                  |
-| ------------- | -------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
-| `name`        | no       | An identifier (`[A-Za-z_][\w-]*`). It is the name of the container and a part of the `data-grid-layout` selector. See below for the default. |
-| `container`   | no       | `inline-size` (default) or `size`. Use `size` for a box with a fixed height, and to use height, ratio, or orientation keys.                  |
-| `breakpoints` | no       | Named queries. Refer to [Named breakpoints](#named-breakpoints).                                                                             |
+| Key           | Necessary | Description                                                                                                                                  |
+| ------------- | --------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| `name`        | no        | An identifier (`[A-Za-z_][\w-]*`). It is the name of the container and a part of the `data-grid-layout` selector. See below for the default. |
+| `container`   | no        | `inline-size` (default) or `size`. Use `size` for a box with a fixed height, and to use height, ratio, or orientation keys.                  |
+| `breakpoints` | no        | Named queries. Refer to [Named breakpoints](#named-breakpoints).                                                                             |
 
 The default `name` has two sources, in this order:
 
 1. The file name without its extension. If that is `layout`, `index`, or `grid`, in any letter case, the name of the folder of the file replaces it. Thus `Card/layout.grid` and `Hero/layout.grid` get the names `Card` and `Hero`. A tool gives the result to the compiler as `defaultName`. `defaultNameFor(path)` in core calculates it. The compiler changes each character that is not valid to `-`. If the result starts with a digit, the compiler adds `_` at the start. Thus `1-hero.card.grid` becomes `_1-hero-card`.
-2. A hash of the content, written `grid-` and seven characters. The same content always gets the same name, in each of the three forms. The options `tokenPrefix`, `layer`, and `breakpoints` are a part of the hash when they are set, because they change the CSS. Thus one layout with two sets of options gets two names.
+2. A hash of the content, written `grid-` and seven characters. The same content always gets the same name, in each of the three forms. The options `tokenPrefix`, `layer`, and `breakpoints` are a part of the hash when you set them, because they change the CSS. Thus one layout with two sets of options gets two names.
 
 A name must not be a word that CSS reserves for container names: `none`, `and`, `or`, `not`, `default`, `inherit`, `initial`, `unset`, `revert`, or `revert-layer`. A `name` that is one of these words is an error. If a file name gives one of these words, the compiler adds `_` at the start. Thus `none.grid` becomes `_none`.
 
@@ -87,7 +87,7 @@ A minimum is inclusive. A maximum is exclusive. Thus two ranges that meet at one
 
 A ratio is width to height. A ratio alone is a minimum, the same as a size alone. A container is `portrait` when its height is equal to its width or more than its width. Thus a square container is `portrait`.
 
-A height, a ratio, and an orientation need the height of the container. Thus a key that has one of these terms needs `container: size`. Without it, the key is an error. The error tells you to set `container: size`.
+A height, a ratio, and an orientation use the height of the container. Thus a key that has one of these terms must have `container: size`. Without it, the key is an error. The error tells you to set `container: size`.
 
 With `container: size`, the host does not get its height from its content. The host must get a definite height from the page, for example from a parent with a height, or the host is 0 px high. With `inline-size`, the host gets its height from its content, as a normal block does.
 
@@ -98,7 +98,7 @@ With `container: size`, the host does not get its height from its content. The h
 
 A part can have only one width term, one height term, one ratio term, and one orientation term. To give a width a minimum and a maximum, write one range: `600..900`, not `600 ..900`.
 
-Note about YAML: a key with a comma does not need quotes in a block mapping. A key that starts with `{`, `[`, or `,` needs quotes.
+Note about YAML: in a block mapping, quotes are not necessary for a key with a comma. A key that starts with `{`, `[`, or `,` must have quotes.
 
 ### Named breakpoints
 
@@ -124,7 +124,7 @@ md short:
 - The value of a name is a query. It can have AND and OR. It cannot use another name.
 - A name with OR changes into one part for each alternative. Thus `compact landscape`, with `compact: '..400, x..300'`, is `..400 landscape, x..300 landscape`.
 
-The compiler option `breakpoints` gives names to all layouts. A tool can read them from the configuration of a project. A layout must not give a new value to a name from the option. Names are resolved at build time. Thus a layout that compiles when the code runs must get the same option. Refer to [Options of a project](./output.md#core-api).
+The compiler option `breakpoints` gives names to all layouts. A tool can read them from the configuration of a project. A layout must not give a new value to a name from the option. The compiler resolves names at build time. Thus a layout that compiles when the code runs must get the same option. Refer to [Options of a project](./output.md#core-api).
 
 ### The step order
 
@@ -160,7 +160,7 @@ All settings are optional in a query step.
 
 `--grid-gap` and `--grid-padding` are custom properties on the grid element. Thus children can use them (`padding: var(--grid-gap)`). Each layout sets both to `0` on its grid element. Thus a nested layout does not get the values of its parent.
 
-`gap` cannot use `--grid-gap`, and `padding` cannot use `--grid-padding`. The layout sets the property from the value. Thus the value would refer to itself, and CSS makes such a value invalid. This is an error.
+`gap` cannot use `--grid-gap`, and `padding` cannot use `--grid-padding`. The layout sets the property from the value. Thus the value refers to itself, and CSS makes such a value invalid. This is an error.
 
 The compiler does not parse `css`, but the declarations must stay in the rule of the grid element. Thus each `{`, each string, and each comment in `css` must be closed, and a `}` must have a `{` before it.
 
@@ -194,9 +194,9 @@ The area map is a multi-line string. Each line is a row.
 - A step can set `areas` and not set `cols` or `rows`. Then the compiler calculates the missing item from the area map, and writes it in the output of that step:
   - The columns are `repeat(N, minmax(0, 1fr))`: equal parts of the width.
   - With `container: size`, the rows are `repeat(N, minmax(0, 1fr))`. The container has a height, and the rows are equal parts of it.
-  - With `container: inline-size`, the rows are `repeat(N, auto)`. The height comes from the content, and each row gets the height of its content. A `1fr` row in a grid with no definite height gets the height of the highest row. Thus `1fr` would make all the rows as high as the highest one.
-  - An equal part is `minmax(0, 1fr)`, not `1fr`. The minimum of a `1fr` track is the size of its content. Thus a long word or a wide image would make its track larger than the others. With `minmax(0, 1fr)`, the tracks stay equal, and content that is too large overflows its cell. A `1fr` that a person writes in `cols` or `rows` does not change.
-- If the compiler knows the number of tracks, the number must be the same as in the area map. The compiler does not count `auto-fill` and `auto-fit`. Thus it does not check them.
+  - With `container: inline-size`, the rows are `repeat(N, auto)`. The height comes from the content, and each row gets the height of its content. A `1fr` row in a grid with no definite height gets the height of the highest row. Thus `1fr` makes all the rows as high as the highest one.
+  - An equal part is `minmax(0, 1fr)`, not `1fr`. The minimum of a `1fr` track is the size of its content. Thus a long word or a wide image makes its track larger than the others. With `minmax(0, 1fr)`, the tracks stay equal, and content that is too large overflows its cell. A `1fr` that a person writes in `cols` or `rows` does not change.
+- If the compiler knows the number of tracks, the number must be the same as in the area map. The compiler does not count `auto-fill` and `auto-fit`. Thus it does not examine them.
 
 ## Values
 
@@ -204,7 +204,7 @@ The settings `gap` and `padding`, and the track sizes in `cols` and `rows`, use 
 
 A value is a list of **terms**. Whitespace separates the terms. Whitespace in `()`, `{}`, or `[]` does not separate terms.
 
-A term goes into the CSS with no change, or with the changes in the table. Thus a term cannot have a character that can end its declaration or start a string or a comment: `;`, `{`, `}`, `<`, `>`, `"`, `'`, `\`, or `/*`. The compiler checks each term after it replaces the tokens. Thus the result of `tokenVar` obeys the same rule.
+A term goes into the CSS with no change, or with the changes in the table. Thus a term cannot have a character that can end its declaration or start a string or a comment: `;`, `{`, `}`, `<`, `>`, `"`, `'`, `\`, or `/*`. The compiler examines each term after it replaces the tokens. Thus the result of `tokenVar` obeys the same rule.
 
 | Term                              | Meaning                                                            | Output                 |
 | --------------------------------- | ------------------------------------------------------------------ | ---------------------- |
@@ -216,9 +216,9 @@ A term goes into the CSS with no change, or with the changes in the table. Thus 
 
 **Tokens.** `{space.2}` becomes `var(--space-2)`. Dots become hyphens. The path can have the characters `[A-Za-z0-9_.-]`. The compiler option `tokenPrefix` adds a prefix (`ds` gives `--ds-space-2`).
 
-The option `tokenVar(path)` replaces the mapping fully. It receives `space.2` and returns the CSS value to use.
+The option `tokenVar(path)` fully replaces this conversion. It receives `space.2` and returns the CSS value to use.
 
-The compiler never changes a token to its value. A token is a CSS variable. Thus theming works at runtime.
+The compiler never changes a token to its value. A token is a CSS variable. Thus a theme can change the value at runtime.
 
 **Expressions.** If a value has an operator term, the complete value is one expression. The compiler puts it in `calc()`. An operator must have whitespace on each side. Thus `--space-2` is a variable and `--a - --b` is a subtraction.
 
@@ -226,17 +226,17 @@ A bare number next to `*` or `/` has no unit. Each other bare number becomes px.
 
 If a value has no operator term, each term is separate. Thus a list of two values, for example `4 8`, works.
 
-| You write                 | Compiles to                          |
-| ------------------------- | ------------------------------------ |
-| `8`                       | `8px`                                |
-| `4 8`                     | `4px 8px`                            |
-| `--space`                 | `var(--space)`                       |
-| `{space.2}`               | `var(--space-2)`                     |
-| `{space.2} 16`            | `var(--space-2) 16px`                |
-| `--space * 2`             | `calc(var(--space) * 2)`             |
-| `{space.2} + 4`           | `calc(var(--space-2) + 4px)`         |
-| `var(--x, 8px)`           | `var(--x, 8px)`                      |
-| `clamp(4, {space.2}, 16)` | no change, but the token is replaced |
+| You write                 | Compiles to                                    |
+| ------------------------- | ---------------------------------------------- |
+| `8`                       | `8px`                                          |
+| `4 8`                     | `4px 8px`                                      |
+| `--space`                 | `var(--space)`                                 |
+| `{space.2}`               | `var(--space-2)`                               |
+| `{space.2} 16`            | `var(--space-2) 16px`                          |
+| `--space * 2`             | `calc(var(--space) * 2)`                       |
+| `{space.2} + 4`           | `calc(var(--space-2) + 4px)`                   |
+| `var(--x, 8px)`           | `var(--x, 8px)`                                |
+| `clamp(4, {space.2}, 16)` | no change, but the compiler replaces the token |
 
 Note about YAML: a value that starts with `{` must have quotes (`'{space.2}'`). If not, YAML reads it as a mapping.
 
@@ -247,9 +247,9 @@ Each step is a **patch on the base**. A step writes only the values that it sets
 - Only the steps that set `gap`, `padding`, `areas`, `cols`, `rows`, `css`, or a `flow` entry write them.
 - A step can set `areas` and not set `cols` or `rows`. Then the step writes calculated tracks for the missing axis (refer to [Tracks](#tracks)). These tracks replace the tracks of earlier steps. Thus old tracks cannot conflict with an area map of a different size.
 - A step can set `cols` or `rows` and not set `areas`. Then the step writes only the tracks.
-- The **active area map** at a container size is the map of the last matching step that sets `areas`.
+- The **active area map** at a container size is the map of the last step that matches and sets `areas`.
 
-**One winner.** At each size, each property must have one clear winner. The winner is the matching step that is inside all the other matching steps that set the property. If two steps set the same property, both match at one size, and neither step is inside the other, the compiler gives an error. The error gives the first size where both steps match. It also gives two fixes:
+**One winner.** At each size, each property must have one clear winner. Of the steps that match and set the property, the winner is the step that is inside all the others. If two steps set the same property, both match at one size, and neither step is inside the other, the compiler gives an error. The error gives the first size where both steps match. It also gives two fixes:
 
 - Add a step for the sizes where both steps match. This step is inside both steps, so it wins there.
 - Change one step so that the two steps do not overlap, for example with a maximum.
@@ -268,15 +268,15 @@ x400:
   gap: 12 # This step fixes the error. It is inside x400 and inside 600.
 ```
 
-Steps that set different properties can overlap with no error. In the example, `x400` can set `areas` and `600` can set `gap`. Each property comes from the last matching step that sets it.
+Steps that set different properties can overlap with no error. In the example, `x400` can set `areas` and `600` can set `gap`. Each property comes from the last step that matches and sets it.
 
 The compiler cannot parse `css`. Thus two `css` values that overlap give a warning, not an error. The step order decides each declaration.
 
 `--grid-step` is not a part of this rule. If two steps overlap and neither is inside the other, the later step in the order is the active step. Refer to [Active step](./output.md#active-step).
 
-**A step with no effect.** A step has no effect when other steps set all of its properties at each size where it matches, and the step is never the active step. The compiler gives a warning for this step.
+**A step with no effect.** A step has no effect when two conditions are true. At each size where it matches, other steps set all of its properties. Also, the step is never the active step. The compiler gives a warning for this step.
 
-**Validation.** The compiler examines each region of sizes. At each region, the track count of the winning `cols` and `rows` must be the same as the winning area map. Only a mismatch that the compiler can prove is an error.
+**Validation.** The compiler examines each region of sizes. At each region, the track count of the `cols` and `rows` that win must be the same as the area map that wins. Only a mismatch that the compiler can prove is an error.
 
 **Method.** The edges of all the regions are lines: a width, a height, or a ratio. The compiler examines one size in each area between the lines, one size on each line, and each corner. Each step gives the same result at all the sizes of one area. Thus these sizes are sufficient, and the result is exact.
 
@@ -292,7 +292,7 @@ The compiler never puts the hide rule in a cascade layer. Thus it wins against t
 
 ## Flow
 
-`flow` sets how the direct children of an area are arranged. The area becomes a flex container. The value is a map. Each key is an area name. Each value is a flow string, a flow object, or `none`.
+`flow` arranges the direct children of an area. The area becomes a flex container. The value is a map. Each key is an area name. Each value is a flow string, a flow object, or `none`.
 
 ```yaml
 name: card
@@ -345,7 +345,7 @@ The main axis follows the direction. With `row`, the main axis is the inline axi
 
 Each area inherits `--grid-gap` from its grid element. Thus `gap --grid-gap` gives the area the same gap as the grid.
 
-A flow string starts with a word, not with `{`. Thus YAML does not need quotes, also when the string has a token (`column gap {space.2}`).
+A flow string starts with a word, not with `{`. Thus quotes are not necessary in YAML, also when the string has a token (`column gap {space.2}`).
 
 | Flow string            | Result                                                                                                        |
 | ---------------------- | ------------------------------------------------------------------------------------------------------------- |
@@ -397,9 +397,9 @@ x400:
     B: column center
 ```
 
-`600x400` is inside `x400`. At 600 × 400, both steps match, and `600x400` wins in full. The result is `column center stretch`. If `600x400` wrote only the values that are different from the base, the result would be `row end stretch`.
+`600x400` is inside `x400`. At 600 × 400, both steps match, and `600x400` wins in full. The result is `column center stretch`. This is why a step writes the complete entry. A step that writes only its differences from the base gives the wrong result here: `row end stretch`.
 
-Each entry is a separate property for the [one-winner rule](#cascade-semantics). Thus two overlapping steps can set flow for different areas.
+Each entry is a separate property for the [one-winner rule](#cascade-semantics). Thus two steps that overlap can set flow for different areas.
 
 The hide rule wins over flow. Thus flow on a hidden area has no effect, and the compiler gives no warning. When the area shows again, the flow that is active at that size applies.
 
@@ -423,23 +423,23 @@ The parser and the compiler throw an error for each of these:
 - A base step that has no `areas`.
 - An unknown top-level key that is not a valid query key, or an unknown term in a query key.
 - An unknown setting in a step, or `name` or `container` in a step.
-- A range or a ratio range with a minimum that is not less than the maximum (`900..600`), or a ratio that is not two positive numbers.
+- A range or a ratio range with a minimum that is not less than the maximum (`900..600`). A ratio that is not two positive numbers.
 - A part of a key with two terms for the same dimension (`600 ..900`), or an empty part (`600,`).
 - Two query keys that match the same sizes (`600` and `600..`), a key that matches no size, or a key that matches each size.
 - A height, a ratio, or an orientation term without `container: size`.
 - An invalid breakpoint name, a breakpoint that uses another name, or a name in a layout that is also in the `breakpoints` option.
 - Two steps that set the same property, match at the same size, and are not inside each other. Refer to [Cascade semantics](#cascade-semantics).
 - An empty area map, rows of different lengths, an invalid or reserved area name, or an area that is not a rectangle.
-- A track count that is not the same as the area map that the compiler checks it against.
+- A track count that is not the same as the area map that the compiler compares it with.
 - A track in the form `NxSIZE`, for example `3x200px`. The error gives the `minmax()` replacement.
 - A track in the form `SIZE*N` with a count of 0.
-- A malformed value: unbalanced `()`, `{}`, or `[]`, an empty token `{}`, or an operator at the start, at the end, or twice in a row.
+- A malformed value: unbalanced `()`, `{}`, or `[]`, or an empty token `{}`. A value with an operator at the start, at the end, or two times in a row.
 - A value with a character that is not permitted (`;`, `{`, `}`, `<`, `>`, a quote, `\`, or `/*`).
 - A `gap` that uses `--grid-gap`, or a `padding` that uses `--grid-padding`.
 - A `css` value that is not a string, or that has `</style`. It can break out of an injected `<style>` element.
 - A `css` value with a `{`, a string, or a comment that is not closed, or with a `}` that has no `{` before it.
 - A `flow` value that is not a map, or a flow key that is not an area name in an area map.
-- A flow string with an unknown word, a word in the wrong role, more than one main or cross word, or a direction that is not the first word. The error lists the words that are valid in that position.
+- A flow string with an unknown word or a word in the wrong role. A flow string with more than one main or cross word, or with a direction that is not the first word. The error lists the words that are valid in that position.
 - A flow string with `gap` or `wrap` two times, `gap` with no term, or `gap` with more than one term or an operator.
 - A flow object with an unknown key, an invalid word, or a `wrap` that is not `true` or `false`.
 
@@ -451,4 +451,4 @@ The compiler gives a warning, and does not fail, for this:
 
 An error has a structured location: `{ message, path, range? }`. The `path` is the key path in the document (for example `["200x200", "areas"]`).
 
-The `range` is the start and the end of the line and column. The positions are in the source as it is written, also when the layout is indented in a template. The parser makes a document-level YAML parse. Thus ranges are available. Editor diagnostics will use them. A layout in an object has a `path` but no `range`.
+The `range` is the start and the end of the line and column. The positions are in the source as the author wrote it, also when the layout has indentation in a template. The parser makes a document-level YAML parse. Thus ranges are available. Editor diagnostics will use them. A layout in an object has a `path` but no `range`.

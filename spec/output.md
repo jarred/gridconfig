@@ -114,16 +114,16 @@ This is example output for the `hero` example in the [spec overview](./spec.md).
 
 ## Delivery
 
-The page needs the shared base one time, and the CSS of each layout one time. There are two routes.
+The page must have the shared base one time, and the CSS of each layout one time. There are two routes.
 
-**Build plugin.** A layout that compiles at build time imports its CSS as CSS modules. A `.grid` file, a `.yaml?grid` import, and a static `grid` call each import two modules: the shared base in the layer of the layout, and the CSS of the layout. The bundler then delivers the CSS as it delivers other CSS: one time for each page, in a stylesheet, also with server rendering. In development, a change to a layout updates the styles, and the page does not reload. The compiled layout then has `bundled: true` and an empty `css`. An adapter must not inject the CSS of a bundled layout.
+**Build plugin.** A layout that compiles at build time imports its CSS as CSS modules. A `.grid` file, a `.yaml?grid` import, and a static `grid` call each import two modules. One module is the shared base in the layer of the layout. The other module is the CSS of the layout. The bundler then delivers the CSS as it delivers other CSS: one time for each page, in a stylesheet, also with server rendering. In development, a change to a layout updates the styles, and the page does not reload. The compiled layout then has `bundled: true` and an empty `css`. An adapter must not inject the CSS of a bundled layout.
 
-**Runtime.** A layout that compiles when the code runs has its CSS in `css`. The page needs `baseCssFor(layer)` and `css`, one time each. `@gridconfig/core/runtime` has two functions for an adapter:
+**Runtime.** A layout that compiles when the code runs has its CSS in `css`. The page must have `baseCssFor(layer)` and `css`, one time each. `@gridconfig/core/runtime` has two functions for an adapter:
 
-- `sheetsOf(layout)` gives the stylesheets that a layout needs: the base in its layer, and its own CSS. Each has an `id`. A bundled layout needs none.
-- `mountStyles(layout)` puts these stylesheets in the head of the document, and returns a function that releases them. An adapter calls it when a grid goes on the page, and calls the result when the grid goes away. Each stylesheet is on the page one time, in a `<style data-gridconfig="…">` element, for all the grids that use it. The stylesheet of a layout goes away with the last grid that uses it.
+- `sheetsOf(layout)` gives the stylesheets of a layout: the base in its layer, and its own CSS. Each has an `id`. A bundled layout has none.
+- `mountStyles(layout)` puts these stylesheets in the head of the document, and returns a function that releases them. An adapter calls it when it adds a grid to the page, and calls the result when it removes the grid. Each stylesheet is on the page one time, in a `<style data-gridconfig="…">` element, for all the grids that use it. `mountStyles` removes the stylesheet of a layout with the last grid that uses it.
 
-Two layouts on one page cannot have the same name. Thus, when a layout comes with a name that is on the page and with different CSS, the layout changed, and `mountStyles` replaces the old CSS. No rule of the old layout stays.
+Two layouts on one page cannot have the same name. Thus, if a layout has a name that is on the page but different CSS, the layout changed. Then `mountStyles` replaces the old CSS. No rule of the old layout stays.
 
 On the server there is no document. The React adapter gives the CSS to React as `<style href precedence>`, and React writes it one time. The Svelte adapter writes the CSS to `<svelte:head>` for each grid, so the HTML from the server has it one time for each grid. Its `GridStyles` component, around the page, makes this one time for each layout. In the browser, both adapters call `mountStyles` and remove the elements from the server.
 
@@ -169,7 +169,7 @@ Content can use a style query to target a step. The custom property inherits, so
 }
 ```
 
-A nested layout sets its own value for its subtree. JavaScript reads the value with `readStep(grid)` from `@gridconfig/core/runtime`. It gives the key as it is written. `getComputedStyle(grid).getPropertyValue('--grid-step')` gives the same value in Chromium and Firefox, but WebKit puts an empty comment (`/**/`) between two tokens that would join, so `..300` comes back as `./**/.300`. `readStep` removes these comments. Style queries for custom properties are in all current browsers (Baseline in 2026). An older browser ignores the rule.
+A nested layout sets its own value for its subtree. JavaScript reads the value with `readStep(grid)` from `@gridconfig/core/runtime`. It gives the key as the author wrote it. `getComputedStyle(grid).getPropertyValue('--grid-step')` gives the same value in Chromium and Firefox. But WebKit puts an empty comment (`/**/`) between two tokens that can join. Thus `..300` becomes `./**/.300`. `readStep` removes these comments. Style queries for custom properties are in all current browsers (Baseline in 2026). An older browser ignores the rule.
 
 Use the style query, and do not copy the size conditions of a step to page CSS. A copy of the conditions tells you that a step matches, but not that it is active.
 
@@ -187,8 +187,8 @@ type StepChange = { step: string; previous: string | null; layout: string; grid:
 - `step` is the value of `--grid-step`: the query key of the active step, or `base`. `previous` is the value before the change. `layout` is the value of `data-grid-layout`.
 - The listener gets a call for each change of the value. A change of the size of the host that does not change the value gives no call.
 - The first value that the function reads is the start value. It gives no call. With `immediate: true`, the listener gets one call at once with the current value, and `previous` is `null`.
-- The call comes after the browser has applied the styles of the new step, and before it paints.
-- While a grid has one listener or more, the grid element also gets the event `gridstepchange` for each change. The event bubbles and is `composed`. Its `detail` is the `StepChange`. A call with no listener is permitted: it only makes the events start.
+- The call comes after the browser applies the styles of the new step, and before it paints.
+- While a grid has one listener or more, the grid element also gets the event `gridstepchange` for each change. The event bubbles and is `composed`. Its `detail` is the `StepChange`. A call with no listener is permitted. It only starts the events.
 - The result is a function that stops the listener. When the last listener of a grid stops, the function stops its observation of the host.
 - If the layout has no CSS on the page yet, `--grid-step` has no value. Then there is no call, and the first value that comes is the start value.
 
@@ -216,7 +216,7 @@ baseCssFor(layer: string | null): string  // the shared base rules in a given la
 
 `options`: `tokenPrefix`, `tokenVar`, `defaultName`, `layer`, `debug`, `breakpoints`. The tag form takes no options of its own.
 
-**Entries.** `@gridconfig/core` has all of the API. `@gridconfig/core/object` is the same API without the YAML parser, for code that writes layouts as objects. Its `grid` and `createGrid` take an object only, it has no `parseLayout`, and its `compileLayout` takes a parsed layout only. A build plugin compiles the static calls of its `grid` in the same way. `@gridconfig/core/runtime` has the parts for the browser that need no compiler: the attribute names, the base rules, the functions that match a step, the stylesheets of a runtime layout, `onStepChange`, and `readStep`.
+**Entries.** `@gridconfig/core` has all of the API. `@gridconfig/core/object` is the same API without the YAML parser, for code that writes layouts as objects. Its `grid` and `createGrid` take an object only, it has no `parseLayout`, and its `compileLayout` takes a parsed layout only. A build plugin compiles the static calls of its `grid` in the same way. `@gridconfig/core/runtime` has the parts for the browser that do not use the compiler. These parts are the attribute names, the base rules, the functions that match a step, the stylesheets of a runtime layout, `onStepChange`, and `readStep`.
 
 **Options of a project.** All the layouts of a project must compile with the same `breakpoints`, `tokenPrefix`, and `layer`, at build time and when the code runs. There are two ways to do this, and a project can use both.
 
@@ -233,4 +233,4 @@ The `modules` option of the build plugin is a list of the modules that export a 
 
 `layer` is a name, `true` (the default name `gridconfig`), or `false` (no layer). A name can have dots for a nested layer. An invalid name is an error. So is a name that CSS reserves, for example `initial` or `revert`.
 
-`css` is only the per-layout part. The page also needs the base rules from `baseCssFor(layer)`. `bundled` is `true` when a build plugin delivers the CSS. Then `css` is empty. Refer to [Delivery](#delivery). `layer` is the layer that the compiler used, or `null`. `areas` is a list of each area name. Thus generated code can give typed access.
+`css` is only the per-layout part. The page must also have the base rules from `baseCssFor(layer)`. `bundled` is `true` when a build plugin delivers the CSS. Then `css` is empty. Refer to [Delivery](#delivery). `layer` is the layer that the compiler used, or `null`. `areas` is a list of each area name. Thus generated code can give typed access.
