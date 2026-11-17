@@ -1,6 +1,6 @@
 # GridConfig spec
 
-**Status: 1.0 release candidate.** The format and the output are frozen for 1.0. [Stability](#stability) says what 1.x keeps. The compiler in `packages/core` is the implementation of this spec. The tests are in `packages/core/test`, `packages/vite/test`, and the browser fixtures in [`fixtures`](./fixtures). The [roadmap](../ROADMAP.md) lists the parts that are not built yet.
+**Status: 1.0.** The format and the output are stable. [Stability](#stability) says what 1.x keeps. The compiler in `packages/core` is the implementation of this spec. The tests are in `packages/core/test`, `packages/vite/test`, and the browser fixtures in [`fixtures`](./fixtures). The [roadmap](../ROADMAP.md) lists the parts that are not built yet.
 
 A layout is a description of a CSS grid. The grid changes shape when the size of its container changes. The compiler makes static CSS (container queries) and a small DOM contract from the layout. The DOM contract does not depend on a framework.
 

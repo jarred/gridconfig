@@ -22,7 +22,7 @@ What is built, and what is planned. The format is in the [spec](./spec/spec.md).
 2. Plugins for bundlers other than Vite.
 3. The editor extension.
 4. The shadow-DOM selector strategy for Web Components.
-5. More browser fixtures: nested layouts. Style queries for keys with dots, slashes or spaces, in each engine.
+5. More browser fixtures: nested layouts.
 
 ## Tooling (planned)
 

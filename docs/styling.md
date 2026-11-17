@@ -31,7 +31,7 @@ h1 {
 
 - The value inherits, so any element inside the grid can use it.
 - Only one step is active at a time: the most specific one that matches. A step style applies only while its step is active. Thus, with a ladder, a style for `600` stops at the next step. Write it again for the larger steps if you want it there too.
-- Use a [named breakpoint](./steps.md#named-breakpoints) for the value. A name such as `wide` is short, and it is safe in every browser. A key with dots or slashes (`600..900`, `16/9`) works in Chromium, and is not yet tested in other browsers.
+- Use a [named breakpoint](./steps.md#named-breakpoints) for the value. A name such as `wide` is short and easy to read. A key with dots or slashes (`600..900`, `16/9`) also works, in every current browser.
 - Do not copy the size of a step into your own `@container` rule. The copy can match when another step is active.
 
 Container units are also useful for content that scales with the layout: `font-size: 8cqmin` with `container: size`.
