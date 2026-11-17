@@ -11,12 +11,12 @@ areas: |
   footer footer
 ```
 
-- Spaces separate the cells. You can line up the columns with extra spaces.
+- Spaces separate the cells. You can align the columns with more spaces.
 - Cells with the same name make one area. An area must be a filled rectangle.
-- `.` is an empty cell. `...` is also one empty cell, so you can line it up with longer names.
-- All rows need the same number of cells.
+- `.` is an empty cell. `...` is also one empty cell, so you can align it with longer names.
+- All rows must have the same number of cells.
 
-One column needs no spaces:
+One column does not use spaces:
 
 ```yaml
 areas: |
@@ -57,11 +57,11 @@ areas: |
     text  aside
 ```
 
-`aside` is hidden under 800 px and shows from 800 px. The element stays in the DOM. GridConfig sets `display: none` on it, with `!important`, so that the CSS of the page cannot show it by accident.
+`aside` is hidden at less than 800 px, and shows from 800 px. The element stays in the DOM. GridConfig sets `display: none` on it, with `!important`, so that the CSS of the page cannot show it by accident.
 
 ## Columns and rows
 
-Without `cols` or `rows`, the area map gives the count. The columns are equal parts of the width. Each row is as high as its content. With `container: size`, the layout has a fixed height, and the rows are equal parts of it. An equal part does not grow with its content: content that is too wide overflows its cell. Set `cols` and `rows` when you need other sizes, or when the content must set the size of a track:
+Without `cols` or `rows`, the area map gives the count. The columns are equal parts of the width. Each row is as high as its content. With `container: size`, the layout has a fixed height, and the rows are equal parts of it. An equal part does not grow with its content: content that is too wide overflows its cell. Set `cols` and `rows` for other sizes, or when the content must set the size of a track:
 
 ```yaml
 cols: 200 1fr
@@ -81,9 +81,9 @@ areas: |
 | `minmax(200px, 1fr)*3`   | `repeat(3, minmax(200px, 1fr))` |
 | `20cqw 1fr`, `minmax(…)` | no change                       |
 
-The number of tracks must match the area map. The compiler checks this, also across steps.
+The number of tracks must match the area map. The compiler examines this, also across steps.
 
-A step that sets `areas` and not `cols` gets equal columns for its new map. Columns from a smaller step do not carry over to a map of a different size. A step that sets only `cols` keeps the map that is active.
+A step that sets `areas` and not `cols` gets equal columns for its new map. A map of a different size does not keep the columns of a smaller step. A step that sets only `cols` keeps the map that is active.
 
 ## Gap and padding
 
@@ -120,9 +120,9 @@ The grid element also has `--grid-gap` and `--grid-padding` as custom properties
 Inside a CSS function such as `clamp()` or `minmax()`, write the units. Only a bare number on its own becomes px.
 
 - `{space.2}` is a **design token**. It becomes the CSS variable `--space-2`. The compiler never uses the value of the token, so a theme can change it at runtime. The `tokenPrefix` option adds a prefix: with `tokenPrefix: 'ds'`, `{space.2}` is `var(--ds-space-2)`.
-- In YAML, a value that starts with `{` needs quotes: `gap: '{space.2}'`.
-- An operator (`+ - * /`) needs a space on each side. Then the whole value is one `calc()`.
+- In YAML, a value that starts with `{` must have quotes: `gap: '{space.2}'`.
+- An operator (`+ - * /`) must have a space on each side. Then the complete value is one `calc()`.
 
-Container units (`cqw`, `cqh`, `cqmin`) measure the container. `cqh` and `cqmin` need `container: size`, because otherwise there is no height to measure.
+Container units (`cqw`, `cqh`, `cqmin`) measure the container. `cqh` and `cqmin` must have `container: size`. Without it, there is no height to measure.
 
 Next: [Flow](./flow.md).

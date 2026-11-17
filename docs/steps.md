@@ -35,7 +35,7 @@ A step changes only what it sets. `600` does not set `gap`, so at 600 px the gap
 
 ## Ranges
 
-Two dots give a range. The minimum is included and the maximum is not:
+Two dots give a range. The minimum is in the range, and the maximum is not:
 
 | Key        | Matches                              |
 | ---------- | ------------------------------------ |
@@ -45,7 +45,7 @@ Two dots give a range. The minimum is included and the maximum is not:
 
 Thus `..600` and `600..900` meet at 600 with no gap and no overlap.
 
-A range is useful when one size needs something that the next size must not get:
+A range is useful when one size must get a setting that the next size must not get:
 
 ```yaml
 areas: A B
@@ -58,7 +58,7 @@ areas: A B
 
 ## Height, ratio and orientation
 
-With `container: size`, a key can also test the height. An `x` separates the width from the height.
+With `container: size`, a key can also give the height. An `x` separates the width from the height.
 
 | Key         | Matches                                  |
 | ----------- | ---------------------------------------- |
@@ -129,7 +129,7 @@ x400:
   gap: 8
 ```
 
-At 600 × 400, both steps match and both set `gap`. Neither step is inside the other. You have not said which gap you want there, so the compiler stops:
+At 600 × 400, both steps match and both set `gap`. Neither step is inside the other. You did not say which gap to use there, so the compiler stops:
 
 > "x400" and "600" both set `gap`, and both match at 600 × 400. Add a step for the sizes where both match ("600x400"), or change one of them so that they do not overlap (for example "..600x400" in place of "x400").
 
@@ -149,7 +149,7 @@ x400:
   gap: 12
 ```
 
-The rule in short: **at each size, each setting has one clear winner.** The winner is the most specific matching step. If two steps can tie, the compiler tells you, with the size where they meet. Steps that set different settings can overlap with no problem.
+The rule in short: **at each size, each setting has one clear winner.** The winner is the most specific step that matches. If two steps can tie, the compiler tells you, with the size where they meet. Steps that set different settings can overlap with no problem.
 
 Because of this rule, the order of the steps in the file does not matter. Write them in the order that reads best.
 
@@ -161,6 +161,6 @@ These mistakes are errors, with the line of the problem:
 - A key that can never match, for example `..600x700.. landscape`.
 - A step whose tracks do not fit the area map that is active with it.
 
-A step that never wins anything is a warning: other steps set all of its settings everywhere that it matches.
+A step that never wins a setting gives a warning: at each size where it matches, other steps set all of its settings.
 
 Next: [Areas, tracks and values](./areas-and-tracks.md).

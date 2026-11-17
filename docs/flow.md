@@ -36,14 +36,14 @@ Each part is optional. `direction`, `main` and `cross` come in this order.
 
 **Main** is along the direction (`justify-content`). **Cross** is across it (`align-items`). The first alignment word is always main. To set only cross, write main too: `row start center`.
 
-| Flow                   | Result                                                      |
-| ---------------------- | ----------------------------------------------------------- |
-| `column`               | A column from the top. The children fill the width.         |
-| `row between center`   | A row with space between the children, centred vertically.  |
-| `column center start`  | A column, centred vertically. The children are on the left. |
-| `row wrap gap 8`       | A row that wraps, with an 8 px gap.                         |
-| `column gap {space.2}` | A column with the gap of a token. No quotes are necessary.  |
-| `row gap --grid-gap`   | The same gap as the grid.                                   |
+| Flow                   | Result                                                       |
+| ---------------------- | ------------------------------------------------------------ |
+| `column`               | A column from the top. The children fill the width.          |
+| `row between center`   | A row with space between the children, centered vertically.  |
+| `column center start`  | A column, centered vertically. The children are on the left. |
+| `row wrap gap 8`       | A row that wraps, with an 8 px gap.                          |
+| `column gap {space.2}` | A column with the gap of a token. No quotes are necessary.   |
+| `row gap --grid-gap`   | The same gap as the grid.                                    |
 
 Start and end follow the writing direction, so a flow is correct in a right-to-left page too.
 
@@ -74,7 +74,7 @@ flow:
     B: row
 ```
 
-From 600 px, `B` is `row start stretch`: the defaults, not `row center start`. Write every part that you want in each step.
+From 600 px, `B` is `row start stretch`: the defaults, not `row center start`. Write all the parts of the flow in each step that sets it.
 
 `none` removes the flow of the layout at that step. The area then has the display that the CSS of your page gives it.
 

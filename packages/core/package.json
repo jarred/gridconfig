@@ -3,6 +3,21 @@
 	"version": "0.0.0",
 	"description": "Parse GridConfig layout files and compile them to CSS container queries.",
 	"license": "MIT",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/jarred/gridconfig.git",
+		"directory": "packages/core"
+	},
+	"homepage": "https://github.com/jarred/gridconfig#readme",
+	"bugs": "https://github.com/jarred/gridconfig/issues",
+	"keywords": [
+		"gridconfig",
+		"css",
+		"grid",
+		"container-queries",
+		"layout",
+		"yaml"
+	],
 	"type": "module",
 	"exports": {
 		".": "./src/index.ts",

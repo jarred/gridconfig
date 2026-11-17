@@ -31,11 +31,11 @@ areas: |
     footer footer footer
 ```
 
-`nav` shows from 700 px, and `aside` from 1200 px. Under 700 px they are hidden. The base sets `rows`, and `700` sets it again: a step with a new map does not keep the tracks of a smaller step.
+`nav` shows from 700 px, and `aside` from 1200 px. At less than 700 px, they are hidden. The base sets `rows`, and `700` sets it again: a step with a new map does not keep the tracks of a smaller step.
 
 ## A card that fills its box
 
-A card in a dashboard, where the user can resize each panel. `container: size` lets the card change with its height as well as its width.
+A card in a dashboard, where the user can resize each panel. `container: size` makes the card change with its height and with its width.
 
 ```yaml
 # panel.grid
@@ -72,7 +72,7 @@ x300:
 
 ## One ad for every ad format
 
-Ad and social formats come in many sizes, but in a few shapes. The ratio of the container picks the shape. Each band of ratios is a named breakpoint, and the bands meet with no gap.
+Ad and social formats have many sizes, but only a few shapes. The ratio of the container selects the shape. Each band of ratios is a named breakpoint, and the bands meet with no gap.
 
 ```yaml
 # ad.grid
@@ -128,4 +128,4 @@ strip:
 
 ## A logo made of layouts
 
-The [logo from the old demo site](https://github.com/jarred/gridconfig/blob/9ff50ee/apps/site/src/lib/components/logo.svelte) is three nested layouts. Each step sets custom properties with `css`, and the CSS of the component uses them for colours and shapes. It shows how far `css` and `--grid-step` can go without JavaScript.
+The [logo from the old demo site](https://github.com/jarred/gridconfig/blob/9ff50ee/apps/site/src/lib/components/logo.svelte) is three nested layouts. Each step sets custom properties with `css`, and the CSS of the component uses them for colors and shapes. It shows what `css` and `--grid-step` can do without JavaScript.

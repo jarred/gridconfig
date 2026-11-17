@@ -1,4 +1,4 @@
-# The whole language on one page
+# The complete language on one page
 
 ```yaml
 name: card # optional; defaults to the file name
@@ -30,23 +30,23 @@ flow:
 
 ## Keys
 
-| Key               | Matches                      | Needs `container: size` |
-| ----------------- | ---------------------------- | ----------------------- |
-| `600`             | width ≥ 600                  |                         |
-| `..600`           | width < 600                  |                         |
-| `600..900`        | 600 ≤ width < 900            |                         |
-| `x400`            | height ≥ 400                 | yes                     |
-| `600x400`         | width ≥ 600 and height ≥ 400 | yes                     |
-| `600x..400`       | width ≥ 600 and height < 400 | yes                     |
-| `16/9`            | ratio ≥ 16:9                 | yes                     |
-| `4/3..16/9`       | 4:3 ≤ ratio < 16:9           | yes                     |
-| `landscape`       | wider than high              | yes                     |
-| `portrait`        | as high as wide, or higher   | yes                     |
-| `600 landscape`   | both (a space is AND)        | yes                     |
-| `'..400, x..300'` | either (a comma is OR)       | yes                     |
-| `wide`            | a name from `breakpoints`    |                         |
+| Key               | Matches                      | Must have `container: size` |
+| ----------------- | ---------------------------- | --------------------------- |
+| `600`             | width ≥ 600                  |                             |
+| `..600`           | width < 600                  |                             |
+| `600..900`        | 600 ≤ width < 900            |                             |
+| `x400`            | height ≥ 400                 | yes                         |
+| `600x400`         | width ≥ 600 and height ≥ 400 | yes                         |
+| `600x..400`       | width ≥ 600 and height < 400 | yes                         |
+| `16/9`            | ratio ≥ 16:9                 | yes                         |
+| `4/3..16/9`       | 4:3 ≤ ratio < 16:9           | yes                         |
+| `landscape`       | wider than high              | yes                         |
+| `portrait`        | as high as wide, or higher   | yes                         |
+| `600 landscape`   | both (a space is AND)        | yes                         |
+| `'..400, x..300'` | either (a comma is OR)       | yes                         |
+| `wide`            | a name from `breakpoints`    |                             |
 
-A minimum is included; a maximum is not. At each size, each setting comes from the most specific matching step. Two steps that can tie on a setting are an error that says how to fix it. Refer to [Steps](./steps.md).
+A minimum is in the range. A maximum is not in the range. At each size, each setting comes from the most specific step that matches. Two steps that can tie on a setting are an error that says how to fix it. Refer to [Steps](./steps.md).
 
 ## Settings
 

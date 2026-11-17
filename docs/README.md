@@ -32,8 +32,8 @@ Below 500 px the card is one column. From 500 px the image is on the left.
 2. [Steps](./steps.md): how a layout changes with its container. Start here to understand the model.
 3. [Areas, tracks and values](./areas-and-tracks.md): the area map, columns and rows, gap and padding, and design tokens.
 4. [Flow](./flow.md): arrange the content inside an area.
-5. [Styling and CSS](./styling.md): style content for a step, run code when the step changes, cascade layers, and how the layout meets the CSS of your page.
+5. [Styling and CSS](./styling.md): style content for a step, run code when the step changes, and use the layout with the CSS of your page.
 6. [Examples](./examples.md): complete layouts, from a card to one ad layout that fits every ad format.
-7. [The whole language on one page](./language.md): a reference to keep open.
+7. [The complete language on one page](./language.md): a reference to keep open.
 
 The [spec](../spec/spec.md) is the exact definition. This guide explains it.

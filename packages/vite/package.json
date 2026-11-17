@@ -3,6 +3,21 @@
 	"version": "0.0.0",
 	"description": "The Vite plugin for GridConfig: compiles layout files and static grid calls at build time.",
 	"license": "MIT",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/jarred/gridconfig.git",
+		"directory": "packages/vite"
+	},
+	"homepage": "https://github.com/jarred/gridconfig#readme",
+	"bugs": "https://github.com/jarred/gridconfig/issues",
+	"keywords": [
+		"gridconfig",
+		"vite-plugin",
+		"css",
+		"grid",
+		"container-queries",
+		"layout"
+	],
 	"type": "module",
 	"exports": {
 		".": "./src/index.ts",

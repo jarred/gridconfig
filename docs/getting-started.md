@@ -48,7 +48,7 @@ areas: |
 - `400:` is a **step**. It applies when the container is 400 px wide or wider.
 - `cols: 120 1fr` sets the columns. A bare number is px.
 
-The layout is named after the file (`profile`). A file with the name `layout.grid`, `index.grid` or `grid.grid` is named after its folder, so each component folder can have its own `layout.grid`. Each layout on a page needs a different name. If two files give the same name, set `name` in one of them.
+The compiler gives the layout the name of its file (`profile`). For a file with the name `layout.grid`, `index.grid` or `grid.grid`, the layout gets the name of its folder. Thus each component folder can have its own `layout.grid`. Each layout on a page must have a different name. If two files give the same name, set `name` in one of them.
 
 ## Use it
 
@@ -86,9 +86,9 @@ export function Profile({ user }) {
 }
 ```
 
-Other props of `Grid` (`class`, `id`, event handlers) go to the grid element. The `area` prop is for a [nested layout](./styling.md#nested-layouts).
+`Grid` gives its other props (`class`, `id`, event handlers) to the grid element. The `area` prop is for a [nested layout](./styling.md#nested-layouts).
 
-`Grid` renders two elements. The outer one is the container that the steps measure. The inner one is the grid. A grid cannot measure itself, so it needs the outer element.
+`Grid` renders two elements. The outer one is the container that the steps measure. The inner one is the grid. A grid cannot measure itself. Thus it must have the outer element.
 
 ## The container: width or a fixed box
 
@@ -124,9 +124,9 @@ const layout = grid`
 const same = grid({ areas: 'A', 600: { areas: 'A B' } });
 ```
 
-With the Vite plugin, a static `grid` call compiles at build time, as a `.grid` file does. Without the plugin, or when the object is built from variables, it compiles in the browser and `Grid` injects its CSS.
+With the Vite plugin, a static `grid` call compiles at build time, as a `.grid` file does. Without the plugin, it compiles in the browser, and `Grid` adds its CSS to the page. This also occurs when code makes the object from variables.
 
-With server rendering in Svelte, put `GridStyles` from `@gridconfig/svelte` around the page, for example in the root layout. Then the HTML from the server has the CSS of each such layout one time. Layouts from the Vite plugin do not need it.
+With server rendering in Svelte, put `GridStyles` from `@gridconfig/svelte` around the page, for example in the root layout. Then the HTML from the server has the CSS of each of these layouts one time. Layouts from the Vite plugin do not use it.
 
 If your code compiles only objects in the browser, import `grid` from `@gridconfig/core/object`. It is the same function without the template form, and it does not ship the YAML parser to the browser.
 
@@ -138,7 +138,7 @@ The plugin takes the options that apply to every layout: named breakpoints, a pr
 gridconfig({ breakpoints: { md: '600..' }, tokenPrefix: 'ds', layer: 'components' });
 ```
 
-A layout that compiles in the browser gets these options from the plugin too. You do not need to do anything.
+A layout that compiles in the browser also gets these options from the plugin. No more work is necessary.
 
 Where there is no plugin, for example in a test runner or a different bundler, make your own `grid` with `createGrid`. Keep the options in one file, so that the plugin can use the same ones:
 
@@ -163,11 +163,9 @@ gridconfig({ ...options, modules: ['./src/lib/grid.ts'] });
 
 In development, `Grid` loads an overlay that draws the areas, the tracks and the active step. Press Alt+Shift+G to show or hide it, or pass `debug` to `Grid` to open it on that grid. The step in the overlay follows the size of the host, and the overlay finds markup problems such as a child with no `data-grid-area`. Refer to [@gridconfig/devtools](../packages/devtools/README.md).
 
-Next: [Steps](./steps.md).
-
 ## Editor support
 
-A layout is YAML, and `@gridconfig/core` has a JSON Schema for it: `@gridconfig/core/schema.json`. With the schema, the editor completes the settings, the `container` values and the flow words, shows what a key does when you hover it, and marks a misspelled setting or a base with no `areas` while you type. The compiler still finds every error. The schema finds the common ones sooner.
+A layout is YAML, and `@gridconfig/core` has a JSON Schema for it: `@gridconfig/core/schema.json`. With the schema, the editor completes the settings, the `container` values and the flow words. It shows what a key does when you hover over it. While you type, it marks a setting with an incorrect name, and a base with no `areas`. The compiler still finds every error. The schema finds the common ones sooner.
 
 In VS Code, install the YAML extension from Red Hat, and add this to the settings of the workspace (`.vscode/settings.json`):
 
@@ -185,3 +183,5 @@ For one file, or in an editor with no workspace settings, put this line at the t
 ```
 
 Other editors that use the YAML language server (for example Zed and Neovim) take the same settings. To format `.grid` files with Prettier, add an override: `{ "files": "*.grid", "options": { "parser": "yaml" } }`.
+
+Next: [Steps](./steps.md).

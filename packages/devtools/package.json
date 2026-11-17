@@ -3,6 +3,21 @@
 	"version": "0.0.0",
 	"description": "An in-browser inspector for GridConfig layouts: areas, tracks, the active step and markup checks.",
 	"license": "MIT",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/jarred/gridconfig.git",
+		"directory": "packages/devtools"
+	},
+	"homepage": "https://github.com/jarred/gridconfig#readme",
+	"bugs": "https://github.com/jarred/gridconfig/issues",
+	"keywords": [
+		"gridconfig",
+		"devtools",
+		"inspector",
+		"css",
+		"grid",
+		"container-queries"
+	],
 	"type": "module",
 	"exports": {
 		".": "./src/index.ts",

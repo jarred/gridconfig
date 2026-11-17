@@ -3,6 +3,21 @@
 	"version": "0.0.0",
 	"description": "GridConfig Grid component for Svelte 5.",
 	"license": "MIT",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/jarred/gridconfig.git",
+		"directory": "packages/svelte"
+	},
+	"homepage": "https://github.com/jarred/gridconfig#readme",
+	"bugs": "https://github.com/jarred/gridconfig/issues",
+	"keywords": [
+		"gridconfig",
+		"svelte",
+		"css",
+		"grid",
+		"container-queries",
+		"layout"
+	],
 	"type": "module",
 	"exports": {
 		".": {
