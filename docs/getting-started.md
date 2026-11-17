@@ -164,3 +164,24 @@ gridconfig({ ...options, modules: ['./src/lib/grid.ts'] });
 In development, `Grid` loads an overlay that draws the areas, the tracks and the active step. Press Alt+Shift+G to show or hide it, or pass `debug` to `Grid` to open it on that grid. The step in the overlay follows the size of the host, and the overlay finds markup problems such as a child with no `data-grid-area`. Refer to [@gridconfig/devtools](../packages/devtools/README.md).
 
 Next: [Steps](./steps.md).
+
+## Editor support
+
+A layout is YAML, and `@gridconfig/core` has a JSON Schema for it: `@gridconfig/core/schema.json`. With the schema, the editor completes the settings, the `container` values and the flow words, shows what a key does when you hover it, and marks a misspelled setting or a base with no `areas` while you type. The compiler still finds every error. The schema finds the common ones sooner.
+
+In VS Code, install the YAML extension from Red Hat, and add this to the settings of the workspace (`.vscode/settings.json`):
+
+```json
+{
+	"files.associations": { "*.grid": "yaml" },
+	"yaml.schemas": { "./node_modules/@gridconfig/core/schema.json": "*.grid" }
+}
+```
+
+For one file, or in an editor with no workspace settings, put this line at the top of the file:
+
+```yaml
+# yaml-language-server: $schema=https://unpkg.com/@gridconfig/core/schema.json
+```
+
+Other editors that use the YAML language server (for example Zed and Neovim) take the same settings. To format `.grid` files with Prettier, add an override: `{ "files": "*.grid", "options": { "parser": "yaml" } }`.

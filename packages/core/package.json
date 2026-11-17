@@ -7,10 +7,12 @@
 	"exports": {
 		".": "./src/index.ts",
 		"./object": "./src/object.ts",
-		"./runtime": "./src/runtime.ts"
+		"./runtime": "./src/runtime.ts",
+		"./schema.json": "./schema.json"
 	},
 	"files": [
-		"dist"
+		"dist",
+		"schema.json"
 	],
 	"publishConfig": {
 		"access": "public",
@@ -26,11 +28,13 @@
 			"./runtime": {
 				"types": "./dist/runtime.d.ts",
 				"default": "./dist/runtime.js"
-			}
+			},
+			"./schema.json": "./schema.json"
 		}
 	},
 	"scripts": {
 		"build": "tsc -p tsconfig.build.json",
+		"schema": "node scripts/schema.ts",
 		"prepublishOnly": "pnpm build",
 		"test": "node --test \"test/**/*.test.ts\"",
 		"check": "tsc -p tsconfig.json"
@@ -39,6 +43,7 @@
 		"yaml": "^2.9.1"
 	},
 	"devDependencies": {
+		"ajv": "^8.17.1",
 		"typescript": "^6.0.3"
 	},
 	"sideEffects": false

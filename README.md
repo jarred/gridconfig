@@ -119,16 +119,16 @@ In development, `Grid` loads an inspector that draws the areas, the tracks and t
 
 ## Repository structure
 
-| Path                   | Package                             | What it is                                                                                                                                               |
-| ---------------------- | ----------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `spec/`                |                                     | The spec, the browser test fixtures (`spec/fixtures`), and three research notes on Tailwind, StyleX and Taffy (explorations, not plans).                 |
-| `docs/`                |                                     | The guide.                                                                                                                                               |
-| `packages/core`        | `@gridconfig/core`                  | Parser, compiler, `grid` and `createGrid`, types. `./object` is the same without the YAML parser. `./runtime` has the small parts that an adapter needs. |
-| `packages/vite`        | `@gridconfig/vite`                  | The Vite plugin: loads `.grid` files, compiles static `grid` calls, and bundles the CSS.                                                                 |
-| `packages/svelte`      | `@gridconfig/svelte`                | `Grid` for Svelte 5, and `GridStyles` for server rendering of layouts compiled at runtime.                                                               |
-| `packages/react`       | `@gridconfig/react`                 | `Grid` for React 19.                                                                                                                                     |
-| `packages/devtools`    | `@gridconfig/devtools`              | The inspector overlay: areas, authored tracks, the active step, and checks of the markup.                                                                |
-| `packages/conformance` | `@gridconfig/conformance` (private) | Loads the fixtures in Chromium and checks the layout that the browser makes.                                                                             |
+| Path                   | Package                             | What it is                                                                                                                                                                                               |
+| ---------------------- | ----------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `spec/`                |                                     | The spec, the browser test fixtures (`spec/fixtures`), and three research notes on Tailwind, StyleX and Taffy (explorations, not plans).                                                                 |
+| `docs/`                |                                     | The guide.                                                                                                                                                                                               |
+| `packages/core`        | `@gridconfig/core`                  | Parser, compiler, `grid` and `createGrid`, types. `./object` is the same without the YAML parser. `./runtime` has the small parts that an adapter needs. `./schema.json` is the JSON Schema for editors. |
+| `packages/vite`        | `@gridconfig/vite`                  | The Vite plugin: loads `.grid` files, compiles static `grid` calls, and bundles the CSS.                                                                                                                 |
+| `packages/svelte`      | `@gridconfig/svelte`                | `Grid` for Svelte 5, and `GridStyles` for server rendering of layouts compiled at runtime.                                                                                                               |
+| `packages/react`       | `@gridconfig/react`                 | `Grid` for React 19.                                                                                                                                                                                     |
+| `packages/devtools`    | `@gridconfig/devtools`              | The inspector overlay: areas, authored tracks, the active step, and checks of the markup.                                                                                                                |
+| `packages/conformance` | `@gridconfig/conformance` (private) | Loads the fixtures in Chromium and checks the layout that the browser makes.                                                                                                                             |
 
 Planned: a CLI, adapters for Vue, Astro and Web Components, plugins for other bundlers, and an editor extension for `.grid` files.
 
