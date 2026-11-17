@@ -1,6 +1,7 @@
 // The inspector: one overlay for every GridConfig layout on the page. It reads only the DOM
 // contract (data-grid-* attributes), computed styles and the optional `--grid-debug` data. Thus it
-// works the same in each framework.
+// works the same in each framework. It reads the page and never changes it: resizing, step
+// switching and pop-out are in the pro inspector.
 import { DEBUG_PROPERTY, attributes } from '@gridconfig/core/runtime';
 import type { DebugInfo } from '@gridconfig/core';
 import {
@@ -11,10 +12,7 @@ import {
 	parseDebug,
 	parseTrackSizes,
 	resolve,
-	sizeForStep,
-	snap,
 	stepLabel,
-	thresholds,
 	trackStarts,
 	type Finding,
 	type Resolved
@@ -24,75 +22,21 @@ import STYLE from './style.css?raw';
 export type Controller = {
 	/** Shows the overlay. Selects `host` when it is given. */
 	open(host?: Element): void;
-	/** Hides the overlay and gives every host back its natural size. */
+	/** Hides the overlay. */
 	close(): void;
 	toggle(): void;
 	select(host: Element): void;
-	/** Gives a host back its natural size. */
-	reset(host: Element): void;
 	/** Removes the overlay. */
 	destroy(): void;
 };
 
-const SNAP = 6;
-const MIN_SIZE = 16;
 /** How long the page must be still before the check for hosts with no size. */
 const SIZE_CHECK_DELAY = 1000;
-const OVERRIDDEN = [
-	'box-sizing',
-	'width',
-	'height',
-	'flex',
-	'max-width',
-	'max-height',
-	'min-width',
-	'min-height'
-];
 
-type Saved = Map<string, [string, string]>;
-type Size = { w: number; h: number };
 type State = {
+	/** The name of the selected layout, so a host that the page replaces is selected again. */
 	name?: string;
-	/** Sizes the person set, by page path and layout name: "/promo|hero". */
-	sizes?: Record<string, Size>;
-	/** The layout that is popped out, the page it is on, and the size it has there. */
-	popped?: Size & { name: string; path?: string };
 };
-
-/**
- * A popover gets styles from the browser: a border, padding, a background and `overflow: auto`. A
- * popped host keeps the values it has in the page, so the layout inside it does not change.
- */
-const KEPT = [
-	'padding-top',
-	'padding-right',
-	'padding-bottom',
-	'padding-left',
-	'border-top-width',
-	'border-right-width',
-	'border-bottom-width',
-	'border-left-width',
-	'border-top-style',
-	'border-right-style',
-	'border-bottom-style',
-	'border-left-style',
-	'background-color',
-	'color',
-	'overflow-x',
-	'overflow-y'
-];
-/** The first background colour that is not transparent, from the element up. */
-function backdropOf(element: Element): string {
-	for (let e: Element | null = element; e; e = e.parentElement) {
-		const color = getComputedStyle(e).backgroundColor;
-		if (!/^(transparent|rgba?\(.*,\s*0\))$/.test(color)) return color;
-	}
-	return 'Canvas';
-}
-
-/** The room that a popped host leaves around it, for the labels of the inspector. */
-const POP_MARGIN = 160;
-const POP_DEFAULT: Size = { w: 480, h: 360 };
 
 function el<K extends keyof HTMLElementTagNameMap>(
 	tag: K,
@@ -117,8 +61,8 @@ function place(node: HTMLElement, b: { x?: number; y?: number; w?: number; h?: n
 const round = (n: number) => Math.round(n * 10) / 10;
 const px = (n: number) => `${round(n)}px`;
 /**
- * The size that container queries measure: the content box. The inspector uses it for every size
- * it shows or sets, so a host with padding or a border does not jump when a drag starts.
+ * The size that container queries measure: the content box. The inspector shows this size, and
+ * the checks use it.
  */
 function contentSize(host: HTMLElement): { w: number; h: number } {
 	const cs = getComputedStyle(host);
@@ -141,21 +85,6 @@ export function install(): Controller | null {
 	let isOpen = false;
 	let selected: Element | null = null;
 	let frame = 0;
-	const overrides = new WeakMap<Element, Saved>();
-	const touched = new Set<Element>();
-	/** The drag in progress. It keeps its own host and pointer, so nothing else can redirect it. */
-	let drag: {
-		host: HTMLElement;
-		handle: HTMLElement;
-		pointerId: number;
-		x: number;
-		y: number;
-		w: number;
-		h: number;
-		axis: 'x' | 'y' | 'both';
-		last?: Size;
-	} | null = null;
-	let optionsKey = '';
 	/**
 	 * The guides show only while the pointer is over a layout, so a move away gives a clean view of
 	 * the design. A zone is the area of a layout and of its labels. The tag with the controls stays.
@@ -165,13 +94,9 @@ export function install(): Controller | null {
 	let selectedZone: Zone | null = null;
 	let otherZones: { zone: Zone; group: HTMLElement }[] = [];
 	const noHover = window.matchMedia('(hover: none)');
-	/** The host that is popped out, with the inline styles that it had before. */
-	let popped: HTMLElement | null = null;
-	let poppedSaved: Saved = new Map();
-	let poppedHadSize = false;
 
 	// The state is in memory. It stays through a hot update, because the controller is global, so a
-	// host that the page replaces gets its size back. A reload starts clean.
+	// host that the page replaces is selected again. A reload starts clean.
 	const state: State = {};
 	/** True while a host has the `debug` prop. The inspector opens and closes with it. */
 	let debugOn = false;
@@ -181,23 +106,15 @@ export function install(): Controller | null {
 	const shadow = root.attachShadow({ mode: 'open' });
 	shadow.innerHTML = `
 		<style>${STYLE}</style>
-		<div class="scrim" popover="manual" hidden></div>
 		<div class="layer" popover="manual">
 			<div class="decor"></div>
 			<div class="chrome" hidden>
 				<div class="tag interactive">
 					<span class="name"></span>
-					<select aria-label="Step"></select>
-					<button class="reset" title="Back to the natural size" aria-label="Reset the size">↺</button>
-					<button class="popout" aria-pressed="false" title="Pop out to the centre of the screen" aria-label="Pop out">
-						<svg viewBox="0 0 12 12" width="12" height="12" aria-hidden="true"><path d="M1 4.5V1h3.5M7.5 1H11v3.5M11 7.5V11H7.5M4.5 11H1V7.5" fill="none" stroke="currentColor"/></svg>
-					</button>
+					<span class="step"></span>
 					<span class="count" hidden></span>
 				</div>
 				<div class="size guide"></div>
-				<div class="handle edge x interactive guide" data-axis="x"></div>
-				<div class="handle edge y interactive guide" data-axis="y"></div>
-				<div class="handle dot interactive guide" data-axis="both"></div>
 				<div class="below guide"><div class="info"></div><ul class="findings"></ul></div>
 			</div>
 			<button class="toggle interactive" aria-pressed="false" title="GridConfig inspector (Alt+Shift+G)">
@@ -207,13 +124,10 @@ export function install(): Controller | null {
 		</div>`;
 	const $ = <T extends Element>(s: string) => shadow.querySelector<T>(s)!;
 	const layer = $<HTMLElement>('.layer');
-	const scrim = $<HTMLElement>('.scrim');
 	const decor = $<HTMLElement>('.decor');
 	const chrome = $<HTMLElement>('.chrome');
 	const tagName = $<HTMLElement>('.tag .name');
-	const select = $<HTMLSelectElement>('.tag select');
-	const resetButton = $<HTMLButtonElement>('.tag .reset');
-	const popoutButton = $<HTMLButtonElement>('.tag .popout');
+	const stepLabelEl = $<HTMLElement>('.tag .step');
 	const tag = $<HTMLElement>('.tag');
 	const sizeLabel = $<HTMLElement>('.size');
 	const below = $<HTMLElement>('.below');
@@ -221,140 +135,9 @@ export function install(): Controller | null {
 	const findings = $<HTMLElement>('.findings');
 	const count = $<HTMLElement>('.tag .count');
 	const toggleButton = $<HTMLButtonElement>('.toggle');
-	const handles = shadow.querySelectorAll<HTMLElement>('.handle');
 
 	const hostsOf = () => [...document.querySelectorAll<HTMLElement>(`[${attributes.host}]`)];
 	const nameOf = (host: Element) => host.getAttribute(attributes.host) ?? '';
-	// A size belongs to one page. The same layout on another page, or nested in another layout,
-	// must not get it.
-	const sizeKey = (host: Element) => `${location.pathname}|${nameOf(host)}`;
-
-	/**
-	 * A layout inside a host that changes size must follow its cell, as it does when the page
-	 * changes size. Thus an inline size on a nested host goes when its ancestor gets a new size.
-	 */
-	function releaseInside(host: Element) {
-		for (const inner of [...touched])
-			if (inner !== host && host.contains(inner) && inner !== popped) {
-				restore(inner);
-				if (state.sizes) delete state.sizes[sizeKey(inner)];
-			}
-	}
-
-	// Sizes: the real host gets an inline size. The page around it reflows, and the cascade does the rest.
-	function setSize(
-		host: HTMLElement,
-		w: number,
-		h: number,
-		{ persist = true, release = true }: { persist?: boolean; release?: boolean } = {}
-	) {
-		if (release) releaseInside(host);
-		if (!overrides.has(host)) {
-			const saved: Saved = new Map();
-			for (const p of OVERRIDDEN)
-				saved.set(p, [host.style.getPropertyValue(p), host.style.getPropertyPriority(p)]);
-			overrides.set(host, saved);
-			touched.add(host);
-		}
-		const set = (p: string, v: string) => host.style.setProperty(p, v, 'important');
-		set('box-sizing', 'content-box');
-		set('width', `${Math.round(w)}px`);
-		set('height', `${Math.round(h)}px`);
-		set('flex', 'none');
-		set('max-width', 'none');
-		set('max-height', 'none');
-		set('min-width', '0');
-		set('min-height', '0');
-		const size = { w: Math.round(w), h: Math.round(h) };
-		if (!persist) return;
-		if (host === popped) state.popped = { name: nameOf(host), path: location.pathname, ...size };
-		else (state.sizes ??= {})[sizeKey(host)] = size;
-	}
-
-	/** The largest size that fits in the viewport while a host is popped out. */
-	const fit = (w: number, h: number): Size => ({
-		w: Math.max(MIN_SIZE, Math.min(w, window.innerWidth - POP_MARGIN)),
-		h: Math.max(MIN_SIZE, Math.min(h, window.innerHeight - POP_MARGIN))
-	});
-
-	// Pop out: the real host goes to the top layer, in the middle of the screen. It stays at the
-	// same place in the DOM, so the CSS that depends on its ancestors still applies.
-	function popOut(host: HTMLElement, size?: Size) {
-		if (popped === host) return;
-		if (popped) popIn();
-		const style = getComputedStyle(host);
-		const pins: [string, string][] = KEPT.map((p) => [p, style.getPropertyValue(p)]);
-		// Without a background, the page behind the scrim would show through the layout.
-		const background = pins.find(([p]) => p === 'background-color')!;
-		if (/^(transparent|rgba?\(.*,\s*0\))$/.test(background[1])) background[1] = backdropOf(host);
-		pins.push(['position', 'fixed'], ['inset', '0'], ['margin', 'auto'], ['z-index', '2147483646']);
-		poppedSaved = new Map(
-			pins.map(([p]) => [p, [host.style.getPropertyValue(p), host.style.getPropertyPriority(p)]])
-		);
-		poppedHadSize = overrides.has(host);
-		popped = host;
-		selected = host;
-		optionsKey = '';
-		state.name = nameOf(host);
-
-		const now = contentSize(host);
-		const start = size ?? (now.w > 0 && now.h > 0 ? now : POP_DEFAULT);
-		const { w, h } = fit(start.w, start.h);
-		setSize(host, w, h);
-		for (const [p, v] of pins) host.style.setProperty(p, v, 'important');
-		host.setAttribute('popover', 'manual');
-		scrim.hidden = false;
-		try {
-			scrim.showPopover();
-			host.showPopover();
-			// The layer of the inspector must be above the host.
-			layer.hidePopover();
-			layer.showPopover();
-		} catch {
-			/* An old browser: the pins make the host position: fixed, with a high z-index. */
-		}
-		watch();
-		schedule();
-	}
-
-	/** Puts the host back where it was, with its own styles. */
-	function popIn() {
-		const host = popped;
-		if (!host) return;
-		endDrag();
-		popped = null;
-		scrim.hidden = true;
-		try {
-			scrim.hidePopover();
-			host.hidePopover();
-		} catch {
-			/* Not shown, or an old browser. */
-		}
-		host.removeAttribute('popover');
-		for (const [p, [value, priority]] of poppedSaved)
-			if (value) host.style.setProperty(p, value, priority);
-			else host.style.removeProperty(p);
-		poppedSaved = new Map();
-		if (!poppedHadSize) restore(host);
-		delete state.popped;
-		schedule();
-	}
-
-	function restore(host: Element) {
-		const saved = overrides.get(host);
-		if (!saved || !(host instanceof HTMLElement)) return;
-		for (const [p, [value, priority]] of saved)
-			if (value) host.style.setProperty(p, value, priority);
-			else host.style.removeProperty(p);
-		overrides.delete(host);
-		touched.delete(host);
-	}
-
-	function reset(host: Element) {
-		restore(host);
-		if (state.sizes) delete state.sizes[sizeKey(host)];
-		schedule();
-	}
 
 	// Drawing.
 	function schedule() {
@@ -392,7 +175,7 @@ export function install(): Controller | null {
 		checkSizes();
 		const hosts = hostsOf();
 		// The `debug` prop opens the inspector on its host. When the last `debug` goes, for example in
-		// a hot update, the inspector closes and the hosts get their natural size again.
+		// a hot update, the inspector closes.
 		const debugHost = hosts.find((host) => host.hasAttribute('data-grid-debug'));
 		if (debugHost && !debugOn) {
 			debugOn = true;
@@ -400,7 +183,6 @@ export function install(): Controller | null {
 		}
 		if (!debugHost && debugOn) {
 			debugOn = false;
-			state.sizes = {};
 			if (isOpen) return close();
 		}
 		// The button shows only for a page that asks for it with the `debug` prop. While the inspector
@@ -415,44 +197,16 @@ export function install(): Controller | null {
 			return;
 		}
 
-		// The page can replace the popped host, for example when a file changes and the dev server
-		// updates the page. Then the new host with the same name pops out.
-		if (popped && !popped.isConnected) {
-			popped = null;
-			poppedSaved = new Map();
-			scrim.hidden = true;
-			try {
-				scrim.hidePopover();
-			} catch {
-				/* Not shown. */
-			}
-		}
-		if (!popped && state.popped && (state.popped.path ?? location.pathname) === location.pathname) {
-			const again = hosts.find((h) => nameOf(h) === state.popped!.name);
-			if (again) popOut(again, state.popped);
-		}
-
 		if (!selected || !selected.isConnected) {
 			const wanted = state.name;
 			selected = hosts.find((h) => nameOf(h) === wanted) ?? hosts[0];
 			watch();
 		}
 
-		// Sizes come back when the page replaces a host, for example in a hot update. Only for the selected
-		// host and the hosts around it: a nested layout follows its cell. The hosts are in document
-		// order, so an outer host gets its size before an inner one.
-		const sizes = state.sizes ?? {};
-		for (const host of hosts) {
-			const s = sizes[sizeKey(host)];
-			if (s && !overrides.has(host) && !drag && host !== popped && host.contains(selected))
-				setSize(host, s.w, s.h, { persist: false, release: false });
-		}
-
 		const parts: HTMLElement[] = [];
 		otherZones = [];
 		for (const host of hosts) {
-			// Behind the scrim, the other layouts are not in view.
-			if (host === selected || popped) continue;
+			if (host === selected) continue;
 			const r = host.getBoundingClientRect();
 			const group = el('div', 'group other');
 			const chip = el('button', 'chip interactive', { x: r.left, y: r.top - 22 }, nameOf(host));
@@ -499,8 +253,8 @@ export function install(): Controller | null {
 
 	/** Shows the guides of the layout under the pointer. It runs on each move, so it only compares rectangles. */
 	function updateHover() {
-		// No hover on a touch screen, and a drag can go outside the zone: show the guides then.
-		const hot = noHover.matches || !!drag || contains(selectedZone);
+		// No hover on a touch screen: show the guides there.
+		const hot = noHover.matches || contains(selectedZone);
 		layer.classList.toggle('hot', hot);
 		for (const { zone, group } of otherZones) group.classList.toggle('on', contains(zone));
 	}
@@ -688,39 +442,17 @@ export function install(): Controller | null {
 		chrome.hidden = false;
 		const name = nameOf(host);
 		tagName.textContent = info ? `${name}/` : name;
-		select.hidden = !info;
+		stepLabelEl.hidden = !info;
 		if (info) {
-			const key = `${name}|${info.steps.map(stepLabel).join(',')}`;
-			if (key !== optionsKey) {
-				optionsKey = key;
-				select.replaceChildren(
-					...info.steps.map((s, i) => {
-						const o = document.createElement('option');
-						o.value = String(i);
-						o.textContent = stepLabel(s);
-						return o;
-					})
-				);
-			}
-			const value = String(resolved?.step ?? 0);
-			if (select.value !== value) select.value = value;
+			const step = info.steps[resolved?.step ?? 0];
+			stepLabelEl.textContent = step ? stepLabel(step) : '';
+			stepLabelEl.title = `Steps: ${info.steps.map(stepLabel).join(', ')}`;
 		}
-		layer.classList.toggle('popped', host === popped);
-		resetButton.hidden = !overrides.has(host) || host === popped;
-		popoutButton.setAttribute('aria-pressed', String(host === popped));
-		popoutButton.title =
-			host === popped ? 'Back into the page (Esc)' : 'Pop out to the centre of the screen';
 		place(tag, { x: hr.left, y: Math.max(4, hr.top - 34) });
 		const box = contentSize(host);
 		sizeLabel.textContent = `${Math.round(box.w)} × ${Math.round(box.h)}`;
 		place(sizeLabel, { x: hr.right, y: Math.max(4, hr.top - 28) });
 		place(below, { x: hr.left, y: hr.bottom + 30 });
-		const dim = (n: HTMLElement, b: { x: number; y: number; w?: number; h?: number }) =>
-			place(n, b);
-		const [hx, hy, hc] = handles;
-		dim(hx, { x: hr.right - 4, y: hr.top + 12, w: 8, h: Math.max(0, hr.height - 24) });
-		dim(hy, { x: hr.left + 12, y: hr.bottom - 4, w: Math.max(0, hr.width - 24), h: 8 });
-		dim(hc, { x: hr.right - 6, y: hr.bottom - 6 });
 		infoRow.replaceChildren(...infoItems.map((t) => el('span', 'item', undefined, t)));
 		findings.replaceChildren(
 			...list.map((f) => el('li', `finding ${f.level}`, undefined, f.message))
@@ -771,10 +503,7 @@ export function install(): Controller | null {
 
 	// Controls.
 	function select_(host: Element) {
-		if (popped && popped !== host) popIn();
-		if (drag && drag.host !== host) endDrag();
 		selected = host;
-		optionsKey = '';
 		state.name = nameOf(host);
 		watch();
 		schedule();
@@ -787,9 +516,6 @@ export function install(): Controller | null {
 	}
 	function close() {
 		isOpen = false;
-		endDrag();
-		popIn();
-		for (const host of [...touched]) restore(host);
 		schedule();
 	}
 	function toggle() {
@@ -797,118 +523,14 @@ export function install(): Controller | null {
 		else open();
 	}
 	toggleButton.addEventListener('click', toggle);
-	resetButton.addEventListener('click', () => selected && reset(selected));
-	popoutButton.addEventListener('click', () => {
-		if (!selected) return;
-		if (popped) popIn();
-		else popOut(selected as HTMLElement);
-	});
-	window.addEventListener(
-		'keydown',
-		(e) => {
-			if (e.key === 'Escape' && popped) {
-				e.preventDefault();
-				e.stopPropagation();
-				popIn();
-			}
-		},
-		true
-	);
-	select.addEventListener('change', () => {
-		const host = selected as HTMLElement | null;
-		const info =
-			host && parseDebug(getComputedStyle(host).getPropertyValue(DEBUG_PROPERTY), nameOf(host));
-		if (!host || !info) return;
-		endDrag();
-		const size = sizeForStep(info, Number(select.value), contentSize(host));
-		const to = host === popped ? fit(size.w, size.h) : size;
-		setSize(host, to.w, to.h);
-		schedule();
-	});
-
-	// Resize. A drag must end in every case, also when the browser never sends pointerup: the
-	// window loses focus, a context menu opens, the element loses pointer capture, or the inspector
-	// changes state. Else the next move over the handle resizes the host with no button down.
-	function endDrag() {
-		const d = drag;
-		if (!d) return;
-		drag = null;
-		try {
-			if (d.handle.hasPointerCapture(d.pointerId)) d.handle.releasePointerCapture(d.pointerId);
-		} catch {
-			/* The pointer is gone. */
-		}
-		// Store the size once, at the end, not on every move.
-		if (d.last && d.host.isConnected) setSize(d.host, d.last.w, d.last.h);
-		schedule();
-	}
-
-	for (const handle of handles) {
-		handle.addEventListener('pointerdown', (e) => {
-			// Only the primary button of the primary pointer starts a drag.
-			if (!selected || e.button !== 0 || !e.isPrimary) return;
-			e.preventDefault();
-			endDrag();
-			const host = selected as HTMLElement;
-			const start = contentSize(host);
-			drag = {
-				host,
-				handle,
-				pointerId: e.pointerId,
-				x: e.clientX,
-				y: e.clientY,
-				w: start.w,
-				h: start.h,
-				axis: handle.dataset.axis as 'x' | 'y' | 'both'
-			};
-			try {
-				handle.setPointerCapture(e.pointerId);
-			} catch {
-				/* Not an active pointer. */
-			}
-		});
-		handle.addEventListener('pointermove', (e) => {
-			if (!drag || e.pointerId !== drag.pointerId) return;
-			// No primary button down: the pointerup went somewhere else.
-			if ((e.buttons & 1) === 0 || !drag.host.isConnected) return endDrag();
-			const { host } = drag;
-			let w = drag.axis === 'y' ? drag.w : drag.w + (e.clientX - drag.x);
-			let h = drag.axis === 'x' ? drag.h : drag.h + (e.clientY - drag.y);
-			const info = parseDebug(
-				getComputedStyle(host).getPropertyValue(DEBUG_PROPERTY),
-				nameOf(host)
-			);
-			if (info && !e.altKey) {
-				const t = thresholds(info);
-				w = snap(w, t.w, SNAP);
-				h = snap(h, t.h, SNAP);
-			}
-			const to =
-				host === popped ? fit(w, h) : { w: Math.max(MIN_SIZE, w), h: Math.max(MIN_SIZE, h) };
-			drag.last = to;
-			setSize(host, to.w, to.h, { persist: false });
-			schedule();
-		});
-		const end = (e: PointerEvent) => {
-			if (drag && e.pointerId === drag.pointerId) endDrag();
-		};
-		handle.addEventListener('pointerup', end);
-		handle.addEventListener('pointercancel', end);
-		handle.addEventListener('lostpointercapture', end);
-	}
-	window.addEventListener('blur', endDrag);
-	window.addEventListener('contextmenu', endDrag, true);
-	document.addEventListener('visibilitychange', () => document.hidden && endDrag());
 
 	const controller: Controller = {
 		open,
 		close,
 		toggle,
 		select: select_,
-		reset,
 		destroy() {
 			clearTimeout(sizeTimer);
-			endDrag();
 			close();
 			resizeObserver.disconnect();
 			mutations.disconnect();

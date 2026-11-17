@@ -127,7 +127,7 @@ In development, `Grid` loads an inspector that draws the areas, the tracks and t
 | `packages/vite`        | `@gridconfig/vite`                  | The Vite plugin: loads `.grid` files, compiles static `grid` calls, and bundles the CSS.                                                                 |
 | `packages/svelte`      | `@gridconfig/svelte`                | `Grid` for Svelte 5, and `GridStyles` for server rendering of layouts compiled at runtime.                                                               |
 | `packages/react`       | `@gridconfig/react`                 | `Grid` for React 19.                                                                                                                                     |
-| `packages/devtools`    | `@gridconfig/devtools`              | The inspector overlay: areas, authored tracks, steps, resize, and checks of the markup.                                                                  |
+| `packages/devtools`    | `@gridconfig/devtools`              | The inspector overlay: areas, authored tracks, the active step, and checks of the markup.                                                                |
 | `packages/conformance` | `@gridconfig/conformance` (private) | Loads the fixtures in Chromium and checks the layout that the browser makes.                                                                             |
 
 Planned: a CLI, adapters for Vue, Astro and Web Components, plugins for other bundlers, and an editor extension for `.grid` files.

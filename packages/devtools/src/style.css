@@ -119,30 +119,10 @@
 .tag {
 	display: flex;
 	align-items: center;
-	padding: 3px 6px 3px 8px;
 }
 
-.tag select {
-	appearance: auto;
-	margin: 0;
-	border: 0;
-	padding: 0 2px 0 0;
-	background: transparent;
-	color: inherit;
-	font: inherit;
-	cursor: pointer;
-}
-
-.tag .reset,
-.tag .popout {
-	display: inline-flex;
-	align-items: center;
-	border: 0;
-	padding: 0 0 0 6px;
-	background: transparent;
-	color: inherit;
-	font: inherit;
-	cursor: pointer;
+.tag .step {
+	color: var(--ink);
 }
 
 .tag .count {
@@ -166,24 +146,6 @@
 	border-radius: 4px;
 	padding: 0 4px;
 	background: color-mix(in srgb, var(--paper) 85%, transparent);
-}
-
-/* The scrim behind a popped host */
-
-.scrim {
-	position: fixed;
-	inset: 0;
-	width: auto;
-	height: auto;
-	margin: 0;
-	padding: 0;
-	border: 0;
-	overflow: hidden;
-	color: transparent;
-	background:
-		radial-gradient(circle, rgb(255 255 255 / 22%) 1px, transparent 1.5px) 0 0 / 18px 18px,
-		rgb(18 20 28 / 64%);
-	cursor: default;
 }
 
 /* Areas, gaps and padding */
@@ -246,37 +208,6 @@
 
 .label.row.in {
 	transform: translate(0, -50%);
-}
-
-/* On the scrim, the labels are light. */
-
-.layer.popped .label {
-	color: var(--paper);
-	text-shadow: none;
-}
-
-/* Resize handles */
-
-/* touch-action: none stops a touch or a pen from scrolling the page and cancelling the drag. */
-.handle {
-	touch-action: none;
-}
-
-.handle.edge {
-	cursor: ew-resize;
-}
-
-.handle.edge.y {
-	cursor: ns-resize;
-}
-
-.handle.dot {
-	width: 12px;
-	height: 12px;
-	border: 1.5px solid var(--accent);
-	border-radius: 50%;
-	background: var(--paper);
-	cursor: nwse-resize;
 }
 
 /* The values under the frame, and the problems */

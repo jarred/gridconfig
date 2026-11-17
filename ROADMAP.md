@@ -12,7 +12,7 @@ What is built, and what is planned. The format is in the [spec](./spec/spec.md).
 - The Svelte `Grid` component (`packages/svelte`) and the React `Grid` component (`packages/react`, React 19). They use the `data-grid-*` attributes. For a layout that compiled when the code ran, they put its CSS on the page one time (`mountStyles` in core), and replace it when the layout changes.
 - A core entry without the YAML parser (`@gridconfig/core/object`), for code that writes layouts as objects. `grid` and `createGrid` take an object only there.
 - `onStepChange` in `@gridconfig/core/runtime`: a listener and a `gridstepchange` event for a change of the active step. The `Grid` components have it as a prop.
-- The inspector (`packages/devtools`). Refer to [Inspector](./packages/devtools/README.md). Browser tests cover the drawing, the select, the handles, and the checks of the markup.
+- The inspector (`packages/devtools`). Refer to [Inspector](./packages/devtools/README.md). The overlay only reads the page. Browser tests cover the drawing, the active step, the hover, and the checks of the markup.
 - Browser tests (`packages/conformance`). Each fixture in `spec/fixtures` is a `.grid` file and a list of expected results at many container sizes. The tests load the compiled CSS in Chromium and compare the used tracks, the gaps, the position of each area, and the computed flow properties of each area. Other tests record how the CSS interacts with page CSS, cascade layers, and resets.
 
 ## Not built yet

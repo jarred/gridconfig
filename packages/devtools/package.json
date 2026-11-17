@@ -1,7 +1,7 @@
 {
 	"name": "@gridconfig/devtools",
 	"version": "0.0.0",
-	"description": "An in-browser inspector for GridConfig layouts: areas, tracks, steps and resizing.",
+	"description": "An in-browser inspector for GridConfig layouts: areas, tracks, the active step and markup checks.",
 	"license": "MIT",
 	"type": "module",
 	"exports": {

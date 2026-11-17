@@ -161,6 +161,6 @@ gridconfig({ ...options, modules: ['./src/lib/grid.ts'] });
 
 ## The inspector
 
-In development, `Grid` loads an overlay that draws the areas, the tracks and the active step. Press Alt+Shift+G to show or hide it, or pass `debug` to `Grid` to open it on that grid. It can resize the layout to each step, and it finds markup problems such as a child with no `data-grid-area`. Refer to [@gridconfig/devtools](../packages/devtools/README.md).
+In development, `Grid` loads an overlay that draws the areas, the tracks and the active step. Press Alt+Shift+G to show or hide it, or pass `debug` to `Grid` to open it on that grid. The step in the overlay follows the size of the host, and the overlay finds markup problems such as a child with no `data-grid-area`. Refer to [@gridconfig/devtools](../packages/devtools/README.md).
 
 Next: [Steps](./steps.md).
