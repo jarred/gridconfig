@@ -129,7 +129,6 @@ In development, `Grid` loads an inspector that draws the areas, the tracks and t
 | `packages/react`       | `@gridconfig/react`                 | `Grid` for React 19.                                                                                                                                     |
 | `packages/devtools`    | `@gridconfig/devtools`              | The inspector overlay: areas, authored tracks, steps, resize, and checks of the markup.                                                                  |
 | `packages/conformance` | `@gridconfig/conformance` (private) | Loads the fixtures in Chromium and checks the layout that the browser makes.                                                                             |
-| `apps/site`            | `@gridconfig/site` (private)        | The gridconfig.dev site: docs and playground (currently a demo page).                                                                                    |
 
 Planned: a CLI, adapters for Vue, Astro and Web Components, plugins for other bundlers, and an editor extension for `.grid` files.
 
@@ -139,12 +138,11 @@ The workspace needs Node 22.18 or later and pnpm.
 
 ```sh
 pnpm install
-pnpm dev           # the site
 pnpm test          # Node tests in core, vite, devtools, react and svelte
 pnpm test:browser  # fixtures, page CSS and the inspector in Chromium
 pnpm check         # type-check
 pnpm lint          # Prettier and ESLint
-pnpm build         # build each package, and the site
+pnpm build         # build each package
 ```
 
 Before the first `pnpm test:browser`, install the browser: `pnpm --filter @gridconfig/conformance exec playwright install chromium`.

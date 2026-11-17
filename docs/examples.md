@@ -124,8 +124,8 @@ strip:
 | 1200 × 628 link post, video   | ~2:1  | `wide`  |
 | 728 × 90 leaderboard, banners | ≥ 5:1 | `strip` |
 
-`copy` and `logo` show only where they fit. Container units (`3cqmin`) scale the gap with the ad. The [site](../apps/site/src/lib/components/ad.grid) has the full version, with more bands and safe zones for stories.
+`copy` and `logo` show only where they fit. Container units (`3cqmin`) scale the gap with the ad. The [full version](https://github.com/jarred/gridconfig/blob/9ff50ee/apps/site/src/lib/components/ad.grid), from the old demo site, has more bands and safe zones for stories.
 
 ## A logo made of layouts
 
-The [logo on the site](../apps/site/src/lib/components/logo.svelte) is three nested layouts. Each step sets custom properties with `css`, and the CSS of the component uses them for colours and shapes. It shows how far `css` and `--grid-step` can go without JavaScript.
+The [logo from the old demo site](https://github.com/jarred/gridconfig/blob/9ff50ee/apps/site/src/lib/components/logo.svelte) is three nested layouts. Each step sets custom properties with `css`, and the CSS of the component uses them for colours and shapes. It shows how far `css` and `--grid-step` can go without JavaScript.

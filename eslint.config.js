@@ -11,7 +11,6 @@ const gitignorePath = path.resolve(import.meta.dirname, '.gitignore');
 export default defineConfig(
 	includeIgnoreFile(gitignorePath),
 	// A page for experiments. It has imports that are not in use at each moment.
-	{ ignores: ['apps/site/src/routes/scratch/**'] },
 	js.configs.recommended,
 	ts.configs.recommended,
 	svelte.configs.recommended,
