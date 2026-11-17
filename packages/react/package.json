@@ -1,6 +1,6 @@
 {
 	"name": "@gridconfig/react",
-	"version": "0.0.0",
+	"version": "1.0.0",
 	"description": "GridConfig Grid component for React 19.",
 	"license": "MIT",
 	"repository": {
@@ -41,8 +41,8 @@
 		"check": "tsc -p tsconfig.json"
 	},
 	"dependencies": {
-		"@gridconfig/core": "workspace:*",
-		"@gridconfig/devtools": "workspace:*",
+		"@gridconfig/core": "workspace:^",
+		"@gridconfig/devtools": "workspace:^",
 		"esm-env": "^1.2.2"
 	},
 	"peerDependencies": {

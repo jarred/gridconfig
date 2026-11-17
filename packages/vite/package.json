@@ -1,6 +1,6 @@
 {
 	"name": "@gridconfig/vite",
-	"version": "0.0.0",
+	"version": "1.0.0",
 	"description": "The Vite plugin for GridConfig: compiles layout files and static grid calls at build time.",
 	"license": "MIT",
 	"repository": {
@@ -48,7 +48,7 @@
 		"test": "node --test \"test/**/*.test.ts\""
 	},
 	"dependencies": {
-		"@gridconfig/core": "workspace:*",
+		"@gridconfig/core": "workspace:^",
 		"magic-string": "^0.30.21"
 	},
 	"peerDependencies": {

@@ -2,7 +2,7 @@
 
 All the packages (`@gridconfig/core`, `vite`, `svelte`, `react` and `devtools`) have the same version. The project follows [semantic versioning](https://semver.org). [Stability](./spec/spec.md#stability) says what each 1.x release keeps.
 
-## 1.0.0 (unreleased)
+## 1.0.0 (2026-11-17)
 
 The first release.
 

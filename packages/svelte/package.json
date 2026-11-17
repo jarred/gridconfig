@@ -1,6 +1,6 @@
 {
 	"name": "@gridconfig/svelte",
-	"version": "0.0.0",
+	"version": "1.0.0",
 	"description": "GridConfig Grid component for Svelte 5.",
 	"license": "MIT",
 	"repository": {
@@ -46,8 +46,8 @@
 		"test": "node --test \"test/**/*.test.ts\" && node --conditions=browser --conditions=production --test test/hydrate.dom.ts test/hydrate-styles.dom.ts"
 	},
 	"dependencies": {
-		"@gridconfig/core": "workspace:*",
-		"@gridconfig/devtools": "workspace:*",
+		"@gridconfig/core": "workspace:^",
+		"@gridconfig/devtools": "workspace:^",
 		"esm-env": "^1.2.2"
 	},
 	"peerDependencies": {

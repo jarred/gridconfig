@@ -80,7 +80,7 @@ importers:
   packages/devtools:
     dependencies:
       '@gridconfig/core':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../core
     devDependencies:
       typescript:
@@ -90,10 +90,10 @@ importers:
   packages/react:
     dependencies:
       '@gridconfig/core':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../core
       '@gridconfig/devtools':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../devtools
       esm-env:
         specifier: ^1.2.2
@@ -118,10 +118,10 @@ importers:
   packages/svelte:
     dependencies:
       '@gridconfig/core':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../core
       '@gridconfig/devtools':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../devtools
       esm-env:
         specifier: ^1.2.2
@@ -143,7 +143,7 @@ importers:
   packages/vite:
     dependencies:
       '@gridconfig/core':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../core
       magic-string:
         specifier: ^0.30.21
